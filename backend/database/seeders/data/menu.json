@@ -1,0 +1,51 @@
+[
+  {
+    "title": "Dashboard",
+    "url": "/",
+    "icon": "Home",
+    "order": 1
+  },
+  {
+    "title": "Clientes",
+    "icon": "Users",
+    "submenu": [
+        { "title": "Lista de clientes", "url": "/clients" },
+        { "title": "Lista de contratos", "url": "/contracts" }
+    ]
+  },
+  {
+    "title": "Produtos",
+    "submenu": [
+      { "title": "Todos produtos", "url": "/products" }
+    ]
+  },
+  {
+    "title": "Financeiro",
+    "submenu": [
+      { "title": "Contas a pagar", "url": "/finance/payables" },
+      { "title": "Contas a receber", "url": "/finance/receivables" },
+      { "title": "Categorias", "url": "/financial/categories" }
+    ]
+  },
+  {
+    "title": "Relatórios",
+    "icon": "LineChart",
+    "submenu": [
+      { "title": "Geral", "url": "/reports/relatorio-geral" },
+      { "title": "Vendas", "url": "/reports/relatorio-vendas" }
+    ]
+  },
+  {
+    "title": "Configurações",
+    "icon": "Cog",
+    "submenu": [
+        { "title": "Usuários", "url": "/settings/users" },
+        { "title": "Dados da empresa", "url": "/settings/dados_conta" },
+        { "title": "Biblioteca de mídia", "url": "/settings/media-library-demo" },
+        { "title": "Permissões", "url": "/settings/permissions" },
+        { "title": "Funil e etapas", "url": "/settings/stages" },
+        { "title": "Todas Categorias", "url": "/categories" },
+        { "title": "Sistema", "url": "/settings/system"}
+    ]
+  }
+]
