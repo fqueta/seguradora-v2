@@ -17,6 +17,9 @@ export interface Product {
   terms: string[];
   plan?: number;
   validUntil?: string;
+  costPrice?: number;
+  salePrice?: number;
+  active?: boolean; // Adicionado para consistência
   stock: number;
 }
 

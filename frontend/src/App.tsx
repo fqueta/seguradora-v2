@@ -15,6 +15,7 @@ import FaviconUpdater from "@/components/branding/FaviconUpdater";
 import Clients from "./pages/Clients";
 import ContractList from "./pages/contracts/ContractList";
 import ContractForm from "./pages/contracts/ContractForm";
+import ContractView from "./pages/contracts/ContractView";
 import ClientView from "./pages/ClientView";
 import ClientCreate from "./pages/ClientCreate";
 import ClientEdit from "./pages/ClientEdit";
@@ -273,6 +274,13 @@ const App = () => {
                 <AdminProtectedRoute>
                   <AppLayout>
                     <ContractForm />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/contracts/:id" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <ContractView />
                   </AppLayout>
                 </AdminProtectedRoute>
               } />

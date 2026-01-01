@@ -27,6 +27,7 @@ export interface ContractRecord {
   updated_at?: string;
   client?: any;
   owner?: any;
+  product?: any;
 }
 
 /**

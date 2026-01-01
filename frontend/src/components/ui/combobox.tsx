@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Check, ChevronsUpDown } from "lucide-react"
+import { Check, ChevronsUpDown, Plus } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandSeparator,
 } from "@/components/ui/command"
 import {
   Popover,
@@ -45,6 +46,16 @@ interface ComboboxProps {
    * Debounce time in ms for search (default: 250ms)
    */
   debounceMs?: number
+  /**
+   * Função para criar um novo item. Se fornecida, exibe um botão de ação.
+   * Function to create a new item. If provided, displays an action button.
+   */
+  onCreate?: () => void
+  /**
+   * Label para o botão de criar novo item (default: "Criar Novo")
+   * Label for the create new item button (default: "Create New")
+   */
+  createLabel?: string
 }
 
 /**
@@ -64,6 +75,8 @@ export function Combobox({
   onSearch,
   searchTerm,
   debounceMs = 250,
+  onCreate,
+  createLabel = "Criar Novo",
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const [searchValue, setSearchValue] = React.useState(searchTerm || "")
@@ -107,7 +120,7 @@ export function Combobox({
       {/* Ajusta a largura do popover para igualar ao input/trigger */}
       {/* Adjust popover width to match input/trigger width */}
       <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-        <Command>
+        <Command shouldFilter={false}>
           <CommandInput 
             placeholder={searchPlaceholder}
             value={searchValue}
@@ -118,7 +131,24 @@ export function Combobox({
             }}
           />
           <CommandList>
+            {onCreate && (
+              <CommandGroup>
+                <CommandItem
+                  value="__create_new_item__"
+                  onSelect={() => {
+                    onCreate()
+                    setOpen(false)
+                  }}
+                  className="flex items-center gap-2 text-primary cursor-pointer bg-muted/30 hover:bg-muted/50 font-medium border-b"
+                >
+                  <Plus className="h-4 w-4" />
+                  {createLabel}
+                </CommandItem>
+              </CommandGroup>
+            )}
+            
             <CommandEmpty>{emptyText}</CommandEmpty>
+            
             <CommandGroup>
               {(onSearch ? options : options.filter((option) =>
                 option.label.toLowerCase().includes(searchValue.toLowerCase())
@@ -162,6 +192,7 @@ export function Combobox({
     </Popover>
   )
 }
+
 
 /**
  * Hook para transformar arrays de objetos em opções do Combobox

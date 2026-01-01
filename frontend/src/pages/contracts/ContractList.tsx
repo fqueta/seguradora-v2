@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, Pencil, Trash } from 'lucide-react';
+import { Plus, Search, Pencil, Trash, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDebounce } from '@/hooks/useDebounce';
 import {
@@ -59,12 +59,13 @@ export default function ContractList() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <Table>
+                            <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Número</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead>Cliente</TableHead>
+                                <TableHead>Valor</TableHead>
                                 <TableHead>Início</TableHead>
                                 <TableHead>Fim</TableHead>
                                 <TableHead className="text-right">Ações</TableHead>
@@ -73,11 +74,11 @@ export default function ContractList() {
                         <TableBody>
                             {isLoading ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center">Carregando...</TableCell>
+                                    <TableCell colSpan={7} className="text-center">Carregando...</TableCell>
                                 </TableRow>
                             ) : data?.data?.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center">Nenhum contrato encontrado</TableCell>
+                                    <TableCell colSpan={7} className="text-center">Nenhum contrato encontrado</TableCell>
                                 </TableRow>
                             ) : (
                                 data?.data?.map((contract: any) => (
@@ -85,9 +86,25 @@ export default function ContractList() {
                                         <TableCell>{contract.contract_number || contract.id}</TableCell>
                                         <TableCell>{contract.status}</TableCell>
                                         <TableCell>{contract.client?.name || '-'}</TableCell>
-                                        <TableCell>{contract.start_date}</TableCell>
-                                        <TableCell>{contract.end_date}</TableCell>
+                                        <TableCell>
+                                            {contract.value 
+                                                ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(contract.value)
+                                                : '-'}
+                                        </TableCell>
+                                        <TableCell>
+                                            {contract.start_date 
+                                                ? new Date(contract.start_date).toLocaleDateString('pt-BR') 
+                                                : '-'}
+                                        </TableCell>
+                                        <TableCell>
+                                            {contract.end_date 
+                                                ? new Date(contract.end_date).toLocaleDateString('pt-BR') 
+                                                : '-'}
+                                        </TableCell>
                                         <TableCell className="text-right space-x-2">
+                                            <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/contracts/${contract.id}`)}>
+                                                <Eye className="h-4 w-4" />
+                                            </Button>
                                             <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/contracts/${contract.id}/edit`)}>
                                                 <Pencil className="h-4 w-4" />
                                             </Button>

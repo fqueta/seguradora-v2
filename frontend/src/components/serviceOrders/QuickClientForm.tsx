@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, User, Mail, Phone, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { clientsService } from "@/services/clientsService";
+import { phoneApplyMask } from "@/lib/masks/phone-apply-mask";
 
 /**
  * Schema de validação para cadastro rápido de cliente
@@ -95,7 +96,7 @@ export default function QuickClientForm({ onClientCreated, onCancel }: QuickClie
     } catch (error) {
       console.error("Erro ao criar cliente:", error);
       if(Array.isArray(error)) {
-        object.keys(error).forEach((key) => {
+        Object.keys(error).forEach((key) => {
           form.setError(key, {
             message: error[key][0],
           });
@@ -125,7 +126,13 @@ export default function QuickClientForm({ onClientCreated, onCancel }: QuickClie
 
       {/* Formulário */}
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form 
+          onSubmit={(e) => {
+            e.stopPropagation();
+            form.handleSubmit(onSubmit)(e);
+          }} 
+          className="space-y-4"
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Nome */}
             <FormField
@@ -183,6 +190,8 @@ export default function QuickClientForm({ onClientCreated, onCancel }: QuickClie
                     <Input
                       placeholder="(11) 99999-9999"
                       {...field}
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(phoneApplyMask(e.target.value))}
                       disabled={isLoading}
                     />
                   </FormControl>
