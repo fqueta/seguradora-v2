@@ -283,6 +283,9 @@ Route::name('api.')->prefix('v1')->middleware([
             Route::put('{id}/menu-permissions', [MenuPermissionController::class, 'updatePermissions'])->name('menu-permissions.update');
             // Route::post('{id}/menus', [PermissionMenuController::class, 'update']);
         });
+
+        // Rotas para Organizations
+        Route::apiResource('organizations', \App\Http\Controllers\OrganizationController::class);
     });
     // Rotas para tracking events
     Route::post('tracking/whatsapp-contact', [TrackingEventController::class, 'whatsappContact'])->name('tracking.whatsapp-contact');

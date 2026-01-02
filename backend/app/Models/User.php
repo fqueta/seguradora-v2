@@ -32,6 +32,7 @@ class User extends Authenticatable
         'reg_excluido',
         'deletado',
         'reg_deletado',
+        'organization_id',
     ];
 
     protected $casts = [
@@ -56,6 +57,11 @@ class User extends Authenticatable
     public function menus()
     {
         return $this->belongsToMany(Menu::class, 'menu_permission', 'permission_id', 'menu_id');
+    }
+
+    public function organization()
+    {
+        return $this->belongsTo(Organization::class);
     }
 
 

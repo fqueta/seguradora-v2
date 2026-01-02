@@ -10,6 +10,8 @@ import { SmartDocumentInput } from '@/components/lib/SmartDocumentInput';
 import { MaskedInputField } from '@/components/lib/MaskedInputField';
 import { UseFormReturn } from 'react-hook-form';
 import { Eye, EyeOff } from 'lucide-react';
+import { Organization } from '@/types/organization';
+import { phoneApplyMask } from '@/lib/masks/phone-apply-mask';
 
 interface Permission {
   id: number;
@@ -24,6 +26,7 @@ interface UserFormData {
   name: string;
   email: string;
   permission_id: string;
+  organization_id?: string | number | null;
   tipo_pessoa?: 'pf' | 'pj';
   password?: string;
   genero?: 'm' | 'f' | 'ni';
@@ -48,6 +51,7 @@ interface UserFormProps {
   onCancel: () => void;
   editingUser?: UserFormData | null;
   permissions: Permission[];
+  organizations?: Organization[];
   isLoadingPermissions: boolean;
   handleOnclick?: () => void;
   /** Controla exibição do campo Tipo de Pessoa | Controls visibility of person type field */
@@ -83,6 +87,7 @@ export function UserForm({
   onCancel,
   editingUser,
   permissions,
+  organizations = [],
   isLoadingPermissions,
   handleOnclick,
   showTipoPessoa = true,
@@ -110,7 +115,7 @@ export function UserForm({
               <FormItem>
                 <FormLabel>Nome</FormLabel>
                 <FormControl>
-                  <Input placeholder="Nome completo" {...field} />
+                  <Input placeholder="Nome completo" {...field} value={field.value ?? ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -123,7 +128,7 @@ export function UserForm({
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="email@exemplo.com" {...field} />
+                  <Input type="email" placeholder="email@exemplo.com" {...field} value={field.value ?? ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -169,6 +174,29 @@ export function UserForm({
                       <SelectItem key={permission.id} value={String(permission.id)}>
                         {permission.name}
                       </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="organization_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Organização</FormLabel>
+                <Select onValueChange={(val) => field.onChange(val === 'none' ? null : Number(val))} value={field.value ? String(field.value) : undefined}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a organização" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhuma</SelectItem>
+                    {organizations?.map((org) => (
+                      <SelectItem key={org.id} value={String(org.id)}>{org.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -289,7 +317,7 @@ export function UserForm({
                   <FormItem>
                     <FormLabel>Razão Social</FormLabel>
                     <FormControl>
-                      <Input placeholder="Razão social da empresa" {...field} />
+                      <Input placeholder="Razão social da empresa" {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

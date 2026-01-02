@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 // Removido uso direto de campos de telefone no cadastro
 import { UserForm } from '@/components/users/UserForm';
 import { usePermissionsList } from '@/hooks/permissions';
+import { useOrganizationsList } from '@/hooks/organizations';
 import { useCreateUser } from '@/hooks/users';
 import { CreateUserInput } from '@/types/users';
 import { toast } from '@/hooks/use-toast';
@@ -21,6 +22,7 @@ const userCreateSchema = z.object({
   // Tipo de pessoa fixo: PF
   tipo_pessoa: z.literal('pf').default('pf'),
   permission_id: z.coerce.string().min(1, 'Permissão é obrigatória'),
+  organization_id: z.coerce.number().nullable().optional(),
   name: z.string().min(1, 'Nome é obrigatório'),
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
@@ -62,12 +64,15 @@ export default function UserCreate() {
   const createMutation = useCreateUser();
   const { data: permissionsData, isLoading: isLoadingPermissions } = usePermissionsList();
   const permissions = permissionsData?.data || [];
+  const { data: organizationsData } = useOrganizationsList({ per_page: 100, active: true });
+  const organizations = organizationsData?.data || [];
 
   const form = useForm<UserCreateFormData>({
     resolver: zodResolver(userCreateSchema),
     defaultValues: {
       tipo_pessoa: 'pf',
       permission_id: '',
+      organization_id: null,
       name: '',
       email: '',
       password: '',
@@ -103,6 +108,7 @@ export default function UserCreate() {
     const payload: CreateUserInput = {
       tipo_pessoa: 'pf',
       permission_id: data.permission_id,
+      organization_id: data.organization_id || null,
       email: data.email,
       password: data.password,
       name: data.name,
@@ -161,11 +167,12 @@ export default function UserCreate() {
         </CardHeader>
         <CardContent>
           <UserForm
-            form={form}
-            onSubmit={onSubmit}
+            form={form as any}
+            onSubmit={onSubmit as any}
             onCancel={onCancel}
             editingUser={null}
-            permissions={permissions}
+            permissions={permissions as any}
+            organizations={organizations}
             isLoadingPermissions={isLoadingPermissions}
             showTipoPessoa={false}
             showGenero={false}

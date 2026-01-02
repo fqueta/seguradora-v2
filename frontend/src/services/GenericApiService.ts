@@ -62,8 +62,10 @@ export class GenericApiService<T = any, CreateInput = any, UpdateInput = any> ex
    * @param data - Dados do registro
    */
   async create(data: CreateInput): Promise<T> {
-    const response = await this.post<ApiResponse<T>>(this.endpoint, data);
-    return response.data;
+    const response = await this.post<any>(this.endpoint, data);
+    return (response && typeof response === 'object' && 'data' in response)
+      ? (response.data as T)
+      : (response as T);
   }
 
   /**
@@ -72,8 +74,10 @@ export class GenericApiService<T = any, CreateInput = any, UpdateInput = any> ex
    * @param data - Dados para atualização
    */
   async update(id: string | number, data: UpdateInput): Promise<T> {
-    const response = await this.put<ApiResponse<T>>(`${this.endpoint}/${id}`, data);
-    return response.data;
+    const response = await this.put<any>(`${this.endpoint}/${id}`, data);
+    return (response && typeof response === 'object' && 'data' in response)
+      ? (response.data as T)
+      : (response as T);
   }
 
   /**

@@ -1,6 +1,5 @@
 import { Controller, Control } from "react-hook-form";
 import { FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { InputMask, format } from "@react-input/mask";
 import { useEffect, useState } from "react";
 import { CheckCircle, AlertCircle } from 'lucide-react';
@@ -13,6 +12,7 @@ type SmartDocumentInputProps = {
   placeholder?: string;
   onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
   disabled?: boolean;
+  required?: boolean;
 };
 
 /**
@@ -21,20 +21,22 @@ type SmartDocumentInputProps = {
  * @param props Propriedades do componente
  * @returns Componente de input com máscara inteligente
  */
-export function SmartDocumentInput({
-  name,
-  control,
-  label,
-  tipoPessoa,
-  placeholder,
-  onBlur,
-  disabled,
-}: SmartDocumentInputProps) {
+export function SmartDocumentInput(props: SmartDocumentInputProps) {
+  const {
+    name,
+    control,
+    label,
+    tipoPessoa,
+    placeholder,
+    onBlur,
+    disabled,
+    required = true,
+  } = props;
+
   const [mask, setMask] = useState("");
   const [inputPlaceholder, setInputPlaceholder] = useState("");
   const [inputLabel, setInputLabel] = useState("");
   const [isValid, setIsValid] = useState<boolean | null>(null);
-  const [currentValue, setCurrentValue] = useState("");
 
   /**
    * Atualiza a máscara e placeholder baseado no tipo de pessoa
@@ -149,8 +151,6 @@ export function SmartDocumentInput({
    * @param value Novo valor do campo
    */
   const handleValueChange = (value: string) => {
-    setCurrentValue(value);
-    
     if (value && value.length > 0) {
       const cleanValue = value.replace(/\D/g, '');
       const expectedLength = tipoPessoa === 'pf' ? 11 : 14;
@@ -197,7 +197,7 @@ export function SmartDocumentInput({
   return (
     <FormItem>
       <FormLabel className="text-sm font-medium text-gray-700">
-        {inputLabel} {tipoPessoa === 'pf' || tipoPessoa === 'pj' ? '*' : ''}
+        {inputLabel} {required ? '*' : ''}
       </FormLabel>
       <FormControl>
         <div className="relative">

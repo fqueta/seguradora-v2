@@ -45,6 +45,7 @@
         { "title": "Permissões", "url": "/settings/permissions" },
         { "title": "Funil e etapas", "url": "/settings/stages" },
         { "title": "Todas Categorias", "url": "/categories" },
+        { "title": "Organizações", "url": "/settings/organizations" },
         { "title": "Sistema", "url": "/settings/system"}
     ]
   }

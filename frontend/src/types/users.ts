@@ -33,12 +33,15 @@ export interface UserRecord {
   ativo: "s" | "n";
   created_at?: string;
   updated_at?: string;
+  organization_id?: number | null;
+  organization?: any;
 }
 
 export interface CreateUserInput {
   tipo_pessoa: "pf" | "pj";
   token: string;
   permission_id: string;
+  organization_id?: number | null;
   email: string;
   password: string;
   name: string;
@@ -54,6 +57,7 @@ export interface UpdateUserInput {
   tipo_pessoa?: "pf" | "pj";
   token?: string;
   permission_id?: string;
+  organization_id?: number | null;
   email?: string;
   password?: string;
   name?: string;

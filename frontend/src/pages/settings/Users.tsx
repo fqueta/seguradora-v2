@@ -69,12 +69,14 @@ import {
   useDeleteUser
 } from '@/hooks/users';
 import { usePermissionsList } from '@/hooks/permissions';
+import { useOrganizationsList } from '@/hooks/organizations';
 import { UserRecord, CreateUserInput } from '@/types/users';
 import { toast } from '@/hooks/use-toast';
 
 const userSchema = z.object({
   tipo_pessoa: z.enum(["pf", "pj"]).optional(),
   permission_id: z.coerce.string().min(1, 'Permissão é obrigatória'),
+  organization_id: z.number().nullable().optional(),
   email: z.string().email('Email inválido'),
   password: z.string().transform(val => val === "" ? undefined : val).optional().refine(val => val === undefined || val.length >= 6, {
     message: "Senha deve ter pelo menos 6 caracteres"
@@ -124,6 +126,9 @@ export default function Users() {
   const { data: permissionsData, isLoading: isLoadingPermissions } = usePermissionsList();
   const permissions = permissionsData?.data || [];
 
+  const { data: organizationsData } = useOrganizationsList({ per_page: 100, active: true });
+  const organizations = organizationsData?.data || [];
+
   const createMutation = useCreateUser();
   const updateMutation = useUpdateUser();
   const deleteMutation = useDeleteUser();
@@ -133,7 +138,13 @@ export default function Users() {
     defaultValues: {
       tipo_pessoa: 'pf',
       permission_id: '',
+      organization_id: null,
+      name: '',
+      email: '',
       password: '',
+      cpf: '',
+      cnpj: '',
+      razao: '',
       // status: 'actived',
       genero: 'ni',
       ativo: 's',
@@ -189,6 +200,7 @@ export default function Users() {
       form.reset({
         tipo_pessoa: user.tipo_pessoa,
         permission_id: String(user.permission_id),
+        organization_id: user.organization_id || null,
         email: user.email,
         name: user.name,
         cpf: user.cpf || '',
@@ -222,6 +234,7 @@ export default function Users() {
       setEditingUser(null);
       form.reset({
         permission_id: permissions.length > 0 ? String(permissions[0].id) : "",
+        organization_id: null,
       });
     }
     setIsModalOpen(true);
@@ -237,9 +250,10 @@ export default function Users() {
     console.log('Valores submetidos:', data); 
     try {
       const payload: CreateUserInput = {
-        tipo_pessoa: data.tipo_pessoa,
+        tipo_pessoa: data.tipo_pessoa as any,
         token: '', // Empty token as per schema
         permission_id: data.permission_id,
+        organization_id: data.organization_id,
         email: data.email,
         password: data.password || 'mudar123', // Default password if not provided
         name: data.name,
@@ -417,6 +431,7 @@ export default function Users() {
                     <TableHead>Permissão</TableHead>
                     {/* <TableHead>Status</TableHead> */}
                     <TableHead>Ativo</TableHead>
+                    <TableHead>Organização</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -437,6 +452,9 @@ export default function Users() {
                       </TableCell> */}
                       <TableCell>
                         {getAtivoBadge(user.ativo)}
+                      </TableCell>
+                      <TableCell>
+                        {user.organization?.name || '-'}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
@@ -503,11 +521,12 @@ export default function Users() {
             </DialogDescription>
           </DialogHeader>
           <UserForm
-            form={form}
-            onSubmit={onSubmit}
+            form={form as any}
+            onSubmit={onSubmit as any}
             onCancel={handleCloseModal}
             editingUser={editingUser ?? null}
-            permissions={permissions}
+            permissions={permissions as any}
+            organizations={organizations}
             isLoadingPermissions={isLoadingPermissions}
             handleOnclick={handleOnclick}
             showTipoPessoa={false}

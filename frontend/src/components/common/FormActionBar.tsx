@@ -20,6 +20,7 @@ export function FormActionBar({
   onSaveContinue,
   onSaveExit,
   onCancel,
+  onSaveEdit,
   isLoading = false,
   className,
   labels,
@@ -34,6 +35,7 @@ export function FormActionBar({
   onSaveContinue?: () => void;
   onSaveExit?: () => void;
   onCancel?: () => void;
+  onSaveEdit?: () => void;
   isLoading?: boolean;
   className?: string;
   labels?: Partial<{
@@ -116,7 +118,11 @@ export function FormActionBar({
                 </Button>
               )}
               {showSubmit && (
-                <Button type="submit" disabled={isLoading}>
+                <Button 
+                    type={onSaveEdit ? "button" : "submit"} 
+                    onClick={onSaveEdit} 
+                    disabled={isLoading}
+                >
                   {isLoading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -189,7 +195,11 @@ export function FormActionBar({
             </Button>
           )}
           {showSubmit && (
-            <Button type="submit" disabled={isLoading}>
+            <Button 
+                type={onSaveEdit ? "button" : "submit"} 
+                onClick={onSaveEdit} 
+                disabled={isLoading}
+            >
               {isLoading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

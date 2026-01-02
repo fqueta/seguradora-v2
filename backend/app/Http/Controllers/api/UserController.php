@@ -61,7 +61,7 @@ class UserController extends Controller
         //listar usuarios com permissões dele pra cima
         $permission_id = $request->user()->permission_id;
         // dd($permission_id);
-        $query = User::query()->where('permission_id','!=',$this->cliente_permission_id)->orderBy($order_by,$order);
+        $query = User::with('organization')->where('permission_id','!=',$this->cliente_permission_id)->orderBy($order_by,$order);
 
         // Não exibir registros marcados como deletados ou excluídos
         $query->where(function($q) {
@@ -80,7 +80,10 @@ class UserController extends Controller
         if ($request->filled('cnpj')) {
             $query->where('cnpj', 'like', '%' . $request->input('cnpj') . '%');
         }
-        //**Adicionar filtros extras  */
+        if ($request->filled('organization_id')) {
+            $query->where('organization_id', $request->input('organization_id'));
+        }
+
         //se existir um campo consultores for true então filtrar todos com permissão maior ou igual a dele
         if($request->filled('consultores')){
             $query->where('permission_id','>=',$user->permission_id);
@@ -158,6 +161,7 @@ class UserController extends Controller
             'genero'        => ['required', Rule::in(['ni','m','f'])],
             // 'verificado'    => ['required', Rule::in(['n','s'])],
             'permission_id' => 'nullable|integer',
+            'organization_id' => 'nullable|integer|exists:organizations,id',
             'config'        => 'array',
         ]);
 
@@ -365,6 +369,9 @@ class UserController extends Controller
         if ($request->filled('cnpj')) {
             $query->where('cnpj', 'like', '%' . $request->input('cnpj') . '%');
         }
+        if ($request->filled('organization_id')) {
+            $query->where('organization_id', $request->input('organization_id'));
+        }
 
         $users = $query->paginate($perPage);
         return response()->json($users);
@@ -397,6 +404,7 @@ class UserController extends Controller
             'genero'        => ['sometimes', Rule::in(['ni','m','f'])],
             'verificado'    => ['sometimes', Rule::in(['n','s'])],
             'permission_id' => 'nullable|integer',
+            'organization_id' => 'nullable|integer|exists:organizations,id',
             'ativo'         => ['sometimes', Rule::in(['n','s'])],
             'config'        => 'array'
         ]);

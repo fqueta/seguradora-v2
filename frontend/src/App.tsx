@@ -45,6 +45,8 @@ import Categories from "./pages/Categories";
 import Permissions from "./pages/settings/Permissions";
 import Users from "./pages/settings/Users";
 import UserCreate from "./pages/settings/UserCreate";
+import OrganizationList from "./pages/settings/organizations/OrganizationList";
+import OrganizationForm from "./pages/settings/organizations/OrganizationForm";
 import UserProfiles from "./pages/settings/UserProfiles";
 import SystemSettings from "./pages/settings/SystemSettings";
 import Stages from "./pages/settings/Stages";
@@ -803,6 +805,29 @@ const App = () => {
                   </AppLayout>
                 </AdminProtectedRoute>
               } />
+
+              <Route path="/admin/settings/organizations" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <OrganizationList />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/settings/organizations/create" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <OrganizationForm />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/settings/organizations/:id/edit" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <OrganizationForm />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+
               <Route path="/admin/settings/metrics" element={
                 <AdminProtectedRoute>
                   <AppLayout>

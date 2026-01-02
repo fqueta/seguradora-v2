@@ -97,7 +97,7 @@ export default function QuickClientForm({ onClientCreated, onCancel }: QuickClie
       console.error("Erro ao criar cliente:", error);
       if(Array.isArray(error)) {
         Object.keys(error).forEach((key) => {
-          form.setError(key, {
+          form.setError(key as any, {
             message: error[key][0],
           });
           // toast.error(error[key][0]);
@@ -145,6 +145,7 @@ export default function QuickClientForm({ onClientCreated, onCancel }: QuickClie
                     <Input
                       placeholder="Nome completo do cliente"
                       {...field}
+                      value={field.value ?? ''}
                       disabled={isLoading}
                     />
                   </FormControl>
@@ -168,6 +169,7 @@ export default function QuickClientForm({ onClientCreated, onCancel }: QuickClie
                       type="email"
                       placeholder="email@exemplo.com"
                       {...field}
+                      value={field.value ?? ''}
                       disabled={isLoading}
                     />
                   </FormControl>
@@ -214,6 +216,7 @@ export default function QuickClientForm({ onClientCreated, onCancel }: QuickClie
                     <Input
                       placeholder="Endereço completo"
                       {...field}
+                      value={field.value ?? ''}
                       disabled={isLoading}
                     />
                   </FormControl>
@@ -235,6 +238,7 @@ export default function QuickClientForm({ onClientCreated, onCancel }: QuickClie
                     placeholder="Informações adicionais sobre o cliente..."
                     className="min-h-[80px]"
                     {...field}
+                    value={field.value ?? ''}
                     disabled={isLoading}
                   />
                 </FormControl>
