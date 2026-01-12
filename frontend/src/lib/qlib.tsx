@@ -19,7 +19,7 @@ export function getTenantApiUrl(): string {
   const raw =
     (import.meta.env as any).VITE_TENANT_API_URL ||
     'https://'+location.host+'/api' ||
-    'http://{tenant_id}.localhost:8000/api';
+    'http://{tenant_id}.localhost:8001/api';
 
   const tenant_id = getTenantIdFromSubdomain() || 'default';
   // console.log('tenant_id', tenant_id);

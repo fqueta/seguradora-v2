@@ -90,10 +90,10 @@ class MenuSeeder extends Seeder
                     'redirect_login' => '/home',
                     'active' => 's'
                 ],
-                // INSTRUTOR → somente dois primeiros menus
+                // FORNECEDOR → somente dois primeiros menus
                 [
-                    'name' => 'Instrutor',
-                    'description' => 'Instrutores do sistema',
+                    'name' => 'Fornecedor',
+                    'description' => 'Fornecedores do sistema',
                     'redirect_login' => '/home',
                     'active' => 's'
                 ],

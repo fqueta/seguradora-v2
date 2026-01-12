@@ -47,6 +47,7 @@ const productSchema = z.object({
   plan: z.enum(["1","2","3","4","5","6","7","8","9"]).optional(),
   terms: z.array(z.string()).optional(),
   validUntil: z.string().optional(),
+  supplier_id: z.string().optional(),
 });
 
 export type ProductFormData = z.infer<typeof productSchema>;
@@ -63,14 +64,21 @@ interface Unit {
   value?: string;
 }
 
+interface Supplier {
+  id: number | string;
+  name: string;
+}
+
 interface ProductFormProps {
   form: UseFormReturn<ProductFormData>;
   onSubmit: (data: ProductFormData) => void;
   isSubmitting: boolean;
   categories: Category[];
   units: Unit[];
+  suppliers: Supplier[];
   isLoadingCategories: boolean;
   isLoadingUnits: boolean;
+  isLoadingSuppliers?: boolean;
   categoriesError: any;
   unitsError: any;
   onCancel: () => void;
@@ -83,8 +91,10 @@ export function ProductForm({
   isSubmitting,
   categories,
   units,
+  suppliers,
   isLoadingCategories,
   isLoadingUnits,
+  isLoadingSuppliers,
   categoriesError,
   unitsError,
   onCancel,
@@ -190,6 +200,41 @@ export function ProductForm({
                       categories?.map((category) => (
                         <SelectItem key={category.id} value={String(category.id)}>
                           {category.name}
+                        </SelectItem>
+                      )) || []
+                    )}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="supplier_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Fornecedor</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value ? String(field.value) : undefined} disabled={isLoadingSuppliers}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um fornecedor" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {isLoadingSuppliers ? (
+                      <div className="p-2 text-sm text-muted-foreground">
+                        Carregando fornecedores...
+                      </div>
+                    ) : !suppliers || suppliers.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground">
+                        Nenhum fornecedor disponível
+                      </div>
+                    ) : (
+                      suppliers?.map((supplier) => (
+                        <SelectItem key={supplier.id} value={String(supplier.id)}>
+                          {supplier.name}
                         </SelectItem>
                       )) || []
                     )}

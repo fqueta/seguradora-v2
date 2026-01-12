@@ -20,6 +20,7 @@ import ClientView from "./pages/ClientView";
 import ClientCreate from "./pages/ClientCreate";
 import ClientEdit from "./pages/ClientEdit";
 import Partners from "./pages/Partners";
+import Suppliers from "./pages/Suppliers";
 import PartnerView from "./pages/PartnerView";
 import ServiceObjects from "./pages/ServiceObjects";
 import Aircraft from "./pages/Aircraft";
@@ -596,6 +597,14 @@ const App = () => {
                 <AdminProtectedRoute>
                   <AppLayout>
                     <Partners />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              {/* Rotas de fornecedores */}
+              <Route path="/admin/suppliers" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <Suppliers />
                   </AppLayout>
                 </AdminProtectedRoute>
               } />

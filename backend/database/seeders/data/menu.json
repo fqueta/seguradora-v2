@@ -40,6 +40,7 @@
     "icon": "Cog",
     "submenu": [
         { "title": "Usuários", "url": "/settings/users" },
+        { "title": "Fornecedores", "url": "/settings/suppliers" },
         { "title": "Dados da empresa", "url": "/settings/dados_conta" },
         { "title": "Biblioteca de mídia", "url": "/settings/media-library-demo" },
         { "title": "Permissões", "url": "/settings/permissions" },

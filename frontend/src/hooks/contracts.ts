@@ -7,7 +7,7 @@ function getContractsApi() {
     service: contractsService,
     queryKey: 'contracts',
     entityName: 'Contrato',
-    suppressToasts: false
+    suppressToasts: true
   });
 }
 

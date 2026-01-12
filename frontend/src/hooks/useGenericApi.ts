@@ -93,6 +93,11 @@ export function useGenericApi<T, CreateInput, UpdateInput, ListParams = any>(
     return useMutation({
       mutationFn: (data: CreateInput) => service.create(data),
       onSuccess: (data) => {
+        if ((data as any)?.exec === false) {
+           if (!suppressToasts) toast.error((data as any)?.mens || `Erro ao criar ${entityName.toLowerCase()}`);
+           mutationOptions?.onSuccess?.(data, data as any, undefined);
+           return;
+        }
         queryClient.invalidateQueries({ queryKey: [queryKey] });
         if (!suppressToasts) toast.success(`${entityName} criado com sucesso!`);
         mutationOptions?.onSuccess?.(data, data as any, undefined);
@@ -115,6 +120,11 @@ export function useGenericApi<T, CreateInput, UpdateInput, ListParams = any>(
     return useMutation({
       mutationFn: ({ id, data }: { id: string; data: UpdateInput }) => service.update(id, data),
       onSuccess: (data, variables) => {
+        if ((data as any)?.exec === false) {
+            if (!suppressToasts) toast.error((data as any)?.mens || `Erro ao atualizar ${entityName.toLowerCase()}`);
+            mutationOptions?.onSuccess?.(data, variables, undefined);
+            return;
+        }
         queryClient.invalidateQueries({ queryKey: [queryKey] });
         queryClient.invalidateQueries({ queryKey: [queryKey, 'detail', variables.id] });
         if (!suppressToasts) toast.success(`${entityName} atualizado com sucesso!`);

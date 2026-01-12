@@ -210,17 +210,14 @@ class CategoryController extends Controller
         }
 
         $category = $query->firstOrFail();
-
+        if (!$category) {
+            return response()->json([
+                'message' => 'Categoria não encontrada',
+                'status' => 404
+            ], 404);
+        }
         // Formatar resposta no formato do frontend
-        $response = [
-            'id' => $category->id,
-            'name' => $category->name,
-            'description' => $category->description,
-            'parentId' => $category->parent_id,
-            'active' => $category->active,
-            'created_at' => $category->created_at,
-            'updated_at' => $category->updated_at,
-        ];
+        $response = $this->mapData($category);
 
         // Adicionar relacionamentos se carregados
         if ($category->relationLoaded('parent')) {
@@ -235,7 +232,23 @@ class CategoryController extends Controller
 
         return response()->json($response);
     }
-
+    /**
+     * Metodo para mapear e normalizar
+     *  
+     */
+    private function mapData($data)
+    {
+        $response = [
+            'id' => $data['id'],
+            'name' => $data['name'],
+            'description' => $data['description'],
+            'parentId' => $data['parentId'],
+            'active' => $data['active'],
+            'created_at' => $data['created_at'],
+            'updated_at' => $data['updated_at'],
+        ];
+        return $response;
+    }
     /**
      * Atualizar uma categoria específica
      */

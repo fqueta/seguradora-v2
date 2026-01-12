@@ -24,6 +24,7 @@ class Contract extends Model
         'value',
         'file_path',
         'type',
+        'token',
         'address',
     ];
 
@@ -31,6 +32,7 @@ class Contract extends Model
         'address' => 'array',
         'start_date' => 'date',
         'end_date' => 'date',
+        'token' => 'string',
     ];
 
     public function uniqueIds()
@@ -46,5 +48,15 @@ class Contract extends Model
     public function owner()
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function events()
+    {
+        return $this->hasMany(ContractEvent::class);
+    }
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class, 'product_id');
     }
 }

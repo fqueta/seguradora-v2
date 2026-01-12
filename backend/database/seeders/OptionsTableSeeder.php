@@ -14,7 +14,8 @@ class OptionsTableSeeder extends Seeder
     public function run(): void
     {
         //limpar primeiro as opções
-        DB::table('options')->truncate();
+        //limpar primeiro as opções
+        // DB::table('options')->truncate();
 
         if(Qlib::is_crm_aero()){
             $data = [
@@ -52,6 +53,17 @@ class OptionsTableSeeder extends Seeder
                     'name'  => 'Id da situação padrão das propostas',
                     'value' => '16',
                     'url'   => 'default_proposal_situacao_id',
+                ],
+                [
+                    'name'  => 'Credenciais SulAmerica',
+                    'value' => json_encode([
+                        'url'=>'https://canalvenda-internet-develop.executivoslab.com.br/services/canalvenda?wsdl',
+                        'user'=>'yello1232user',
+                        'pass'=>'yello1232pass',
+                        'produto'=>'10232',
+                    ]),
+                    'url'   => 'credenciais_sulamerica',
+                    'tags'  => 'link',
                 ],
             ];
         }else{
@@ -97,9 +109,26 @@ class OptionsTableSeeder extends Seeder
                     'value' => 'https://eadcontrol.com.br',
                     'url'   => 'default_frontend_url',
                 ],
+                [
+                    'name'  => 'Credenciais SulAmerica',
+                    'value' => json_encode([
+                        'url'=>'https://canalvenda-internet-develop.executivoslab.com.br/services/canalvenda?wsdl',
+                        'user'=>'yello1232user',
+                        'pass'=>'yello1232pass',
+                        'produto'=>'10232',
+                    ]),
+                    'url'   => 'credenciais_sulamerica',
+                    'tags'  => 'link',
+                ],
             ];
 
         }
-        DB::table('options')->insert($data);
+        
+        foreach ($data as $item) {
+            DB::table('options')->updateOrInsert(
+                ['url' => $item['url']],
+                $item
+            );
+        }
     }
 }

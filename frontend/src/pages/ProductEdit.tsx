@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useProduct, useUpdateProduct } from '@/hooks/products';
 import { useCategoriesList } from '@/hooks/categories';
+import { useSuppliersList } from '@/hooks/suppliers';
 import { ProductForm } from '@/components/products/ProductForm';
 import { productSchema } from '@/components/products/ProductForm';
 import { UpdateProductInput } from '@/types/products';
@@ -26,6 +27,12 @@ export default function ProductEdit() {
     entidade: 'produtos'
   });
   const categories = categoriesResponse?.data || [];
+  
+  const { data: suppliersResponse, isLoading: isLoadingSuppliers } = useSuppliersList({
+    page: 1,
+    per_page: 100
+  });
+  const suppliers = suppliersResponse?.data || [];
   
   // Mock units data - você pode criar um hook useUnits() se necessário
   const units = [
@@ -56,6 +63,7 @@ export default function ProductEdit() {
       availability: 'available',
       terms: [],
       validUntil: undefined,
+      supplier_id: undefined,
     },
   });
 
@@ -72,7 +80,7 @@ export default function ProductEdit() {
         costPrice: product.costPrice || 0,
         stock: product.stock || 0,
         unit: product.unit || '',
-        plan: product.plan ? String(product.plan) : undefined,
+
         active: product.active ?? true,
         image: product.image || '',
         rating: product.rating || 0,
@@ -80,6 +88,8 @@ export default function ProductEdit() {
         availability: product.availability || 'available',
         terms: product.terms || [],
         validUntil: product.validUntil,
+        plan: product.plan ? String(product.plan) as any : undefined,
+        supplier_id: product.supplier_id ? String(product.supplier_id) : undefined,
       });
     }
   }, [product, form]);
@@ -90,7 +100,14 @@ export default function ProductEdit() {
     if (hasOptions && cat && form.getValues('category') !== cat) {
       form.setValue('category', cat, { shouldDirty: false });
     }
-  }, [categories, product, form]);
+
+    // Re-sincroniza fornecedor quando opções são carregadas
+    const sup = product?.supplier_id ? String(product.supplier_id) : '';
+    const hasSupplierOptions = Array.isArray(suppliers) && suppliers.length > 0;
+    if (hasSupplierOptions && sup && form.getValues('supplier_id') !== sup) {
+      form.setValue('supplier_id', sup, { shouldDirty: false });
+    }
+  }, [categories, suppliers, product, form]);
 
   /**
    * Função para lidar com o envio do formulário de edição
@@ -117,6 +134,7 @@ export default function ProductEdit() {
           availability: data.availability,
           terms: data.terms,
           validUntil: data.validUntil,
+          supplier_id: data.supplier_id,
         },
       });
       
@@ -160,6 +178,7 @@ export default function ProductEdit() {
     availability: data.availability,
     terms: data.terms,
     validUntil: data.validUntil,
+    supplier_id: data.supplier_id,
   });
   const handleSaveContinue = () => {
     form.handleSubmit(async (data: UpdateProductInput) => {
@@ -264,9 +283,6 @@ export default function ProductEdit() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold">Editar Produto</h1>
-          <p className="text-muted-foreground">
-            Edite as informações do produto: {product.name}
-          </p>
         </div>
       </div>
 
@@ -278,15 +294,17 @@ export default function ProductEdit() {
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <ProductForm 
-              form={form}
+              form={form as any}
               onSubmit={onSubmit}
               isSubmitting={updateProductMutation.isPending}
               categories={categories}
               units={units}
               isLoadingCategories={isLoadingCategories}
               isLoadingUnits={isLoadingUnits}
+              isLoadingSuppliers={isLoadingSuppliers}
               categoriesError={categoriesError}
               unitsError={unitsError}
+              suppliers={suppliers}
               onCancel={handleCancel}
               isEditing={true}
             />

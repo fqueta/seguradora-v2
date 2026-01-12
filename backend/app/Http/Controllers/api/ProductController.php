@@ -4,6 +4,7 @@ namespace App\Http\Controllers\api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\User;
 use App\Services\PermissionService;
 use App\Services\Qlib;
 use Illuminate\Http\Request;
@@ -116,6 +117,8 @@ class ProductController extends Controller
             $product = (object)$product;
         }
         // dd($product);
+        $supplierid = $product->config['supplier_id'] ?? $product->post_author;
+        $supplierData = Qlib::getSupplierById($supplierid);
         return [
             'id' => $product->ID,
             'name' => $product->post_title,
@@ -135,8 +138,11 @@ class ProductController extends Controller
             'reviews' => $product->config['reviews'] ?? 0,
             'terms' => $product->config['terms'] ?? [],
             'plan' => $product->config['plan'] ?? null,
-            'created_at' => $product->created_at,
-            'updated_at' => $product->updated_at,
+            'supplier_id' => $supplierid,
+            'supplierData' => $supplierData,
+            //data no padrão banco de dados
+            'created_at' => $product->created_at->format('Y-m-d H:i:s'),
+            'updated_at' => $product->updated_at->format('Y-m-d H:i:s'),
         ];
     }
     public function array_filder_validate(){
@@ -155,6 +161,7 @@ class ProductController extends Controller
             'reviews' => 'nullable|integer|min:0',
             'terms' => 'nullable|array',
             'plan' => 'nullable|integer|min:1|max:9',
+            'supplier_id' => 'nullable|string|exists:users,id',
         ];
     }
     /**
@@ -256,6 +263,9 @@ class ProductController extends Controller
         if (isset($validated['plan'])) {
             $config['plan'] = (int)$validated['plan'];
         }
+        if (isset($validated['supplier_id'])) {
+            $config['supplier_id'] = $validated['supplier_id'];
+        }
         if (!empty($config)) {
             $mappedData['config'] = $config;
         }
@@ -347,6 +357,7 @@ class ProductController extends Controller
             'rating' => 'nullable|numeric|min:0|max:5',
             'reviews' => 'nullable|integer|min:0',
             'terms' => 'nullable|array',
+            'supplier_id' => 'nullable|string|exists:users,id',
         ]);
 
         if ($validator->fails()) {
@@ -410,6 +421,9 @@ class ProductController extends Controller
         }
         if (isset($validated['plan'])) {
             $config['plan'] = (int)$validated['plan'];
+        }
+        if (isset($validated['supplier_id'])) {
+            $config['supplier_id'] = $validated['supplier_id'];
         }
         if (!empty($config)) {
             $mappedData['config'] = $config;

@@ -34,12 +34,12 @@ class DatabaseSeeder extends Seeder
                     FinancialCategoriesSeeder::class,
                     OptionsTableSeeder::class,
                     ProductUnitsSeeder::class,
-                    EnrollmentSituationsSeeder::class,
+                    // EnrollmentSituationsSeeder::class,
                     FunnelStageSeeder::class,
-                    AircraftAttendanceSeeder::class,
-                    AeronavesSeeder::class,
-                    CursosSeeder::class,
-                    TurmasSeeder::class,
+                    // AircraftAttendanceSeeder::class,
+                    // AeronavesSeeder::class,
+                    // CursosSeeder::class,
+                    // TurmasSeeder::class,
                     // QoptionSeeder::class,
             ];
 
@@ -52,10 +52,13 @@ class DatabaseSeeder extends Seeder
                     FinancialCategoriesSeeder::class,
                     OptionsTableSeeder::class,
                     ProductUnitsSeeder::class,
-                    EnrollmentSituationsSeeder::class,
+                    // EnrollmentSituationsSeeder::class,
                     FunnelStageSeeder::class,
-                    AircraftAttendanceSeeder::class,
-                    AeronavesSeeder::class,
+                    // AircraftAttendanceSeeder::class,
+                    // AeronavesSeeder::class,
+                    // AeronavesSeeder::class,
+                    SupplierSeeder::class,
+                    SulamericaProductSeeder::class,
             ];
 
         }

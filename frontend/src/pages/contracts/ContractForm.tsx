@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Pencil } from 'lucide-react';
 import { Combobox, useComboboxOptions } from '@/components/ui/combobox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import QuickClientForm from '@/components/serviceOrders/QuickClientForm';
@@ -50,6 +50,7 @@ export default function ContractForm() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+    const [editingClientId, setEditingClientId] = useState<string | null>(null);
     const [tempClients, setTempClients] = useState<any[]>([]);
     
     const { data: contract, isLoading: isLoadingContract } = useContract(id as string, { enabled: isEdit });
@@ -73,6 +74,15 @@ export default function ContractForm() {
         resolver: zodResolver(contractSchema),
         defaultValues: {
             status: 'pending',
+            contract_number: '',
+            c_number: '',
+            description: '',
+            client_id: '',
+            product_id: '',
+            start_date: '',
+            end_date: '',
+            owner_id: '',
+            value: 0,
         }
     });
 
@@ -82,8 +92,8 @@ export default function ContractForm() {
                 contract_number: contract.contract_number,
                 c_number: contract.c_number,
                 status: contract.status,
-                start_date: contract.start_date,
-                end_date: contract.end_date,
+                start_date: contract.start_date?.split('T')[0],
+                end_date: contract.end_date?.split('T')[0],
                 client_id: contract.client_id?.toString(),
                 owner_id: contract.owner_id?.toString(),
                 product_id: contract.product_id?.toString(),
@@ -97,44 +107,87 @@ export default function ContractForm() {
         navigate('/admin/contracts');
     };
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const handleSaveContinue = () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         form.handleSubmit((data) => {
+            const onError = (error: any) => {
+                setIsSubmitting(false);
+                // BaseApiService assigns the JSON body to error.body
+                const errorMessage = error?.body?.mens || error?.body?.data?.retornoMsg || error?.message || "Erro ao salvar contrato";
+                toast({ variant: "destructive", title: "Erro", description: errorMessage });
+            };
+
             if (isEdit) {
                 updateMutation.mutate({ id: id!, data }, {
-                    onSuccess: () => {
-                        toast({ title: "Contrato atualizado com sucesso" });
-                    }
+                    onSuccess: (resp: any) => {
+                        setIsSubmitting(false);
+                        if (resp?.exec === false) {
+                            toast({ variant: "destructive", title: "Erro", description: resp.mens });
+                        } else {
+                            toast({ title: "Contrato atualizado com sucesso" });
+                        }
+                    },
+                    onError
                 });
             } else {
                 createMutation.mutate(data, {
-                    onSuccess: (newContract) => {
-                        toast({ title: "Contrato criado com sucesso" });
-                        // Optionally redirect to edit or reset form
-                         // Mas como é "continuar", talvez queira ficar na tela. 
-                         // Se for criação, ideal seria redirecionar para edição desse item ou limpar.
-                         // Vou assumir ficar na tela se for edição, e se for novo, ir para edição dele apenas se backend retornar ID.
-                         // Por enquanto, apenas mostra toast.
-                    }
+                    onSuccess: (newContract: any) => {
+                        setIsSubmitting(false);
+                        if (newContract?.exec === false) {
+                            toast({ variant: "destructive", title: "Erro", description: newContract.mens });
+                        } else {
+                            toast({ title: "Contrato criado com sucesso" });
+                            // Redirect to edit mode
+                            if (newContract?.data?.id) {
+                                navigate(`/admin/contracts/${newContract.data.id}/edit`);
+                            }
+                        }
+                    },
+                    onError
                 });
             }
         })();
     };
 
     const handleSaveExit = () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         form.handleSubmit((data) => {
+            const onError = (error: any) => {
+                setIsSubmitting(false);
+                // BaseApiService assigns the JSON body to error.body
+                const errorMessage = error?.body?.mens || error?.body?.data?.retornoMsg || error?.message || "Erro ao salvar contrato";
+                toast({ variant: "destructive", title: "Erro", description: errorMessage });
+            };
+
             if (isEdit) {
                 updateMutation.mutate({ id: id!, data }, {
-                    onSuccess: () => {
-                        toast({ title: "Contrato atualizado com sucesso" });
-                        navigate('/admin/contracts');
-                    }
+                    onSuccess: (resp: any) => {
+                        setIsSubmitting(false);
+                         if (resp?.exec === false) {
+                            toast({ variant: "destructive", title: "Erro", description: resp.mens });
+                         } else {
+                            toast({ title: "Contrato atualizado com sucesso" });
+                            navigate('/admin/contracts');
+                         }
+                    },
+                    onError
                 });
             } else {
                 createMutation.mutate(data, {
-                    onSuccess: () => {
-                        toast({ title: "Contrato criado com sucesso" });
-                        navigate('/admin/contracts');
-                    }
+                    onSuccess: (newContract: any) => {
+                        setIsSubmitting(false);
+                        if (newContract?.exec === false) {
+                            toast({ variant: "destructive", title: "Erro", description: newContract.mens });
+                        } else {
+                            toast({ title: "Contrato criado com sucesso" });
+                            navigate('/admin/contracts');
+                        }
+                    },
+                    onError
                 });
             }
         })();
@@ -169,24 +222,45 @@ export default function ContractForm() {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Cliente</FormLabel>
-                                        <Combobox
-                                            options={clientOptions}
-                                            value={field.value}
-                                            onValueChange={field.onChange}
-                                            placeholder="Selecione um cliente"
-                                            searchPlaceholder="Buscar cliente..."
-                                            emptyText="Nenhum cliente encontrado"
-                                            onCreate={() => setIsClientModalOpen(true)}
-                                            createLabel="Criar Novo Cliente"
-                                        />
+                                        <div className="flex gap-2">
+                                            <Combobox
+                                                options={clientOptions}
+                                                value={field.value}
+                                                onValueChange={field.onChange}
+                                                placeholder="Selecione um cliente"
+                                                searchPlaceholder="Buscar cliente..."
+                                                emptyText="Nenhum cliente encontrado"
+                                                onCreate={() => {
+                                                    setEditingClientId(null);
+                                                    setIsClientModalOpen(true);
+                                                }}
+                                                createLabel="Criar Novo Cliente"
+                                                className="flex-1"
+                                            />
+                                            {field.value && (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="icon"
+                                                    onClick={() => {
+                                                        setEditingClientId(field.value);
+                                                        setIsClientModalOpen(true);
+                                                    }}
+                                                    title="Editar Cliente"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                        </div>
                                         <FormMessage />
 
                                         <Dialog open={isClientModalOpen} onOpenChange={setIsClientModalOpen}>
                                             <DialogContent className="sm:max-w-[600px]">
                                                 <DialogHeader>
-                                                    <DialogTitle>Novo Cliente</DialogTitle>
+                                                    <DialogTitle>{editingClientId ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
                                                 </DialogHeader>
                                                 <QuickClientForm
+                                                    clientId={editingClientId || undefined}
                                                     onCancel={() => setIsClientModalOpen(false)}
                                                     onClientCreated={(newClient) => {
                                                         setIsClientModalOpen(false);
@@ -194,6 +268,14 @@ export default function ContractForm() {
                                                         queryClient.invalidateQueries({ queryKey: ['clients'] });
                                                         form.setValue('client_id', newClient.id.toString(), { shouldValidate: true });
                                                         toast({ title: "Cliente cadastrado com sucesso" });
+                                                    }}
+                                                    onClientUpdated={(updatedClient) => {
+                                                        setIsClientModalOpen(false);
+                                                        setTempClients(prev => prev.map(c => c.id === updatedClient.id ? updatedClient : c));
+                                                        queryClient.invalidateQueries({ queryKey: ['clients'] });
+                                                        // Force re-render of combobox option label if needed
+                                                        form.setValue('client_id', updatedClient.id.toString(), { shouldValidate: true });
+                                                        toast({ title: "Cliente atualizado com sucesso" });
                                                     }}
                                                 />
                                             </DialogContent>
@@ -338,7 +420,7 @@ export default function ContractForm() {
                         onBack={handleBack}
                         onSaveContinue={handleSaveContinue}
                         onSaveExit={handleSaveExit}
-                        isLoading={createMutation.isPending || updateMutation.isPending}
+                        isLoading={createMutation.isPending || updateMutation.isPending || isSubmitting}
                     />
                 </form>
             </Form>

@@ -27,6 +27,8 @@ return new class extends Migration
             $table->string('file_path')->nullable();
             $table->string('type')->default('PF'); // PF or PJ
             $table->json('address')->nullable(); // Store address snapshot
+            $table->string('token')->nullable();
+            $table->string('organization_id')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

@@ -202,6 +202,9 @@ Route::name('api.')->prefix('api/v1')->middleware([
         Route::apiResource('users', UserController::class,['parameters' => [
             'users' => 'id'
         ]]);
+        Route::apiResource('fornecedores', \App\Http\Controllers\api\FornecedorController::class, ['parameters' => [
+            'fornecedores' => 'id'
+        ]]);
         Route::apiResource('clients', ClientController::class,['parameters' => [
             'clients' => 'id'
         ]]);

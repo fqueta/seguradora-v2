@@ -1,6 +1,8 @@
 /**
  * Tipos relacionados a produtos
  */
+export type ProductPlan = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+
 /**
  * Produto base
  */
@@ -15,12 +17,13 @@ export interface Product {
   reviews: number;
   availability: 'available' | 'limited' | 'unavailable';
   terms: string[];
-  plan?: number;
+  plan?: ProductPlan;
   validUntil?: string;
   costPrice?: number;
   salePrice?: number;
   active?: boolean; // Adicionado para consistência
   stock: number;
+  supplier_id?: string;
 }
 
 /**
@@ -34,7 +37,7 @@ export interface CreateProductInput {
   costPrice: number;
   stock: number;
   unit: string;
-  plan?: string;
+  plan?: ProductPlan;
   active: boolean;
   image?: string;
   rating?: number;
@@ -42,6 +45,7 @@ export interface CreateProductInput {
   availability: 'available' | 'limited' | 'unavailable';
   terms: string[];
   validUntil?: string;
+  supplier_id?: string;
 }
 
 /**
@@ -55,7 +59,7 @@ export interface UpdateProductInput {
   costPrice?: number;
   stock?: number;
   unit?: string;
-  plan?: string;
+  plan?: ProductPlan;
   active?: boolean;
   image?: string;
   rating?: number;
@@ -63,6 +67,7 @@ export interface UpdateProductInput {
   availability?: 'available' | 'limited' | 'unavailable';
   terms?: string[];
   validUntil?: string;
+  supplier_id?: string;
 }
 
 /**

@@ -52,5 +52,37 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('public-form-token-ip', function (Request $request) {
             return Limit::perMinute(30)->by($request->ip());
         });
+
+        // Register custom validation rule for 'celular' (Brazilian mobile phone format)
+        // Accepts: (XX) 9XXXX-XXXX or (XX) 9XXXXXXXX (11 digits, starts with 9 in 3rd digit)
+        // Ignoring sanitization here, this validates the structure.
+        \Illuminate\Support\Facades\Validator::extend('celular', function ($attribute, $value, $parameters, $validator) {
+            // Remove non-digits
+            $digits = preg_replace('/\D/', '', $value);
+            $len = strlen($digits);
+
+            // Case 1: Brazil DDI (55) + 11 digits = 13 digits
+            // Structure: 55 (DD) 9XXXX-XXXX
+            // Index 4 must be 9
+            if ($len === 13 && str_starts_with($digits, '55')) {
+                return (int)$digits[4] === 9;
+            }
+
+            // Case 2: National format (no DDI) = 11 digits
+            // Structure: (DD) 9XXXX-XXXX
+            // Index 2 must be 9
+            if ($len === 11) {
+                return (int)$digits[2] === 9;
+            }
+
+            // Case 3: Other international numbers (DDI != 55)
+            // Allow if length is reasonable (e.g., 8-15 digits) to support other countries if needed
+            // But if it starts with 55, it failed the length check above (e.g. 55 + landline)
+            if (!str_starts_with($digits, '55') && $len >= 8 && $len <= 15) {
+                return true;
+            }
+
+            return false;
+        }, 'O campo :attribute deve ser um celular válido no formato (XX) 9XXXX-XXXX.');
     }
 }

@@ -7,13 +7,14 @@ use App\Services\Qlib;
 use Illuminate\Http\Request;
 use App\Helpers\StringHelper;
 use Database\Seeders\MenuSeeder;
+use App\Http\Controllers\api\SulAmericaController;
 
 class TesteController extends Controller
 {
     public function index(Request $request){
         $d = $request->all();
 
-        $helper = new StringHelper();
+        // $helper = new StringHelper();
         // $ret = $helper->formatarCpf('12345678900');
         // $ret = $helper->formatarCpf('12345678900');
         // $ret = Escola::campo_emissiao_certificado();
@@ -26,7 +27,7 @@ class TesteController extends Controller
         //     // $ret = Escola::adiciona_presenca_atividades_cronograma($id_turma);
         //     // dd($ret);
         // }
-        $ret = Qlib::qoption('url_api_aeroclube');
+        // $ret = Qlib::qoption('url_api_aeroclube');
         // dd($ret);
         // $pid = $request->get('id');
         // if($pid){
@@ -36,6 +37,27 @@ class TesteController extends Controller
         // }
         // $ret = (new MenuController)->getMenus(1);
         // $ret = Qlib::token();
+         $type = $request->get('type');
+        $ret = false;
+        if($type=='contratacao'){
+            $numero = $request->get('numero') ? $request->get('numero') : 6;
+            $config = [
+                'plano'=>1,
+                'operacaoParceiro'=>Qlib::zerofill($numero,5),
+                'nomeSegurado'=>'Programdor teste',
+                'dataNascimento'=>'1989-06-05',
+                'sexo'=>'F',
+                'uf'=>'MG',
+                'documento'=>'12345678909',
+                'inicioVigencia'=>'2026-01-09',
+                'fimVigencia'=>'2027-01-09',
+            ];
+            $ret = (new SulAmericaController)->contratacao($config);
+        }elseif($type=='teste'){
+            $id_pr = $request->get('id');
+            $s = Qlib::getSupplier($id_pr);
+            dd($s);
+        }
         return $ret;
     }
 }

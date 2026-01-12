@@ -28,6 +28,22 @@ export interface ContractRecord {
   client?: any;
   owner?: any;
   product?: any;
+  events?: ContractEvent[];
+}
+
+export interface ContractEvent {
+  id: number;
+  contract_id: number;
+  user_id?: number;
+  event_type: string;
+  description?: string;
+  from_status?: string;
+  to_status?: string;
+  metadata?: any;
+  payload?: any;
+  created_at?: string;
+  updated_at?: string;
+  user?: any;
 }
 
 /**

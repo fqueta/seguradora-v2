@@ -73,7 +73,14 @@ class PermissionSeeder extends Seeder
                 ],
                 // Cliente → para clientes sem acesso ao admin
                 [
-                    'name' => 'Cliente',
+                    'name' => 'Clientes',
+                    'description' => 'Sem acesso ao Dashboard porem com acesso ao painel de Clientes',
+                    'redirect_login' => '/home',
+                    'active' => 's'
+                ],
+                // Fornecedor → para fornecedores sem acesso ao admin
+                [
+                    'name' => 'Fornecedores',
                     'description' => 'Sem acesso ao Dashboard porem com acesso ao painel de Clientes',
                     'redirect_login' => '/home',
                     'active' => 's'

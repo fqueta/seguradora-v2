@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCreateProduct } from '@/hooks/products';
 import { useCategoriesList } from '@/hooks/categories';
+import { useSuppliersList } from '@/hooks/suppliers';
 import { ProductForm } from '@/components/products/ProductForm';
 import { productSchema } from '@/components/products/ProductForm';
 import { CreateProductInput } from '@/types/products';
@@ -24,6 +25,12 @@ export default function ProductCreate() {
     entidade: 'produtos'
   });
   const categories = categoriesResponse?.data || [];
+  
+  const { data: suppliersResponse, isLoading: isLoadingSuppliers } = useSuppliersList({
+    page: 1,
+    per_page: 100
+  });
+  const suppliers = suppliersResponse?.data || [];
   
   // Mock units data - você pode criar um hook useUnits() se necessário
   const units = [
@@ -54,6 +61,7 @@ export default function ProductCreate() {
       availability: 'available',
       terms: [],
       validUntil: undefined,
+      supplier_id: undefined,
     },
   });
 
@@ -78,6 +86,7 @@ export default function ProductCreate() {
         availability: data.availability,
         terms: data.terms,
         validUntil: data.validUntil,
+        supplier_id: data.supplier_id,
       });
       
       toast({
@@ -119,6 +128,7 @@ export default function ProductCreate() {
     availability: data.availability,
     terms: data.terms,
     validUntil: data.validUntil,
+    supplier_id: data.supplier_id,
   });
   const handleSaveContinue = () => {
     form.handleSubmit(async (data) => {
@@ -185,13 +195,15 @@ export default function ProductCreate() {
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <ProductForm 
-              form={form}
+              form={form as any}
               onSubmit={onSubmit}
               isSubmitting={createProductMutation.isPending}
               categories={categories}
               units={units}
               isLoadingCategories={isLoadingCategories}
               isLoadingUnits={isLoadingUnits}
+              isLoadingSuppliers={isLoadingSuppliers}
+              suppliers={suppliers}
               categoriesError={categoriesError}
               unitsError={unitsError}
               onCancel={handleCancel}

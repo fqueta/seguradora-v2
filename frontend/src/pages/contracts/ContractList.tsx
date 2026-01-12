@@ -81,39 +81,51 @@ export default function ContractList() {
                                     <TableCell colSpan={7} className="text-center">Nenhum contrato encontrado</TableCell>
                                 </TableRow>
                             ) : (
-                                data?.data?.map((contract: any) => (
-                                    <TableRow key={contract.id}>
-                                        <TableCell>{contract.contract_number || contract.id}</TableCell>
-                                        <TableCell>{contract.status}</TableCell>
-                                        <TableCell>{contract.client?.name || '-'}</TableCell>
-                                        <TableCell>
-                                            {contract.value 
-                                                ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(contract.value)
-                                                : '-'}
-                                        </TableCell>
-                                        <TableCell>
-                                            {contract.start_date 
-                                                ? new Date(contract.start_date).toLocaleDateString('pt-BR') 
-                                                : '-'}
-                                        </TableCell>
-                                        <TableCell>
-                                            {contract.end_date 
-                                                ? new Date(contract.end_date).toLocaleDateString('pt-BR') 
-                                                : '-'}
-                                        </TableCell>
-                                        <TableCell className="text-right space-x-2">
-                                            <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/contracts/${contract.id}`)}>
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/contracts/${contract.id}/edit`)}>
-                                                <Pencil className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="text-red-500" onClick={() => setDeleteId(contract.id)}>
-                                                <Trash className="h-4 w-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
+                                data?.data?.map((contract: any) => {
+                                    const statusMap: Record<string, string> = {
+                                        'pending': 'Pendente',
+                                        'active': 'Ativo',
+                                        'cancelled': 'Cancelado',
+                                        'approved': 'Aprovado',
+                                        'rejected': 'Rejeitado',
+                                        'draft': 'Rascunho'
+                                    };
+                                    const translatedStatus = statusMap[contract.status?.toLowerCase()] || contract.status || '-';
+                                    
+                                    return (
+                                        <TableRow key={contract.id}>
+                                            <TableCell>{contract.contract_number || contract.id}</TableCell>
+                                            <TableCell>{translatedStatus}</TableCell>
+                                            <TableCell>{contract.client?.name || '-'}</TableCell>
+                                            <TableCell>
+                                                {contract.value 
+                                                    ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(contract.value)
+                                                    : '-'}
+                                            </TableCell>
+                                            <TableCell>
+                                                {contract.start_date 
+                                                    ? new Date(contract.start_date).toLocaleDateString('pt-BR') 
+                                                    : '-'}
+                                            </TableCell>
+                                            <TableCell>
+                                                {contract.end_date 
+                                                    ? new Date(contract.end_date).toLocaleDateString('pt-BR') 
+                                                    : '-'}
+                                            </TableCell>
+                                            <TableCell className="text-right space-x-2">
+                                                <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/contracts/${contract.id}`)}>
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/contracts/${contract.id}/edit`)}>
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="text-red-500" onClick={() => setDeleteId(contract.id)}>
+                                                    <Trash className="h-4 w-4" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })
                             )}
                         </TableBody>
                     </Table>

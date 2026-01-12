@@ -14,6 +14,7 @@ import { useApiOptions } from "@/hooks/useApiOptions";
 import { useFunnelsList, useStagesList } from "@/hooks/funnels";
 import { fileStorageService, type FileStorageItem, extractFileStorageUrl } from "@/services/fileStorageService";
 import { ImageUpload } from "@/components/lib/ImageUpload";
+import { SulAmericaSettingsCard } from "@/components/settings/SulAmericaSettingsCard";
 
 /**
  * Página de configurações do sistema
@@ -1443,7 +1444,7 @@ export default function SystemSettings() {
                 <span>Configurações de API</span>
               </CardTitle>
               <CardDescription>
-                Configure as opções de API do sistema, incluindo URLs, tokens e configurações do Alloyal.
+                Configure as opções de API do sistema.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1457,7 +1458,20 @@ export default function SystemSettings() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4">
-                  {getApiConfigOptions().map((option) => (
+                    {/* Renderiza o card da SulAmerica se a opção existir */}
+                    {getApiConfigOptions().find((o: any) => o.url === 'credenciais_sulamerica') && (
+                        <div className="mb-6">
+                            <SulAmericaSettingsCard
+                                option={getApiConfigOptions().find((o: any) => o.url === 'credenciais_sulamerica')}
+                                value={getCurrentOptionValue(getApiConfigOptions().find((o: any) => o.url === 'credenciais_sulamerica'))}
+                                onChange={(id, val) => handleApiOptionChange(id, val)}
+                                onSave={handleSaveApiSettings}
+                                isLoading={isLoading}
+                            />
+                        </div>
+                    )}
+                    
+                  {getApiConfigOptions().filter((o: any) => o.url !== 'credenciais_sulamerica').map((option) => (
                     <div key={option.id} className="space-y-2">
                       <Label htmlFor={`api-option-${option.id}`}>
                         {option.name}

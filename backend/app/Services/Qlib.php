@@ -5,6 +5,7 @@
 // namespace App\Qlib;
 namespace App\Services;
 use App\Http\Controllers\admin\EventController;
+use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\api\ProductController;
 use App\Http\Controllers\Api\ProductUnitController;
 // use App\Http\Controllers\admin\PostController;
@@ -28,10 +29,14 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Models\Category;
 use App\Models\Client;
+use App\Models\User;
 use App\Models\ProductUnit;
+use App\Models\Product;
+
 class Qlib
 {
     static $RAIZ;
+    
     public function __construct(){
         global $tab11,$tab12,$tab50,$tab55;
         $tab11 = 'turmas';
@@ -1345,6 +1350,24 @@ class Qlib
         return $ret;
     }
     /**
+     * Metodo para remover um post meta
+     */
+    static function delete_postmeta($post_id,$meta_key=false){
+        $tab = 'postmeta';
+        $ret = false;
+        if($post_id && $meta_key){
+            $ret = DB::table($tab)
+            ->where('post_id','=',$post_id)
+            ->where('meta_key','=',$meta_key)
+            ->delete();
+        }elseif($post_id){
+            $ret = DB::table($tab)
+            ->where('post_id','=',$post_id)
+            ->delete();
+        }
+        return $ret;
+    }
+    /**
      * Metodo buscar o post_id com o token
      * @param string $token
      * @return string $ret;
@@ -1774,6 +1797,71 @@ class Qlib
         }elseif($matricula_id){
             $ret = DB::table($tab)
             ->where('matricula_id','=',$matricula_id)
+            ->delete();
+        }
+        return $ret;
+    }
+
+    /**
+     * Metodo para salvar ou atualizar os contract meta
+     */
+    static function update_contract_meta($contract_id,$meta_key=null,$meta_value=null)
+    {
+        $ret = false;
+        $tab = 'contract_meta';
+        if($contract_id&&$meta_key&&$meta_value){
+            $verf = self::totalReg($tab,"WHERE contract_id='$contract_id' AND meta_key='$meta_key'");
+            if($verf){
+                $ret=DB::table($tab)->where('contract_id',$contract_id)->where('meta_key',$meta_key)->update([
+                    'meta_value'=>$meta_value,
+                    'updated_at'=>self::dataBanco(),
+                ]);
+            }else{
+                $ret=DB::table($tab)->insert([
+                    'contract_id'=>$contract_id,
+                    'meta_value'=>$meta_value,
+                    'meta_key'=>$meta_key,
+                    'created_at'=>self::dataBanco(),
+                ]);
+            }
+        }
+        return $ret;
+    }
+    /**
+     * Metodo para pegar os contract meta
+     */
+    static function get_contract_meta($contract_id,$meta_key=null,$string=true)
+    {
+        $ret = false;
+        $tab = 'contract_meta';
+        if($contract_id){
+            if($meta_key){
+                $d = DB::table($tab)->where('contract_id',$contract_id)->where('meta_key',$meta_key)->get();
+                if($d->count()){
+                    if($string){
+                        $ret = $d[0]->meta_value;
+                    }else{
+                        $ret = [$d[0]->meta_value];
+                    }
+                }
+            }
+        }
+        return $ret;
+    }
+    /**
+     * Metodo para remover um contract meta
+     */
+    static function delete_contract_meta($contract_id,$meta_key=false){
+        $tab = 'contract_meta';
+        $ret = false;
+        if($contract_id && $meta_key){
+            $ret = DB::table($tab)
+            ->where('contract_id','=',$contract_id)
+            ->where('meta_key','=',$meta_key)
+            ->delete();
+        }elseif($contract_id){
+            $ret = DB::table($tab)
+            ->where('contract_id','=',$contract_id)
             ->delete();
         }
         return $ret;
@@ -2853,11 +2941,22 @@ class Qlib
      * Metodo para retornado todos os dado de uma categoria atravez do id
      *
      * @param int $id
-     * @return json
+     * @return array|null
      */
     static function get_category_by_id($id){
         $category = Category::find($id);
-        return $category;
+        if ($category) {
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'description' => $category->description,
+                'parentId' => $category->parent_id,
+                'active' => $category->active,
+                'created_at' => $category->created_at->format('Y-m-d H:i:s'),
+                'updated_at' => $category->updated_at->format('Y-m-d H:i:s'),
+            ];
+        }
+        return null; // ou an empty array, but null is consistent with "not found"
     }
     /**
      * retorna os dados de uma unidade de medida
@@ -2911,5 +3010,66 @@ class Qlib
      */
     static function debug_eloquent_sql($query){
         return $query->toRawSql();
+    }
+    /**
+     * Summary of getSupplier
+     * @param mixed $id
+     */
+    static function getSupplier($id){
+        $d = self::getSupplierByProductId($id);
+        $ret = null;
+        // dd($d->config);
+        if(!is_null($d)){
+            $conf = isset($d->config) ? $d->config : [];
+            if(self::isJson($conf)){
+                $conf = json_decode($conf, true);
+            }
+            $ret = $conf['tag'];
+        }
+        return $ret;
+    }
+    /**
+     * Retorna o fornecedor de um produto pelo ID.
+     * @param int|string $product_id
+     * @return User|false
+     */
+    static function getSupplierByProductId($product_id)
+    {
+        $product = self::getProductById($product_id);
+        if ($product['supplier_id']??false) {
+            return User::find($product['supplier_id']);
+        }
+        // Se não encontrar no config, tenta pelo autor, mas o autor pode não ser o fornecedor
+        // então mantemos apenas o config['supplier_id'] conforme logica do ProductController
+        return false;
+    }
+    /**
+     * retorna os dados do produto pelo id
+     * @param mixed $product_id
+     * 
+     */
+    static function getProductById($product_id)
+    {
+        $product = Product::find($product_id);
+        if ($product) {
+            $p = (new ProductController())->map_product($product);
+            return $p;
+        }
+        return false;
+    }
+    /**
+     * busca cadastro do fornecedor pelo id do fornecedor
+     */
+    static function getSupplierById($supplier_id)
+    {
+        $supplier = User::find($supplier_id);
+        if ($supplier) {
+            $d = $supplier->toArray();
+            if(isset($d['config']) && self::isJson($d['config'])){
+                $d['config'] = json_decode($d['config'], true);
+            }
+            return $d;
+        }
+        return false;
     }
 }

@@ -53,7 +53,8 @@ class ClientsService extends BaseApiService {
    * @param payload - Dados atualizados
    */
   async updateClient(id: string, payload: UpdateClientInput): Promise<ClientRecord> {
-    return this.put<ClientRecord>(`/clients/${id}`, payload);
+    const response = await this.put<ApiResponse<ClientRecord>>(`/clients/${id}`, payload);
+    return response.data;
   }
 
   /**

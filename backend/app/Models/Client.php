@@ -65,4 +65,8 @@ class Client extends User
         'password',
         'remember_token',
     ];
+
+    protected $casts = [
+        'config' => 'array',
+    ];
 }
