@@ -39,36 +39,91 @@ class DashboardChartController extends Controller
         }
         $comparisonYear = $selectedYear - 1;
 
-        // pt-BR: Calcula contagens mensais por ano para Interessados (situacao=int) e Matriculados (situacao=mat).
-        // en-US: Computes monthly counts per year for Interested (situacao=int) and Enrolled (situacao=mat).
-        $interestedPrev = $this->getMonthlyCounts($comparisonYear, 'interested');
-        $interestedCurr = $this->getMonthlyCounts($selectedYear, 'interested');
-        $enrolledPrev   = $this->getMonthlyCounts($comparisonYear, 'enrolled');
-        $enrolledCurr   = $this->getMonthlyCounts($selectedYear, 'enrolled');
+        // Contagens de entidades do sistema
+        $contractsCount = 0;
+        $clientsCount = 0;
+        $suppliersCount = 0;
+        $usersCount = 0;
+
+        // Verifica permissão do usuário para filtrar por organização
+        $user = $request->user();
+        $orgId = null;
+        if ($user && $user->permission_id >= 3) {
+            $orgId = $user->organization_id;
+        }
+
+        try {
+            // Contracts count
+            $qContracts = DB::table('contracts')->whereNull('deleted_at');
+            if ($orgId) {
+                $qContracts->where('organization_id', $orgId);
+            }
+            $contractsCount = $qContracts->count();
+            
+            // permission_id: 7 = Clientes
+            $qClients = DB::table('users')
+                ->where('permission_id', 7)
+                ->where('excluido', 'n')
+                ->where('deletado', 'n');
+            if ($orgId) {
+                $qClients->where('organization_id', $orgId);
+            }
+            $clientsCount = $qClients->count();
+                
+            // permission_id: 8 = Fornecedores
+            $qSuppliers = DB::table('users')
+                ->where('permission_id', 8)
+                ->where('excluido', 'n')
+                ->where('deletado', 'n');
+            if ($orgId) {
+                $qSuppliers->where('organization_id', $orgId);
+            }
+            $suppliersCount = $qSuppliers->count();
+                
+            // Total users
+            $qUsers = DB::table('users')
+                ->where('excluido', 'n')
+                ->where('deletado', 'n');
+            if ($orgId) {
+                $qUsers->where('organization_id', $orgId);
+            }
+            $usersCount = $qUsers->count();
+                
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Erro ao contar entidades no Dashboard: ' . $e->getMessage());
+            // Mantém counts como 0
+        }
+
+        // Gráfico de Contratos: selecionado vs anterior
+        $contractsPrev = $this->getContractsMonthlyCounts($comparisonYear, $orgId);
+        $contractsCurr = $this->getContractsMonthlyCounts($selectedYear, $orgId);
 
         // Monta séries no formato esperado pelo frontend, com chaves dinâmicas y{ano}
         $keyPrev = 'y' . $comparisonYear;
         $keyCurr = 'y' . $selectedYear;
-        $interested = [];
-        $enrolled = [];
+
+        $contractsChart = [];
         for ($m = 1; $m <= 12; $m++) {
-            $interested[] = [
+            $contractsChart[] = [
                 'mes' => $months[$m - 1],
-                $keyPrev => $interestedPrev[$m] ?? 0,
-                $keyCurr => $interestedCurr[$m] ?? 0,
-            ];
-            $enrolled[] = [
-                'mes' => $months[$m - 1],
-                $keyPrev => $enrolledPrev[$m] ?? 0,
-                $keyCurr => $enrolledCurr[$m] ?? 0,
+                $keyPrev => $contractsPrev[$m] ?? 0,
+                $keyCurr => $contractsCurr[$m] ?? 0,
             ];
         }
 
         $payload = [
             'data' => [
+                'counts' => [
+                    'contracts' => $contractsCount,
+                    'clients' => $clientsCount,
+                    'suppliers' => $suppliersCount,
+                    'users' => $usersCount,
+                ],
                 'charts' => [
-                    'interested' => $interested,
-                    'enrolled'   => $enrolled,
+                    // Removemos old logic de matriculas/interessados
+                    // 'interested' => $interested,
+                    // 'enrolled'   => $enrolled,
+                    'contracts'  => $contractsChart,
                 ],
                 // pt-BR: Inclui metadados de ano selecionado e comparativo
                 // en-US: Include selected and comparison year metadata
@@ -83,101 +138,60 @@ class DashboardChartController extends Controller
     }
     
     /**
-     * getMonthlyCounts
-     * pt-BR: Retorna contagens por mês para um ano específico, com filtro de situação.
-     *        'interested' aplica posts.post_name = 'int'; 'enrolled' aplica posts.post_name != 'int'.
-     *        Aplica também filtros adicionais: matriculas.ativo = 's' e matriculas.excluido = 'n'.
-     * en-US: Returns month-wise counts for a specific year, filtered by situation.
-     *        'interested' applies posts.post_name = 'int'; 'enrolled' applies posts.post_name != 'int'.
-     *        Also applies extra filters: matriculas.ativo = 's' and matriculas.excluido = 'n'.
+     * getContractsMonthlyCounts
+     * pt-BR: Retorna contagens de contratos criados por mês para um ano específico.
+     * en-US: Returns monthly created contracts count for a specific year.
      * @param int $year Ano alvo (ex.: 2024)
-     * @param string $mode Modo: 'interested' | 'enrolled'
+     * @param string|null $orgId ID da organização para filtro (opcional)
      * @return array<int,int> Mapa mês(1-12) => contagem
      */
-    private function getMonthlyCounts(int $year, string $mode): array
+    private function getContractsMonthlyCounts(int $year, ?string $orgId = null): array
     {
-        // Consulta agregada por mês usando a coluna 'data' de matriculas
-        $rows = DB::table('matriculas')
-            ->leftJoin('posts', 'matriculas.situacao_id', '=', 'posts.id')
-            ->selectRaw('MONTH(matriculas.data) as month, COUNT(*) as total')
-            ->whereYear('matriculas.data', $year)
-            // Filtro de registros ativos e não excluídos
-            ->where('matriculas.ativo', 's')
-            ->where('matriculas.excluido', 'n')
-            ->when($mode === 'interested', function ($q) {
-                $q->where('posts.post_name', 'int');
-            }, function ($q) {
-                // 'mat' conforme MatriculaController: tudo que não é 'int'
-                $q->where('posts.post_name', '!=', 'int');
-            })
-            ->groupBy('month')
-            ->get();
+        try {
+            // Consulta agregada por mês usando a coluna 'created_at' de contracts
+             // SQLite usa strftime('%m', created_at), MySQL usa MONTH(created_at).
+             // Para compatibilidade simples com Laravel Query Builder + driver detection:
+            
+            $query = DB::table('contracts')
+                ->whereNull('deleted_at')
+                ->whereYear('created_at', $year);
 
-        $out = [];
-        foreach ($rows as $r) {
-            $month = (int) ($r->month ?? 0);
-            if ($month >= 1 && $month <= 12) {
-                $out[$month] = (int) $r->total;
+            if ($orgId) {
+                $query->where('organization_id', $orgId);
             }
-        }
-        // Garante chaves ausentes com zero
-        for ($m = 1; $m <= 12; $m++) {
-            if (!array_key_exists($m, $out)) {
-                $out[$m] = 0;
+
+            // Detecta driver para query date adequada
+            $driver = DB::connection()->getDriverName();
+            if ($driver === 'sqlite') {
+                $query->selectRaw("strftime('%m', created_at) as month, COUNT(*) as total");
+            } else {
+                // assume mysql/pgsql
+                $query->selectRaw('MONTH(created_at) as month, COUNT(*) as total');
             }
+
+            $rows = $query
+                ->groupBy('month')
+                ->get();
+
+            $out = [];
+            foreach ($rows as $r) {
+                // SQLite pode retornar "01", MySQL retorna 1. Cast para int resolve.
+                $month = (int) ($r->month ?? 0);
+                if ($month >= 1 && $month <= 12) {
+                    $out[$month] = (int) $r->total;
+                }
+            }
+            // Garante chaves ausentes com zero
+            for ($m = 1; $m <= 12; $m++) {
+                if (!array_key_exists($m, $out)) {
+                    $out[$m] = 0;
+                }
+            }
+            ksort($out);
+            return $out;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Erro chart contracts: ' . $e->getMessage());
+            return array_fill(1, 12, 0);
         }
-        ksort($out);
-        return $out;
-    }
-    /**
-     * interestedMonthly
-     * pt-BR: Retorna série mensal de Interessados (dados mocados).
-     * en-US: Returns monthly series for Leads (mocked data).
-     */
-    public function interestedMonthly(Request $request)
-    {
-        $months = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
-        $data = [
-            ['mes' => $months[0],  'y2024' => 5, 'y2025' => 8],
-            ['mes' => $months[1],  'y2024' => 3, 'y2025' => 5],
-            ['mes' => $months[2],  'y2024' => 6, 'y2025' => 7],
-            ['mes' => $months[3],  'y2024' => 4, 'y2025' => 6],
-            ['mes' => $months[4],  'y2024' => 7, 'y2025' => 5],
-            ['mes' => $months[5],  'y2024' => 5, 'y2025' => 6],
-            ['mes' => $months[6],  'y2024' => 6, 'y2025' => 7],
-            ['mes' => $months[7],  'y2024' => 8, 'y2025' => 9],
-            ['mes' => $months[8],  'y2024' => 7, 'y2025' => 6],
-            ['mes' => $months[9],  'y2024' => 5, 'y2025' => 7],
-            ['mes' => $months[10], 'y2024' => 6, 'y2025' => 8],
-            ['mes' => $months[11], 'y2024' => 7, 'y2025' => 9],
-        ];
-
-        return response()->json($data);
-    }
-
-    /**
-     * enrolledMonthly
-     * pt-BR: Retorna série mensal de Matriculados (dados mocados).
-     * en-US: Returns monthly series for Enrolled (mocked data).
-     */
-    public function enrolledMonthly(Request $request)
-    {
-        $months = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
-        $data = [
-            ['mes' => $months[0],  'y2024' => 4, 'y2025' => 6],
-            ['mes' => $months[1],  'y2024' => 2, 'y2025' => 3],
-            ['mes' => $months[2],  'y2024' => 3, 'y2025' => 4],
-            ['mes' => $months[3],  'y2024' => 4, 'y2025' => 5],
-            ['mes' => $months[4],  'y2024' => 3, 'y2025' => 4],
-            ['mes' => $months[5],  'y2024' => 2, 'y2025' => 3],
-            ['mes' => $months[6],  'y2024' => 3, 'y2025' => 4],
-            ['mes' => $months[7],  'y2024' => 5, 'y2025' => 8],
-            ['mes' => $months[8],  'y2024' => 4, 'y2025' => 5],
-            ['mes' => $months[9],  'y2024' => 3, 'y2025' => 4],
-            ['mes' => $months[10], 'y2024' => 4, 'y2025' => 5],
-            ['mes' => $months[11], 'y2024' => 6, 'y2025' => 11],
-        ];
-
-        return response()->json($data);
     }
 }

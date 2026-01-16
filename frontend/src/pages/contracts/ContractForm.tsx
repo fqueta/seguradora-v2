@@ -103,6 +103,11 @@ export default function ContractForm() {
         }
     }, [contract, form]);
 
+    // Determine if the form should be restricted (only description editable)
+    const isRestricted = useMemo(() => {
+        return isEdit && (contract?.status === 'approved' || contract?.status === 'cancelled');
+    }, [isEdit, contract]);
+
     const handleBack = () => {
         navigate('/admin/contracts');
     };
@@ -124,11 +129,14 @@ export default function ContractForm() {
                 updateMutation.mutate({ id: id!, data }, {
                     onSuccess: (resp: any) => {
                         setIsSubmitting(false);
-                        if (resp?.exec === false) {
-                            toast({ variant: "destructive", title: "Erro", description: resp.mens });
-                        } else {
-                            toast({ title: "Contrato atualizado com sucesso" });
-                        }
+                        const variant = resp?.color === 'success' ? 'success' : (resp?.color === 'danger' ? 'destructive' : (resp?.exec === false ? 'destructive' : 'default'));
+                        const title = variant === 'destructive' ? "Erro" : "Sucesso";
+                        
+                        toast({ 
+                            variant: variant as any, 
+                            title, 
+                            description: resp?.mens || "Contrato atualizado com sucesso" 
+                        });
                     },
                     onError
                 });
@@ -136,19 +144,25 @@ export default function ContractForm() {
                 createMutation.mutate(data, {
                     onSuccess: (newContract: any) => {
                         setIsSubmitting(false);
-                        if (newContract?.exec === false) {
-                            toast({ variant: "destructive", title: "Erro", description: newContract.mens });
-                        } else {
-                            toast({ title: "Contrato criado com sucesso" });
-                            // Redirect to edit mode
-                            if (newContract?.data?.id) {
-                                navigate(`/admin/contracts/${newContract.data.id}/edit`);
-                            }
+                        const variant = newContract?.color === 'success' ? 'success' : (newContract?.color === 'danger' ? 'destructive' : (newContract?.exec === false ? 'destructive' : 'default'));
+                        const title = variant === 'destructive' ? "Erro" : "Sucesso";
+                        
+                        toast({ 
+                            variant: variant as any, 
+                            title, 
+                            description: newContract?.mens || "Contrato criado com sucesso" 
+                        });
+                        
+                        // Redirect to edit mode
+                        if (newContract?.exec !== false && newContract?.data?.id) {
+                            navigate(`/admin/contracts/${newContract.data.id}/edit`);
                         }
                     },
                     onError
                 });
             }
+        }, () => {
+             setIsSubmitting(false);
         })();
     };
 
@@ -167,10 +181,16 @@ export default function ContractForm() {
                 updateMutation.mutate({ id: id!, data }, {
                     onSuccess: (resp: any) => {
                         setIsSubmitting(false);
-                         if (resp?.exec === false) {
-                            toast({ variant: "destructive", title: "Erro", description: resp.mens });
-                         } else {
-                            toast({ title: "Contrato atualizado com sucesso" });
+                        const variant = resp?.color === 'success' ? 'success' : (resp?.color === 'danger' ? 'destructive' : (resp?.exec === false ? 'destructive' : 'default'));
+                        const title = variant === 'destructive' ? "Erro" : "Sucesso";
+                        
+                        toast({ 
+                            variant: variant as any, 
+                            title, 
+                            description: resp?.mens || "Contrato atualizado com sucesso" 
+                        });
+
+                         if (resp?.exec !== false) {
                             navigate('/admin/contracts');
                          }
                     },
@@ -180,20 +200,26 @@ export default function ContractForm() {
                 createMutation.mutate(data, {
                     onSuccess: (newContract: any) => {
                         setIsSubmitting(false);
-                        if (newContract?.exec === false) {
-                            toast({ variant: "destructive", title: "Erro", description: newContract.mens });
-                        } else {
-                            toast({ title: "Contrato criado com sucesso" });
+                        const variant = newContract?.color === 'success' ? 'success' : (newContract?.color === 'danger' ? 'destructive' : (newContract?.exec === false ? 'destructive' : 'default'));
+                        const title = variant === 'destructive' ? "Erro" : "Sucesso";
+                        
+                        toast({ 
+                            variant: variant as any, 
+                            title, 
+                            description: newContract?.mens || "Contrato criado com sucesso" 
+                        });
+
+                        if (newContract?.exec !== false) {
                             navigate('/admin/contracts');
                         }
                     },
                     onError
                 });
             }
+        }, () => {
+             setIsSubmitting(false);
         })();
     };
-
-    if (isEdit && isLoadingContract) return <div>Carregando...</div>;
 
     return (
         <div className="container mx-auto py-6 space-y-6">
@@ -236,6 +262,7 @@ export default function ContractForm() {
                                                 }}
                                                 createLabel="Criar Novo Cliente"
                                                 className="flex-1"
+                                                disabled={isRestricted}
                                             />
                                             {field.value && (
                                                 <Button
@@ -303,6 +330,7 @@ export default function ContractForm() {
                                             placeholder="Selecione um produto"
                                             searchPlaceholder="Buscar produto..."
                                             emptyText="Nenhum produto encontrado"
+                                            disabled={isRestricted}
                                         />
                                         <FormMessage />
                                     </FormItem>
@@ -321,6 +349,7 @@ export default function ContractForm() {
                                                 min={new Date().toISOString().split('T')[0]}
                                                 {...field} 
                                                 value={field.value || ""} 
+                                                disabled={isRestricted}
                                                 onChange={(e) => {
                                                     field.onChange(e);
                                                     const val = e.target.value;
@@ -347,7 +376,7 @@ export default function ContractForm() {
                                     <FormItem>
                                         <FormLabel>Fim Vigência</FormLabel>
                                         <FormControl>
-                                            <Input type="date" {...field} value={field.value || ""} />
+                                            <Input type="date" {...field} value={field.value || ""} disabled={isRestricted} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -360,7 +389,7 @@ export default function ContractForm() {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Status</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                                        <Select onValueChange={field.onChange} value={field.value || ""} disabled={isRestricted}>
                                             <FormControl>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Selecione o status" />

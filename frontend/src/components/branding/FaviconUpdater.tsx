@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { getBrandFaviconUrl } from '@/lib/branding';
+import { getBrandFaviconUrl, hydrateBrandingFromPublicApi } from '@/lib/branding';
 
 export type FaviconUpdaterProps = {
   /**
@@ -27,6 +27,9 @@ export type FaviconUpdaterProps = {
  */
 export function FaviconUpdater({ src, defaultSrc = '/logo.png' }: FaviconUpdaterProps) {
   useEffect(() => {
+    // Hydrate branding from API on mount to ensure freshness
+    hydrateBrandingFromPublicApi({ persist: true }).catch(() => {});
+
     const chosen = (src && src.trim() !== '' ? src.trim() : getBrandFaviconUrl()) || defaultSrc;
 
     // Resolve basic MIME type based on extension

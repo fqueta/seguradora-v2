@@ -59,6 +59,11 @@ class ClientController extends Controller
 
         $query = Client::query()->where('permission_id','=', $this->cliente_permission_id)->orderBy($order_by, $order);
 
+        // Security: visualiza apenas dados/cadastros de permission_id >= 3 da sua organization_id
+        if ($user->permission_id >= 3) {
+            $query->where('organization_id', $user->organization_id);
+        }
+
         // Não exibir registros marcados como deletados ou excluídos
         //adicionar filtro para a lixeira onde excluido=s
         // $query->where(function($q) {
@@ -383,12 +388,17 @@ class ClientController extends Controller
         $validated['ativo'] = isset($validated['ativo']) ? $validated['ativo'] : 's';
         $validated['status'] = isset($validated['status']) ? $validated['status'] : 'actived';
         $validated['tipo_pessoa'] = isset($validated['tipo_pessoa']) ? $validated['tipo_pessoa'] : 'pf';
+        $validated['verificado'] = isset($validated['verificado']) ? $validated['verificado'] : 'n';
+        $validated['excluido'] = isset($validated['excluido']) ? $validated['excluido'] : 'n';
+        $validated['deletado'] = isset($validated['deletado']) ? $validated['deletado'] : 'n';
         $validated['permission_id'] = $this->cliente_permission_id;
         $validated['config'] = isset($validated['config']) ? $this->sanitizeInput($validated['config']) : [];
 
         if(is_array($validated['config'])){
             $validated['config'] = json_encode($validated['config']);
         }
+        $validated['organization_id'] = $user->organization_id;
+        $validated['autor'] = $user->id; // Populate author
         // dd($validated);
         $client = Client::create($validated);
         // converter o client->config para array
@@ -508,10 +518,23 @@ class ClientController extends Controller
         // Tratar config se fornecido
         if (isset($validated['config'])) {
             $validated['config'] = $this->sanitizeInput($validated['config']);
-            if (is_array($validated['config'])) {
-                $validated['config'] = json_encode($validated['config']);
+        if(is_array($validated['config'])){
+            $validated['config'] = json_encode($validated['config']);
+        }
+        } // Close isset($validated['config'])
+
+        // Backfill autor/organization if missing
+        if ($user) {
+            if (empty($clientToUpdate->autor) && !isset($validated['autor'])) {
+                $validated['autor'] = $user->id;
+            }
+            if (empty($clientToUpdate->organization_id) && !isset($validated['organization_id'])) {
+                if (isset($user->organization_id)) {
+                    $validated['organization_id'] = $user->organization_id;
+                }
             }
         }
+        
         // dd($validated);
         $clientToUpdate->update($validated);
 
@@ -582,6 +605,11 @@ class ClientController extends Controller
             ->where('permission_id', $this->cliente_permission_id)
             ->where('deletado', 's')
             ->orderBy($order_by, $order);
+        
+        // Security: visualiza apenas dados/cadastros de permission_id >= 3 da sua organization_id
+        if ($user->permission_id >= 3) {
+            $query->where('organization_id', $user->organization_id);
+        }
 
         if ($request->filled('email')) {
             $query->where('email', 'like', '%' . $request->input('email') . '%');
@@ -689,6 +717,11 @@ class ClientController extends Controller
         $query = Client::withoutGlobalScope('client')
             ->where('permission_id', $this->responsavel_permission_id)
             ->orderBy($order_by, $order);
+
+        // Security: visualiza apenas dados/cadastros de permission_id >= 3 da sua organization_id
+        if ($user->permission_id >= 3) {
+            $query->where('organization_id', $user->organization_id);
+        }
 
         // Não exibir registros marcados como deletados ou excluídos
         $query->where(function($q) {
@@ -814,6 +847,9 @@ class ClientController extends Controller
         $validated['ativo'] = $validated['ativo'] ?? 's';
         $validated['status'] = $validated['status'] ?? 'actived';
         $validated['tipo_pessoa'] = $validated['tipo_pessoa'] ?? 'pf';
+        $validated['verificado'] = $validated['verificado'] ?? 'n';
+        $validated['excluido'] = $validated['excluido'] ?? 'n';
+        $validated['deletado'] = $validated['deletado'] ?? 'n';
         $validated['permission_id'] = $this->responsavel_permission_id; // força responsável
         $validated['config'] = isset($validated['config']) ? $this->sanitizeInput($validated['config']) : [];
         if(is_array($validated['config'])){

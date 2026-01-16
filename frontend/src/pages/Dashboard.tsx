@@ -91,8 +91,8 @@ export default function Dashboard() {
 
   // Estados iniciais baseados no ano selecionado
   const initialSeries = months.map((m) => ({ mes: m, [keyPrev]: 0, [keyCurr]: 0 } as any));
-  const [interestedMonthlyData, setInterestedMonthlyData] = useState<Array<{ mes: string; [key: string]: number }>>(initialSeries);
-  const [enrolledMonthlyData, setEnrolledMonthlyData] = useState<Array<{ mes: string; [key: string]: number }>>(initialSeries);
+  const [contractsMonthlyData, setContractsMonthlyData] = useState<Array<{ mes: string; [key: string]: string | number }>>(initialSeries);
+
   /**
    * dashboardSummaryQuery
    * pt-BR: Consulta React Query para obter o resumo consolidado do Dashboard.
@@ -108,11 +108,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     const charts = dashboardSummaryQuery.data?.data?.charts as any;
-    if (charts?.interested && Array.isArray(charts.interested)) {
-      setInterestedMonthlyData(charts.interested);
-    }
-    if (charts?.enrolled && Array.isArray(charts.enrolled)) {
-      setEnrolledMonthlyData(charts.enrolled);
+    if (charts?.contracts && Array.isArray(charts.contracts)) {
+      setContractsMonthlyData(charts.contracts);
     }
   }, [dashboardSummaryQuery.data]);
 
@@ -162,73 +159,69 @@ export default function Dashboard() {
 
       {/* Cards KPI no topo */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <KpiCardLink to="/admin/school/interested">
+        <KpiCardLink to="/admin/contracts">
           <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total de Interessados</CardTitle>
-            <CardDescription>Pré-cadastros (int)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{totalInteressados}</div>
-          </CardContent>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Contratos</CardTitle>
+              <CardDescription>Total emitidos</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {(dashboardSummaryQuery.data?.data?.counts?.contracts ?? 0)}
+              </div>
+            </CardContent>
           </Card>
         </KpiCardLink>
 
-        <KpiCardLink to="/admin/school/enroll">
+        <KpiCardLink to="/admin/clients">
           <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total de Alunos</CardTitle>
-            <CardDescription>Matrículas ativas (mat)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{totalAlunos}</div>
-          </CardContent>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Clientes</CardTitle>
+              <CardDescription>Cadastrados</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {(dashboardSummaryQuery.data?.data?.counts?.clients ?? 0)}
+              </div>
+            </CardContent>
           </Card>
         </KpiCardLink>
 
-        <KpiCardLink to="/admin/school/classes">
+        <KpiCardLink to="/admin/settings/users?permission_id=8">
           <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Agendados</CardTitle>
-            <CardDescription>Resumo operacional</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">0</div>
-          </CardContent>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Fornecedores</CardTitle>
+              <CardDescription>Parceiros</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {(dashboardSummaryQuery.data?.data?.counts?.suppliers ?? 0)}
+              </div>
+            </CardContent>
           </Card>
         </KpiCardLink>
 
-        <KpiCardLink to="/admin/school/courses">
+        <KpiCardLink to="/admin/settings/users">
           <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Cursos</CardTitle>
-            <CardDescription>Total cadastrados</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{totalCursos}</div>
-          </CardContent>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Usuários</CardTitle>
+              <CardDescription>Total do sistema</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {(dashboardSummaryQuery.data?.data?.counts?.users ?? 0)}
+              </div>
+            </CardContent>
           </Card>
         </KpiCardLink>
+
       </div>
 
-      {/* Atalhos rápidos como na imagem */}
-      <div className="flex flex-wrap gap-2">
-        <Button asChild>
-          <Link to="/admin/clients">Cliente</Link>
-        </Button>
-        <Button asChild variant="secondary">
-          <Link to="/admin/school/courses">Todos Cursos</Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link to="/admin/school/enroll">Curso</Link>
-        </Button>
-      </div>
-
-      {/* Gráficos de retas: Interessados e Matriculados */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* Gráfico de Contratos: Realizados */}
+      <div className="grid gap-6 lg:grid-cols-1">
         <Card>
           <CardHeader>
-            <CardTitle>Interessados do ano de {selectedYear}</CardTitle>
+            <CardTitle>Contratos Realizados ({selectedYear})</CardTitle>
             <CardDescription>
               Comparativo {comparisonYear} x {selectedYear}
               {dashboardSummaryQuery.isFetching && (
@@ -237,49 +230,23 @@ export default function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[280px]">
+            <div className="h-[320px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={interestedMonthlyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <LineChart data={contractsMonthlyData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                   <Tooltip />
                   <Legend />
-                  <Line type="monotone" dataKey={keyCurr} stroke="#111827" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} name={`Interessados ${selectedYear}`} />
-                  <Line type="monotone" dataKey={keyPrev} stroke="#3b82f6" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} name={`Interessados ${comparisonYear}`} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Matriculados do ano de {selectedYear}</CardTitle>
-            <CardDescription>
-              Comparativo {comparisonYear} x {selectedYear}
-              {dashboardSummaryQuery.isFetching && (
-                <span className="ml-2 text-xs">(Atualizando)</span>
-              )}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[280px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={enrolledMonthlyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey={keyCurr} stroke="#111827" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} name={`Matriculados ${selectedYear}`} />
-                  <Line type="monotone" dataKey={keyPrev} stroke="#3b82f6" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} name={`Matriculados ${comparisonYear}`} />
+                  <Line type="monotone" dataKey={keyCurr} stroke="#111827" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} name={`Contratos ${selectedYear}`} />
+                  <Line type="monotone" dataKey={keyPrev} stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} name={`Contratos ${comparisonYear}`} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
       </div>
+
     </div>
   );
 }

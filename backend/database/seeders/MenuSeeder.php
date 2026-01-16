@@ -51,60 +51,90 @@ class MenuSeeder extends Seeder
          * Permissões iniciais (Master = 1) e vínculos menu_permission.
          */
         DB::table('permissions')->truncate();
-        DB::table('permissions')->insert([
-                // MASTER → acesso a tudo
-                [
-                    'name' => 'Master',
-                    'description' => 'Desenvolvedores',
-                    'redirect_login' => '/home',
-                    'active' => 's',
-                ],
+        // Permissions data
+        $permissionsData = [
+            // MASTER → acesso a tudo
+            [
+                'id' => 1,
+                'name' => 'Master',
+                'description' => 'Desenvolvedores',
+                'redirect_login' => '/home',
+                'active' => 's',
+            ],
 
-                // ADMINISTRADOR → tudo, mas em configurações só "Usuários" e "Perfis"
-                [
-                    'name' => 'Administrador',
-                    'description' => 'Administradores do sistema',
-                    'redirect_login' => '/home',
-                    'active' => 's'
-                ],
+            // ADMINISTRADOR → tudo, mas em configurações só "Usuários" e "Perfis"
+            [
+                'id' => 2,
+                'name' => 'Administrador',
+                'description' => 'Administradores do sistema',
+                'redirect_login' => '/home',
+                'active' => 's'
+            ],
 
-                // GERENTE → todos os menus exceto configurações
-                [
-                    'name' => 'Auxiliar Adminstrativo',
-                    'description' => 'Gerente do sistema (sem acesso a configurações)',
-                    'redirect_login' => '/home',
-                    'active' => 's'
-                ],
+            // GERENTE → todos os menus exceto configurações
+            [
+                'id' => 3,
+                'name' => 'Diretor',
+                'description' => 'Gerente do sistema (sem acesso a configurações)',
+                'redirect_login' => '/home',
+                'active' => 's',
+            ],
 
-                // ESCRITÓRIO → somente dois primeiros menus
-                [
-                    'name' => 'Escritório',
-                    'description' => 'Acesso limitado a Dashboard e Clientes',
-                    'redirect_login' => '/home',
-                    'active' => 's'
-                ],
-                // CONSULTOR → somente dois primeiros menus
-                [
-                    'name' => 'Consultor',
-                    'description' => 'Consultores do sistema',
-                    'redirect_login' => '/home',
-                    'active' => 's'
-                ],
-                // FORNECEDOR → somente dois primeiros menus
-                [
-                    'name' => 'Fornecedor',
-                    'description' => 'Fornecedores do sistema',
-                    'redirect_login' => '/home',
-                    'active' => 's'
-                ],
-                // Cliente → para clientes sem acesso ao admin
-                [
-                    'name' => 'Cliente',
-                    'description' => 'Sem acesso ao Dashboard porem com acesso ao painel de Clientes',
-                    'redirect_login' => '/home',
-                    'active' => 's'
-                ],
-            ]);
+            // ESCRITÓRIO → somente dois primeiros menus
+            [
+                'id' => 4,
+                'name' => 'Escritório',
+                'description' => 'Acesso limitado a Dashboard e Clientes',
+                'redirect_login' => '/home',
+                'active' => 's'
+            ],
+            // CONSULTOR → somente dois primeiros menus
+            [
+                'id' => 5,
+                'name' => 'Vendedor',
+                'description' => 'Vendedores do sistema',
+                'redirect_login' => '/home',
+                'active' => 's'
+            ],
+            // FORNECEDOR → somente dois primeiros menus
+            [
+                'id' => 6,
+                'name' => 'Fornecedor',
+                'description' => 'Fornecedores do sistema',
+                'redirect_login' => '/home',
+                'active' => 's'
+            ],
+            // Cliente → para clientes sem acesso ao admin
+            [
+                'id' => 10,
+                'name' => 'Cliente',
+                'description' => 'Clientes do sistema sem acesso ao painel de administração',
+                'redirect_login' => '/home',
+                'active' => 's'
+            ],
+        ];
+
+        // Prepare and filter data
+        $permissionsToInsert = [];
+        $tableName = 'permissions';
+
+        foreach ($permissionsData as $p) {
+            // Add potential missing fields
+            $p['excluido'] = 'n';
+            $p['deletado'] = 'n';
+            $p['guard_name'] = 'web';
+            $p['created_at'] = now();
+            $p['updated_at'] = now();
+
+            // Filter
+            $validP = array_filter($p, function ($key) use ($tableName) {
+                return \Illuminate\Support\Facades\Schema::hasColumn($tableName, $key);
+            }, ARRAY_FILTER_USE_KEY);
+
+            $permissionsToInsert[] = $validP;
+        }
+
+        DB::table('permissions')->insert($permissionsToInsert);
 
         // Recria vínculos de permissão para todos os menus
         $menusCollection = Menu::all();

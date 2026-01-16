@@ -603,6 +603,7 @@ Route::name('api.')->prefix('api/v1')->middleware([
         Route::apiResource('contracts', \App\Http\Controllers\api\ContractController::class, ['parameters' => [
             'contracts' => 'id'
         ]]);
+        Route::post('contracts/{id}/cancel', [\App\Http\Controllers\api\ContractController::class, 'cancelarContrato'])->name('contracts.cancel');
         // Route::get('contracts/trash', [\App\Http\Controllers\api\ContractController::class, 'trash'])->name('contracts.trash');
         // Route::put('contracts/{id}/restore', [\App\Http\Controllers\api\ContractController::class, 'restore'])->name('contracts.restore');
         // Route::delete('contracts/{id}/force', [\App\Http\Controllers\api\ContractController::class, 'forceDelete'])->name('contracts.forceDelete');

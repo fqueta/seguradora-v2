@@ -18,8 +18,13 @@ class DashboardChartsService extends BaseApiService {
   async getSummary(params?: { year?: number }): Promise<{
     data: {
       charts: {
-        interested: Array<{ mes: string; [key: string]: number }>;
-        enrolled: Array<{ mes: string; [key: string]: number }>;
+        contracts: Array<{ mes: string; [key: string]: string | number }>;
+      };
+      counts?: {
+        contracts: number;
+        clients: number;
+        suppliers: number;
+        users: number;
       };
     };
   }> {

@@ -23,6 +23,11 @@ class UserSeeder extends Seeder
                 'status' => 'actived',
                 'verificado' => 'n',
                 'permission_id' => 1, // Grupo Master
+                'tipo_pessoa' => 'pf',
+                'genero' => 'ni',
+                'ativo' => 's',
+                'excluido' => 'n',
+                'deletado' => 'n',
             ],
             [
                 // 'id' => Qlib::token(),
@@ -32,17 +37,29 @@ class UserSeeder extends Seeder
                 'status' => 'actived',
                 'verificado' => 'n',
                 'permission_id' => 2, // Grupo Administrador
+                'tipo_pessoa' => 'pf',
+                'genero' => 'ni',
+                'ativo' => 's',
+                'excluido' => 'n',
+                'deletado' => 'n',
             ],
         ];
 
+        $tableName = (new User())->getTable();
+
         foreach ($users as $userData) {
+            // Filter fields that exist in the table
+            $validData = array_filter($userData, function ($key) use ($tableName) {
+                return \Illuminate\Support\Facades\Schema::hasColumn($tableName, $key);
+            }, ARRAY_FILTER_USE_KEY);
+
             // dump($userData);
-            // User::updateOrCreate(
-            //     ['email' => $userData['email']], // evita duplicados
-            //     $userData
+            // User::create(
+            //     $validData
             // );
-            User::create(
-                $userData
+            User::updateOrCreate(
+                ['email' => $userData['email']],
+                $validData
             );
         }
     }

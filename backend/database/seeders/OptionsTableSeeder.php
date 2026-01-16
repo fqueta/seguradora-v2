@@ -15,62 +15,12 @@ class OptionsTableSeeder extends Seeder
     {
         //limpar primeiro as opções
         //limpar primeiro as opções
-        // DB::table('options')->truncate();
+        DB::table('options')->truncate();
 
-        if(Qlib::is_crm_aero()){
-            $data = [
+        $data = [
                 [
                     'name'  => 'Id da permissão dos clientes',
-                    'value' => '7',
-                    'url'   => 'permission_client_id',
-                ],
-                [
-                    'name'  => 'Id da permissão dos instrutores',
-                    'value' => '6',
-                    'url'   => 'permission_instructor_id',
-                ],
-                [
-                    'name'  => 'Url importação Api Aeroclube',
-                    'value' => 'https://api.aeroclubejf.com.br/api/v1/metricas',
-                    'url'   => 'url_api_aeroclube',
-                ],
-                [
-                    'name'  => 'Token da Api Aeroclube',
-                    'value' => '',
-                    'url'   => 'token_api_aeroclube',
-                ],
-                [
-                    'name'  => 'Id do funil padrão de vendas',
-                    'value' => '2',
-                    'url'   => 'default_funil_vendas_id',
-                ],
-                [
-                    'name'  => 'Id da etapa padrão de vendas',
-                    'value' => '7',
-                    'url'   => 'default_etapa_vendas_id',
-                ],
-                [
-                    'name'  => 'Id da situação padrão das propostas',
-                    'value' => '16',
-                    'url'   => 'default_proposal_situacao_id',
-                ],
-                [
-                    'name'  => 'Credenciais SulAmerica',
-                    'value' => json_encode([
-                        'url'=>'https://canalvenda-internet-develop.executivoslab.com.br/services/canalvenda?wsdl',
-                        'user'=>'yello1232user',
-                        'pass'=>'yello1232pass',
-                        'produto'=>'10232',
-                    ]),
-                    'url'   => 'credenciais_sulamerica',
-                    'tags'  => 'link',
-                ],
-            ];
-        }else{
-            $data = [
-                [
-                    'name'  => 'Id da permissão dos clientes',
-                    'value' => '7',
+                    'value' => '10',
                     'url'   => 'permission_client_id',
                 ],
                 [
@@ -121,8 +71,7 @@ class OptionsTableSeeder extends Seeder
                     'tags'  => 'link',
                 ],
             ];
-
-        }
+        
         
         foreach ($data as $item) {
             DB::table('options')->updateOrInsert(

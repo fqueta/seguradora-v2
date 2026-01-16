@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 
 return new class extends Migration {
     /**
@@ -13,13 +14,17 @@ return new class extends Migration {
     public function up(): void
     {
         // Remover índice (se existir) para evitar conflitos na alteração de tipo
-        try { DB::statement('ALTER TABLE `comments` DROP INDEX `comments_user_id_index`'); } catch (\Throwable $e) {}
+        Schema::table('comments', function (Blueprint $table) {
+            try { $table->dropIndex('comments_user_id_index'); } catch (\Throwable $e) {}
+        });
 
         // Alterar o tipo da coluna para VARCHAR(36)
-        DB::statement('ALTER TABLE `comments` MODIFY `user_id` VARCHAR(36) NOT NULL');
+        Schema::table('comments', function (Blueprint $table) {
+            $table->string('user_id', 36)->change();
+        });
 
         // Recriar índice
-        Schema::table('comments', function ($table) {
+        Schema::table('comments', function (Blueprint $table) {
             $table->index('user_id');
         });
     }
@@ -32,8 +37,10 @@ return new class extends Migration {
     public function down(): void
     {
         try { DB::statement('ALTER TABLE `comments` DROP INDEX `comments_user_id_index`'); } catch (\Throwable $e) {}
-        DB::statement('ALTER TABLE `comments` MODIFY `user_id` BIGINT UNSIGNED NOT NULL');
-        Schema::table('comments', function ($table) {
+        Schema::table('comments', function (Blueprint $table) {
+            $table->unsignedBigInteger('user_id')->change();
+        });
+        Schema::table('comments', function (Blueprint $table) {
             $table->index('user_id');
         });
     }

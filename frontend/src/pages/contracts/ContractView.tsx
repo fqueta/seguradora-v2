@@ -1,18 +1,30 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useContract } from '@/hooks/contracts';
+import { useContract, useCancelContract } from '@/hooks/contracts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, FileText, User, Calendar, DollarSign, Package } from 'lucide-react';
+import { ArrowLeft, Edit, FileText, User, Calendar, DollarSign, Package, XCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export default function ContractView() {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
     const { data: contract, isLoading, error } = useContract(id as string);
+    const { mutate: cancelContract, isPending: isCancelling } = useCancelContract();
     const [expandedEvents, setExpandedEvents] = useState<number[]>([]);
 
     const toggleJson = (eventId: number) => {
@@ -21,7 +33,14 @@ export default function ContractView() {
         );
     };
 
+    const handleCancel = () => {
+        cancelContract(id as string);
+    };
+
+    // ... (rest of the code)
+
     if (isLoading) {
+        // ... (loading state)
         return (
             <div className="container mx-auto py-6 space-y-6">
                 <div className="space-y-2">
@@ -43,6 +62,7 @@ export default function ContractView() {
     }
 
     if (error || !contract) {
+        // ... (error state)
         return (
             <div className="container mx-auto py-6">
                 <Card>
@@ -59,6 +79,8 @@ export default function ContractView() {
             </div>
         );
     }
+
+    // ... (helper functions)
 
     const formatCurrency = (value?: number) => {
         if (value === undefined || value === null) return '-';
@@ -116,6 +138,36 @@ export default function ContractView() {
                     <Badge variant={getStatusVariant(contract.status)}>
                         {getStatusLabel(contract.status)}
                     </Badge>
+                    
+                    {contract.status === 'approved' && (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive">
+                                    <XCircle className="mr-2 h-4 w-4" />
+                                    Cancelar
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Cancelar Contrato?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Esta ação irá cancelar o contrato e notificar a integração (se disponível). 
+                                        Tem certeza que deseja continuar?
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                        onClick={handleCancel}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                        Sim, Cancelar
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
+
                     <Button onClick={() => navigate(`/admin/contracts/${id}/edit`)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Editar

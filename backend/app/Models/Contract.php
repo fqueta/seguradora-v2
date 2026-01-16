@@ -26,6 +26,7 @@ class Contract extends Model
         'type',
         'token',
         'address',
+        'organization_id',
     ];
 
     protected $casts = [

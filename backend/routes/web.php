@@ -42,3 +42,29 @@ Route::get('/preview/password-reset-email', function () {
 
     return view('emails.password_reset', compact('resetLink', 'logoDataUri', 'logoSrc'));
 });
+
+use App\Models\Tenant;
+
+Route::get('/create-tenant/{id}/{domain}', function ($id, $domain) {
+    if (!app()->isLocal()) {
+        abort(403, 'This route is only available in the local environment.');
+    }
+
+    if (Tenant::find($id)) {
+        return response()->json(['message' => "Tenant with ID {$id} already exists."], 400);
+    }
+
+    $tenant = Tenant::create([
+        'id' => $id,
+        'ativo' => 's',
+        'excluido' => 'n',
+        'deletado' => 'n'
+    ]);
+    $tenant->domains()->create(['domain' => $domain]);
+
+    return response()->json([
+        'message' => 'Tenant created successfully.',
+        'tenant' => $tenant,
+        'domain' => $domain
+    ]);
+});

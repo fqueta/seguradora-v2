@@ -47,7 +47,7 @@ class DatabaseSeeder extends Seeder
             $var_cal = [
                     UserSeeder::class,
                     MenuSeeder::class, //cadastra menus permissõs e menu_permissions
-                    DashboardMetricsSeeder::class,
+                    // DashboardMetricsSeeder::class,
                     CategorySeeder::class,
                     FinancialCategoriesSeeder::class,
                     OptionsTableSeeder::class,
@@ -59,6 +59,8 @@ class DatabaseSeeder extends Seeder
                     // AeronavesSeeder::class,
                     SupplierSeeder::class,
                     SulamericaProductSeeder::class,
+                    OrganizationUserSeeder::class,
+                    TenantSeeder::class,
             ];
 
         }

@@ -273,14 +273,13 @@ class OptionController extends Controller
                     'created_at'      => now(),
                     'updated_at'      => now(),
                 ];
-                // dd($data_salv);
-                // $option[$key] = Option::updateOrInsert(
-                //     [
-                //         'value' => $value,
-                //     ],
-                //     $data_salv
-                // );
-                $option[$key] = Qlib::update_tab('options', $data_salv, "WHERE url = '$key'");
+                $optionModel = Option::firstOrNew(['url' => $key]);
+                $optionModel->fill($data_salv);
+                if (!$optionModel->exists && empty($optionModel->token)) {
+                    $optionModel->token = Qlib::token();
+                }
+                $optionModel->save();
+                $option[$key] = $optionModel;
             }
         }
         // dd($option);

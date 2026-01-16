@@ -31,7 +31,29 @@ export function useUpdateContract(mutationOptions?: any) {
   return api.useUpdate(mutationOptions);
 }
 
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+
 export function useDeleteContract(mutationOptions?: any) {
   const api = getContractsApi();
   return api.useDelete(mutationOptions);
+}
+
+export function useCancelContract(mutationOptions?: any) {
+  const queryClient = useQueryClient();
+  return useMutation<any, Error, string | number>({
+    mutationFn: (id: string | number) => contractsService.cancelContract(id),
+    onSuccess: (data) => {
+        if(data?.exec === false){
+            toast.error(data?.mens || 'Erro ao cancelar contrato');
+            return;
+        }
+        toast.success('Contrato cancelado com sucesso');
+        queryClient.invalidateQueries({ queryKey: ['contracts'] });
+    },
+    onError: (error: any) => {
+        toast.error('Erro ao cancelar contrato: ' + (error.message || 'Erro desconhecido'));
+    },
+    ...mutationOptions
+  });
 }

@@ -4,11 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
-
 class Option extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory;
 
     protected $fillable = [
         'token',
@@ -26,9 +24,6 @@ class Option extends Model
     // protected $casts = [
     //     'value' => 'array',
     // ];
-
-    public $incrementing = false;   // 👈 precisa porque o id não é int
-    protected $keyType = 'string';  // 👈 precisa porque UUID é string
 
     /**
      * Escopo global para filtrar apenas registros não excluídos

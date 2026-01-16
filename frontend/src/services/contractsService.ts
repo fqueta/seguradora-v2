@@ -34,7 +34,7 @@ class ContractsService extends BaseApiService {
    */
   async createContract(data: CreateContractInput): Promise<ContractRecord> {
     const response = await this.post<ApiResponse<ContractRecord>>(this.endpoint, data);
-    return response.data;
+    return response as any;
   }
 
   /**
@@ -44,7 +44,7 @@ class ContractsService extends BaseApiService {
    */
   async updateContract(id: string | number, data: UpdateContractInput): Promise<ContractRecord> {
     const response = await this.put<any>(`${this.endpoint}/${id}`, data);
-    return (response.data ?? response) as ContractRecord;
+    return response as any;
   }
 
   /**
@@ -53,6 +53,15 @@ class ContractsService extends BaseApiService {
    */
   async deleteContract(id: string | number): Promise<void> {
     await this.delete(`${this.endpoint}/${id}`);
+  }
+
+  /**
+   * Cancela um contrato (mudança de status para cancelled)
+   * @param id ID do contrato
+   */
+  async cancelContract(id: string | number): Promise<any> {
+    const response = await this.post<any>(`${this.endpoint}/${id}/cancel`, {});
+    return response;
   }
 
   // Métodos de conveniência para compatibilidade com useGenericApi

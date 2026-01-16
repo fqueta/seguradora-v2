@@ -26,7 +26,7 @@ class Client extends User
     protected static function booted()
     {
         // Resolve o ID do perfil "Cliente" dinamicamente
-        $cliente_permission_id = (new ClientController)->cliente_permission_id;
+        $cliente_permission_id = Qlib::qoption('permission_client_id') ?: 7;
 
         static::creating(function ($client) use ($cliente_permission_id) {
             $client->permission_id = $cliente_permission_id;
@@ -59,6 +59,7 @@ class Client extends User
         'reg_excluido',
         'deletado',
         'reg_deletado',
+        'organization_id',
     ];
 
     protected $hidden = [

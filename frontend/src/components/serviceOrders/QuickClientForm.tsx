@@ -29,7 +29,7 @@ const quickClientSchema = z.object({
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   cpf: z.string({ required_error: "CPF é obrigatório" }).min(14, "CPF incompleto"), // CPF is mandatory
   phone: z.string().optional(),
-  birth_date: z.string().optional(),
+  birth_date: z.string({ required_error: "Data de Nascimento é obrigatória" }).min(1, "Data de Nascimento é obrigatória"),
   notes: z.string().optional(),
   config: z.object({
     cep: z.string().optional(),
@@ -340,7 +340,7 @@ export default function QuickClientForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Data de Nascimento
+                      Data de Nascimento *
                     </FormLabel>
                     <FormControl>
                       <Input

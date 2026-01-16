@@ -79,4 +79,8 @@ export interface ContractsListParams {
   search?: string;
   status?: string;
   client_id?: string | number;
+  organization_id?: string | number;
+  owner_id?: string | number;
+  vigencia_inicio?: string;
+  vigencia_fim?: string;
 }

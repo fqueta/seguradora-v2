@@ -62,17 +62,10 @@ return [
             ]) : [],
         ],
         'tenant' => [
-            'driver' => 'mysql',
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', '3306'),
-            'database' => '', // será definido dinamicamente
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
-            'charset' => 'utf8mb4',
-            'collation' => 'utf8mb4_unicode_ci',
+            'driver' => 'sqlite',
+            'database' => null, // será definido dinamicamente
             'prefix' => '',
-            'strict' => true,
-            'engine' => null,
+            'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
         ],
 
         'mariadb' => [

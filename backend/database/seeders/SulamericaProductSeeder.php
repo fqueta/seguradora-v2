@@ -21,11 +21,13 @@ class SulamericaProductSeeder extends Seeder
         }
 
         $products = [
+            
             [
                 'ID' => 3,
                 'post_title' => 'MA 5K + IPA 5K + TEL + FUN',
                 'post_name' => 'ma-5k-ipa-5k-tel-fun',
                 'post_value1' => 2.68, // Preço de custo
+                'post_value2' => 19.99, // Preço de custo
                 'config' => ['plan' => '1','unit'=>'un','image'=>'','availability'=>'available','rating'=>0,'reviews'=>0,'terms'=>[],'supplier_id'=>$supplier->id],
             ],
             [
@@ -33,6 +35,7 @@ class SulamericaProductSeeder extends Seeder
                 'post_title' => 'MA 5K + IPA 5K + TEL',
                 'post_name' => 'ma-5k-ipa-5k-tel',
                 'post_value1' => 1.61,
+                'post_value2' => 14.99,
                 'config' => ['plan' => '2','unit'=>'un','image'=>'','availability'=>'available','rating'=>0,'reviews'=>0,'terms'=>[],'supplier_id'=>$supplier->id],
             ],
             [
@@ -40,6 +43,7 @@ class SulamericaProductSeeder extends Seeder
                 'post_title' => 'MA 5K + TEL',
                 'post_name' => 'ma-5k-tel',
                 'post_value1' => 2.28,
+                'post_value2' => 12.99,
                 'config' => ['plan' => '3','unit'=>'un','image'=>'','availability'=>'available','rating'=>0,'reviews'=>0,'terms'=>[],'supplier_id'=>$supplier->id],
             ],
             [
@@ -47,6 +51,7 @@ class SulamericaProductSeeder extends Seeder
                 'post_title' => 'MA 10K + TEL',
                 'post_name' => 'ma-10k-tel',
                 'post_value1' => 2.41,
+                'post_value2' => 19.99,
                 'config' => ['plan' => '4','unit'=>'un','image'=>'','availability'=>'available','rating'=>0,'reviews'=>0,'terms'=>[],'supplier_id'=>$supplier->id],
             ],
             [
@@ -54,6 +59,7 @@ class SulamericaProductSeeder extends Seeder
                 'post_title' => 'MA 5K + FUN',
                 'post_name' => 'ma-5k-fun',
                 'post_value1' => 2.21,
+                'post_value2' => 12.99,
                 'config' => ['plan' => '5','unit'=>'un','image'=>'','availability'=>'available','rating'=>0,'reviews'=>0,'terms'=>[],'supplier_id'=>$supplier->id],
             ],
             [
@@ -61,6 +67,7 @@ class SulamericaProductSeeder extends Seeder
                 'post_title' => 'MA 10K + FUN',
                 'post_name' => 'ma-10k-fun',
                 'post_value1' => 3.73,
+                'post_value2' => 29.99,
                 'config' => ['plan' => '6','unit'=>'un','image'=>'','availability'=>'available','rating'=>0,'reviews'=>0,'terms'=>[],'supplier_id'=>$supplier->id],
             ],
             [
@@ -68,6 +75,7 @@ class SulamericaProductSeeder extends Seeder
                 'post_title' => 'MA 5K - ASS.RES.',
                 'post_name' => 'ma-5k-ass-res',
                 'post_value1' => 0.77,
+                'post_value2' => 12.99,
                 'config' => ['plan' => '7','unit'=>'un','image'=>'','availability'=>'available','rating'=>0,'reviews'=>0,'terms'=>[],'supplier_id'=>$supplier->id],
             ],
             [
@@ -75,6 +83,7 @@ class SulamericaProductSeeder extends Seeder
                 'post_title' => 'MA 5K + IPA 5K',
                 'post_name' => 'ma-5k-ipa-5k',
                 'post_value1' => 0.25,
+                'post_value2' => 12.99,
                 'config' => ['plan' => '8','unit'=>'un','image'=>'','availability'=>'available','rating'=>0,'reviews'=>0,'terms'=>[],'supplier_id'=>$supplier->id],
             ],
             [
@@ -82,7 +91,16 @@ class SulamericaProductSeeder extends Seeder
                 'post_title' => 'MA 5K + IPA 5K + FUN',
                 'post_name' => 'ma-5k-ipa-5k-fun',
                 'post_value1' => 2.33,
+                'post_value2' => 12.99,
                 'config' => ['plan' => '9','unit'=>'un','image'=>'','availability'=>'available','rating'=>0,'reviews'=>0,'terms'=>[],'supplier_id'=>$supplier->id],
+            ],
+            [
+                'ID' => 12,
+                'post_title' => 'PLANO PARA TESTE API',
+                'post_name' => 'plano-para-teste-api',
+                'post_value1' => 3.96, // Preço de custo
+                'post_value2' => 12.99,
+                'config' => ['plan' => '1','unit'=>'un','image'=>'','availability'=>'available','rating'=>0,'reviews'=>0,'terms'=>[],'supplier_id'=>$supplier->id],
             ],
         ];
 

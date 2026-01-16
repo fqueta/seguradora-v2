@@ -419,12 +419,17 @@ export default function SystemSettings() {
       // Persistir em localStorage
       Object.entries(payload).forEach(([k, v]) => localStorage.setItem(k, v));
 
+      console.log('handleSaveBranding payload:', payload);
+
       // Opcional: persistir em /options/all para retenção no backend
       if (Object.keys(payload).length > 0) {
         const ok = await saveMultipleOptions(payload);
+        console.log('handleSaveBranding result:', ok);
         if (!ok) {
           toast.warning('URLs salvas localmente; falha ao persistir em opções da API.');
         }
+      } else {
+        console.warn('handleSaveBranding: Payload vazio, nenhuma requisição enviada.');
       }
 
       toast.success('Branding salvo. Recarregue a página para aplicar.');

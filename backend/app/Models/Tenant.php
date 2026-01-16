@@ -11,6 +11,37 @@ class Tenant extends BaseTenant implements TenantWithDatabase
 {
     use HasDatabase, HasDomains;
 
+    protected $fillable = [
+        'id',
+        'name',
+        'config',
+        'ativo',
+        'autor',
+        'excluido',
+        'reg_excluido',
+        'deletado',
+        'reg_deletado',
+        'data',
+    ];
+
+    public static function getCustomColumns(): array
+    {
+        return [
+            'id',
+            'name',
+            'config',
+            'ativo',
+            'autor',
+            'excluido',
+            'reg_excluido',
+            'deletado',
+            'reg_deletado',
+            'created_at',
+            'updated_at',
+            'data',
+        ];
+    }
+
     /**
      * Accessor: retorna o slug salvo na coluna JSON `data` do tenant.
      *

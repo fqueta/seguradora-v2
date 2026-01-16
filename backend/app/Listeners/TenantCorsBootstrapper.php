@@ -20,10 +20,17 @@ class TenantCorsBootstrapper
         $origins = config('cors.allowed_origins', []);
 
         // Get tenant-specific frontend URL (fallbacks handled inside qoption)
-        $frontend = Qlib::qoption('default_frontend_url');
-        if (is_string($frontend) && !empty($frontend)) {
-            if (!in_array($frontend, $origins, true)) {
-                $origins[] = $frontend;
+        try {
+            $frontend = Qlib::qoption('default_frontend_url');
+            if (is_string($frontend) && !empty($frontend)) {
+                if (!in_array($frontend, $origins, true)) {
+                    $origins[] = $frontend;
+                }
+            }
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Ignore if table doesn't exist (e.g. during migration)
+            if (!str_contains($e->getMessage(), 'no such table: options')) {
+                throw $e;
             }
         }
 

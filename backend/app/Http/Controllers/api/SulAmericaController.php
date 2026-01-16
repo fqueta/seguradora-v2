@@ -208,13 +208,12 @@ class SulAmericaController extends Controller
         $numeroOperacao = isset($config['numeroOperacao']) ? $config['numeroOperacao'] : false;
         $canalVenda = isset($config['canalVenda']) ? $config['canalVenda'] : 'site';
         $mesAnoFatura = isset($config['mesAnoFatura']) ? $config['mesAnoFatura'] : '032025';
-        $token_contrato = isset($config['token_contrato']) ? $config['token_contrato'] : '';
-        // dd($token_contrato);
+        $id_contrato = isset($config['id_contrato']) ? $config['id_contrato'] : '';
         if(!$numeroOperacao){
             $ret['exec'] = false;
             $ret['mens'] = 'Número de operação é obrigatório';
             ContractEventLogger::logByToken(
-                $token_contrato,
+                $id_contrato,
                 'cancelamento_end',
                 $ret['mens'],
                 [
@@ -226,11 +225,11 @@ class SulAmericaController extends Controller
                 auth()->id()
             );
             return $ret;
-        }elseif(!$token_contrato){
+        }elseif(!$id_contrato){
             $ret['exec'] = false;
-            $ret['mens'] = 'Token de contrato é obrigatório';
+            $ret['mens'] = 'ID do contrato é obrigatório';
             ContractEventLogger::logByToken(
-                $token_contrato,
+                $id_contrato,
                 'cancelamento_end',
                 $ret['mens'],
                 [

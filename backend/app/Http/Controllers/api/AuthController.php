@@ -52,6 +52,7 @@ class AuthController extends Controller
         }
 
         $user = Auth::user();
+        $user->load('organization');
         // dd($user);
         // Impede login de usuário inativo (ativo != 's')
         if (($user->ativo ?? null) !== 's') {

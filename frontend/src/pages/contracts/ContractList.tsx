@@ -4,9 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, Pencil, Trash, Eye } from 'lucide-react';
+import { Plus, Search, Pencil, Trash, Eye, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useAuth } from '@/contexts/AuthContext';
+import { useOrganizationsList } from '@/hooks/organizations';
+import { useUsersList } from '@/hooks/users';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -20,19 +24,49 @@ import {
 
 export default function ContractList() {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const canFilterAdmin = user && (Number(user.permission_id) < 3);
+
     const [search, setSearch] = useState('');
     const debouncedSearch = useDebounce(search, 500);
+    const [status, setStatus] = useState<string>('all');
+    const [vigenciaInicio, setVigenciaInicio] = useState<string>('');
+    const [vigenciaFim, setVigenciaFim] = useState<string>('');
+    const [orgId, setOrgId] = useState<string>('all');
+    const [ownerId, setOwnerId] = useState<string>('all');
     const [page, setPage] = useState(1);
-    const { data, isLoading } = useContractsList({ page, search: debouncedSearch });
+
+    const { data: orgs } = useOrganizationsList({ per_page: 100 });
+    const { data: users } = useUsersList({ per_page: 100 });
+
+    const { data, isLoading } = useContractsList({ 
+        page, 
+        search: debouncedSearch,
+        status: status !== 'all' ? status : undefined,
+        vigencia_inicio: vigenciaInicio || undefined,
+        vigencia_fim: vigenciaFim || undefined,
+        organization_id: orgId !== 'all' ? orgId : undefined,
+        owner_id: ownerId !== 'all' ? ownerId : undefined,
+    });
+
     const deleteMutation = useDeleteContract();
     const [deleteId, setDeleteId] = useState<number | null>(null);
 
     const handleDelete = () => {
         if (deleteId) {
-            deleteMutation.mutate(deleteId, {
+            deleteMutation.mutate(deleteId.toString(), {
                 onSuccess: () => setDeleteId(null)
             });
         }
+    };
+
+    const clearFilters = () => {
+        setSearch('');
+        setStatus('all');
+        setVigenciaInicio('');
+        setVigenciaFim('');
+        setOrgId('all');
+        setOwnerId('all');
     };
 
     return (
@@ -45,9 +79,9 @@ export default function ContractList() {
             </div>
 
             <Card>
-                <CardHeader>
-                    <div className="flex items-center gap-4">
-                        <div className="relative flex-1">
+                <CardHeader className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="relative">
                             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
                                 placeholder="Buscar contratos..."
@@ -56,7 +90,78 @@ export default function ContractList() {
                                 className="pl-8"
                             />
                         </div>
+
+                        <Select value={status} onValueChange={setStatus}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos os Status</SelectItem>
+                                <SelectItem value="pending">Pendente</SelectItem>
+                                <SelectItem value="approved">Aprovado</SelectItem>
+                                <SelectItem value="active">Ativo</SelectItem>
+                                <SelectItem value="cancelled">Cancelado</SelectItem>
+                                <SelectItem value="rejected">Rejeitado</SelectItem>
+                                <SelectItem value="draft">Rascunho</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <div className="flex items-center gap-2">
+                            <Input
+                                type="date"
+                                value={vigenciaInicio}
+                                onChange={(e) => setVigenciaInicio(e.target.value)}
+                                className="text-xs"
+                                placeholder="Início"
+                            />
+                            <span className="text-muted-foreground text-xs">até</span>
+                            <Input
+                                type="date"
+                                value={vigenciaFim}
+                                onChange={(e) => setVigenciaFim(e.target.value)}
+                                className="text-xs"
+                                placeholder="Fim"
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <Button variant="outline" size="icon" onClick={clearFilters} title="Limpar Filtros">
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
+
+                    {canFilterAdmin && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Select value={orgId} onValueChange={setOrgId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Organização" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todas as Organizações</SelectItem>
+                                    {orgs?.data?.map((org: any) => (
+                                        <SelectItem key={org.id} value={org.id.toString()}>
+                                            {org.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Select value={ownerId} onValueChange={setOwnerId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Autor/Vendedor" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todos os Autores</SelectItem>
+                                    {users?.data?.map((u: any) => (
+                                        <SelectItem key={u.id} value={u.id.toString()}>
+                                            {u.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
                 </CardHeader>
                 <CardContent>
                             <Table>

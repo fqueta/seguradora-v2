@@ -22,6 +22,18 @@ export interface User {
   permission_id?: string;
   created_at: string;
   updated_at: string;
+  organization?: Organization;
+}
+
+export interface Organization {
+  id: number;
+  name: string;
+  document?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  active?: boolean;
+  config?: any;
 }
 
 export interface AuthState {

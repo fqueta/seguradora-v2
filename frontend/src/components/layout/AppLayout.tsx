@@ -78,6 +78,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const pendingCommentsQuery = useQuery({
     queryKey: ["admin-pending-comments"],
     queryFn: async () => {
+      // Disabled for now as per user request
+      return { items: [], total: 0 };
+      /*
       const res: any = await commentsService.adminList("pending", 1, 5);
       if (Array.isArray(res)) {
         return { items: res, total: res.length };
@@ -85,7 +88,9 @@ export function AppLayout({ children }: AppLayoutProps) {
       const items = Array.isArray(res?.data) ? res.data : [];
       const total = Number(res?.total ?? items.length);
       return { items, total };
+      */
     },
+    enabled: false, // Explicitly disable query
     refetchInterval: 60 * 1000,
     refetchOnWindowFocus: true,
   });
@@ -163,7 +168,14 @@ export function AppLayout({ children }: AppLayoutProps) {
               <SidebarTrigger data-lov-name="SidebarTrigger" />
               <div className="hidden md:flex items-center gap-2">
                 <BrandLogo alt="Logo" fallbackSrc="/aeroclube-logo.svg" className="h-6 w-auto" />
-                <span className="hidden lg:block text-sm text-muted-foreground">{institutionName}</span>
+                <div className="flex flex-col">
+                  {user?.organization && (
+                    <span className="text-xs font-semibold text-primary uppercase tracking-wider">
+                      {user.organization.name}
+                    </span>
+                  )}
+                  <span className="hidden lg:block text-sm text-muted-foreground">{institutionName}</span>
+                </div>
               </div>
             </div>
 
@@ -192,7 +204,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <PopoverContent align="end" className="w-80">
                   <div className="space-y-2">
                     <div className="text-sm font-medium">Moderação de comentários</div>
-                    {pendingCommentsQuery.isLoading ? (
+                    {pendingCommentsQuery.isPending ? (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         Carregando…
@@ -225,13 +237,13 @@ export function AppLayout({ children }: AppLayoutProps) {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => bellApproveMutation.mutate(c?.id ?? "")}
-                                  disabled={bellApproveMutation.isLoading}
+                                  disabled={bellApproveMutation.isPending}
                                 >Aprovar</Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => bellRejectMutation.mutate(c?.id ?? "")}
-                                  disabled={bellRejectMutation.isLoading}
+                                  disabled={bellRejectMutation.isPending}
                                 >Rejeitar</Button>
                               </div>
                             </div>

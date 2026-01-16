@@ -15,7 +15,7 @@ class ContractController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Contract::with(['client', 'owner']);
+        $query = Contract::with(['client', 'owner', 'organization']);
 
         if ($request->has('search')) {
             $search = $request->search;
@@ -25,12 +25,37 @@ class ContractController extends Controller
             });
         }
 
-        if ($request->has('status')) {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        if ($request->has('client_id')) {
+        if ($request->filled('client_id')) {
             $query->where('client_id', $request->client_id);
+        }
+
+        // Filtros de Vigência (Periodo)
+        if ($request->filled('vigencia_inicio')) {
+            $query->where('start_date', '>=', $request->vigencia_inicio);
+        }
+        if ($request->filled('vigencia_fim')) {
+            $query->where('end_date', '<=', $request->vigencia_fim);
+        }
+
+        // Security and Role-based filtering
+        $user = auth()->user();
+        if ($user) {
+            if ($user->permission_id >= 3) {
+                // Usuário restrito: vê apenas da sua organização
+                $query->where('organization_id', $user->organization_id);
+            } else {
+                // Usuário Admin/Super: pode filtrar por organização e autor se solicitado
+                if ($request->filled('organization_id')) {
+                    $query->where('organization_id', $request->organization_id);
+                }
+                if ($request->filled('owner_id')) {
+                    $query->where('owner_id', $request->owner_id);
+                }
+            }
         }
 
         $perPage = $request->get('per_page', 15);
@@ -75,11 +100,19 @@ class ContractController extends Controller
         $data['token'] = uniqid();
         
         // Create contract
+        $user = auth()->user();
+        if($user){
+            $data['owner_id'] = $user->id;
+            if(isset($user->organization_id)){
+                $data['organization_id'] = $user->organization_id;
+            }
+        }
         $contract = Contract::create($data);
 
         // Prepare default success response
         $ret = [
             'exec' => true,
+            'color' => 'success',
             'mens' => 'Contrato criado com sucesso.',
             'data' => $contract
         ];
@@ -144,7 +177,20 @@ class ContractController extends Controller
             }
        }
 
-        $contract->update($request->all());
+        // Backfill owner/organization if missing
+        $user = auth()->user();
+        if ($user) {
+            if (empty($contract->owner_id) && !isset($data['owner_id'])) {
+                $data['owner_id'] = $user->id;
+            }
+            if (empty($contract->organization_id) && !isset($data['organization_id'])) {
+                if (isset($user->organization_id)) {
+                    $data['organization_id'] = $user->organization_id;
+                }
+            }
+        }
+
+        $contract->update($data);
         
         // Log status change if it changed
         if (isset($data['status']) && $oldStatus !== $contract->status) {
@@ -168,8 +214,8 @@ class ContractController extends Controller
            return response()->json($ret);
         } else {
             return response()->json([
-                'success' => true,
-                'message' => 'Contrato atualizado com sucesso',
+                'exec' => true,
+                'mens' => 'Contrato atualizado com sucesso',
                 'data' => $contract
             ]);
         }
@@ -231,7 +277,8 @@ class ContractController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Contrato recuperado com sucesso'
+            'color' => 'success',
+            'mens' => 'Contrato recuperado com sucesso'
         ]);
     }
 
@@ -242,6 +289,7 @@ class ContractController extends Controller
     private function processSulamericaIntegration(Contract $contract)
     {
         $ret['exec'] = false;
+        $ret['color'] = 'danger';
         $ret['mens'] = '';
         try {
             $product_id = $contract['product_id'] ?? null;
@@ -340,5 +388,90 @@ class ContractController extends Controller
             $ret['mens'] = $e->getMessage();
         }
         return $ret;
+    }
+    public function cancelarContrato(Request $request, $id)
+    {
+        $contract = Contract::find($id);
+
+        if (!$contract) {
+            return response()->json(['message' => 'Contrato não encontrado'], 404);
+        }
+
+        if ($contract->status !== 'approved') {
+            return response()->json([
+                'exec' => false,
+                'mens' => 'Apenas contratos aprovados podem ser cancelados.'
+            ], 400);
+        }
+
+        //Verificar quem é o fornecedor do produto
+        $supplier = Qlib::getSupplier($contract->product_id);
+        
+        $integrationResult = null;
+        $integrationSuccess = true; // Assume success if no integration is needed, unless proven otherwise
+
+        if($supplier == 'SulAmerica'){
+            //Verificar o metadata do envio_fornecedor_sucesso
+            $metadata = Qlib::get_contract_meta($contract->id, 'envio_fornecedor_sucesso');
+            $metadata = json_decode($metadata, true);
+            if(isset($metadata['exec']) && $metadata['exec'] == true && isset($metadata['data']['numOperacao'])){
+                $numeroOperacao = $metadata['data']['numOperacao']??null;
+                $canalVenda = $metadata['data']['canalVenda']??null;
+                $mesAnoFatura = $metadata['data']['mesAnoFatura']??null;
+                $id_contrato = $contract->id;
+                
+                $saController = new SulAmericaController();
+                $apiConfig = [
+                    'numeroOperacao' => $numeroOperacao,
+                    'canalVenda' => $canalVenda,
+                    'mesAnoFatura' => $mesAnoFatura,
+                    'id_contrato' => $id_contrato,
+                ];
+                
+                $response = $saController->cancelamento($apiConfig);
+                $integrationResult = $response;
+                
+                // Check if integration failed
+                if (!isset($response['exec']) || $response['exec'] !== true) {
+                    $integrationSuccess = false;
+                }
+            } else {
+                // If expected metadata is missing, we might not be able to cancel correctly with the integration
+                // For now, let's treat it as a failure to be safe, or allow manual override? 
+                // Based on request, strict check seems better.
+                 return response()->json([
+                    'exec' => false,
+                    'mens' => 'Dados de integração incompleto para cancelamento na SulAmérica.'
+                ], 400);
+            }
+        }
+
+        if ($integrationSuccess) {
+            $oldStatus = $contract->status;
+            $contract->update(['status' => 'cancelled']);
+            
+            // Log status change
+            \App\Services\ContractEventLogger::logStatusChange(
+                $contract, 
+                $oldStatus, 
+                'cancelled', 
+                'Contrato cancelado com sucesso.', 
+                ['integration_response' => $integrationResult], 
+                null, 
+                auth()->id()
+            );
+
+            return response()->json([
+                'exec' => true,
+                'mens' => 'Contrato cancelado com sucesso.',
+                'data' => $contract
+            ]);
+        } else {
+             return response()->json([
+                'exec' => false,
+                'mens' => 'Falha ao cancelar na integração: ' . ($integrationResult['mens'] ?? 'Erro desconhecido'),
+                'data' => $integrationResult
+            ], 400);
+        }
     }
 }

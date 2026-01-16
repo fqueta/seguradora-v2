@@ -40,7 +40,7 @@ class UserController extends Controller
         $this->routeName = request()->route()->getName();
         $this->permissionService = $permissionService;
         $this->sec = request()->segment(3);
-        $this->cliente_permission_id = (new ClientController)->cliente_permission_id ?? Qlib::qoption('permission_client_id');
+        $this->cliente_permission_id = Qlib::qoption('permission_client_id') ?: 7;
     }
     /**
      * Listar todos os usuários
@@ -59,9 +59,17 @@ class UserController extends Controller
         $order_by = $request->input('order_by', 'created_at');
         $order = $request->input('order', 'desc');
         //listar usuarios com permissões dele pra cima
-        $permission_id = $request->user()->permission_id;
+        $permission_id = $user->permission_id;
         // dd($permission_id);
         $query = User::with('organization')->where('permission_id','!=',$this->cliente_permission_id)->orderBy($order_by,$order);
+        
+        // Security: visualiza apenas dados/cadastros de permission_id >= ao seu
+        if ($permission_id) {
+            $query->where('permission_id', '>=', $permission_id);
+            if ($permission_id >= 3) {
+                $query->where('organization_id', $user->organization_id);
+            }
+        }
 
         // Não exibir registros marcados como deletados ou excluídos
         $query->where(function($q) {
@@ -86,7 +94,7 @@ class UserController extends Controller
 
         //se existir um campo consultores for true então filtrar todos com permissão maior ou igual a dele
         if($request->filled('consultores')){
-            $query->where('permission_id','>=',$user->permission_id);
+            $query->where('permission_id','>=',$permission_id);
         }
 
         $users = $query->paginate($perPage);
@@ -201,10 +209,18 @@ class UserController extends Controller
         $validated['ativo'] = isset($validated['ativo']) ? $validated['ativo'] : 's';
         $validated['status'] = isset($validated['status']) ? $validated['status'] : 'actived';
         $validated['tipo_pessoa'] = isset($validated['tipo_pessoa']) ? $validated['tipo_pessoa'] : 'pf';
+        $validated['verificado'] = isset($validated['verificado']) ? $validated['verificado'] : 'n';
+        $validated['excluido'] = isset($validated['excluido']) ? $validated['excluido'] : 'n';
+        $validated['deletado'] = isset($validated['deletado']) ? $validated['deletado'] : 'n';
         $validated['permission_id'] = isset($validated['permission_id']) ? $validated['permission_id'] : 5;
         $validated['config'] = isset($validated['config']) ? $this->sanitizeInput($validated['config']) : [];
         if(is_array($validated['config'])){
             $validated['config'] = json_encode($validated['config']);
+        }
+
+        $validated['autor'] = $user->id; // Populate author
+        if (empty($validated['organization_id']) && isset($user->organization_id)) {
+            $validated['organization_id'] = $user->organization_id;
         }
 
         $user = User::create($validated);
@@ -219,14 +235,20 @@ class UserController extends Controller
      */
     public function show(string $id)
     {
-        $user = request()->user();
-        if (!$user) {
+        $currentUser = request()->user();
+        if (!$currentUser) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
         if (!$this->permissionService->isHasPermission('view')) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
         $user = User::findOrFail($id);
+
+        // Security: visualiza apenas dados de permission_id >= ao seu
+        if ($currentUser->permission_id && $user->permission_id < $currentUser->permission_id) {
+             return response()->json(['error' => 'Acesso negado. Nível de permissão insuficiente.'], 403);
+        }
+
         return response()->json($user,201);
     }
     /**
@@ -235,6 +257,7 @@ class UserController extends Controller
     public function can_access(Request $request)
     {
         $user = $request->user();
+        $user->load('organization');
         // dd($user);
         if(!$user || ($user->ativo ?? null) !== 's'){
             return response()->json(['error' => 'Usuário inativo'], 419);
@@ -244,6 +267,7 @@ class UserController extends Controller
     public function perfil(Request $request)
     {
         $user = $request->user();
+        $user->load('organization');
         // dd($user);
         if(!$user || ($user->ativo ?? null) !== 's'){
             return response()->json(['error' => 'Usuário inativo'], 419);
@@ -259,6 +283,7 @@ class UserController extends Controller
     public function profile(Request $request)
     {
         $user = $request->user();
+        $user->load('organization');
         if (!$user || ($user->ativo ?? null) !== 's') {
             return response()->json(['error' => 'Usuário inativo'], 405);
         }
@@ -353,8 +378,18 @@ class UserController extends Controller
      */
     public function trash(Request $request)
     {
+        $user = $request->user();
         $perPage = $request->input('per_page', 10);
         $query = User::query();
+        
+        // Security: visualiza apenas dados/cadastros de permission_id >= ao seu
+        if ($user->permission_id) {
+            $query->where('permission_id', '>=', $user->permission_id);
+            if ($user->permission_id >= 3) {
+                $query->where('organization_id', $user->organization_id);
+            }
+        }
+
         $query->where(function($q) {
             $q->where('deletado', 's')->orWhere('excluido', 's');
         });
@@ -391,6 +426,11 @@ class UserController extends Controller
         }
 
         $userToUpdate = User::findOrFail($id);
+
+        // Security: não pode editar visualiza dados de permission_id < ao seu
+        if ($user->permission_id && $userToUpdate->permission_id < $user->permission_id) {
+             return response()->json(['error' => 'Acesso negado. Nível de permissão insuficiente.'], 403);
+        }
 
         $validator = Validator::make($request->all(), [
             'tipo_pessoa'   => ['sometimes', Rule::in(['pf','pj'])],
@@ -458,6 +498,19 @@ class UserController extends Controller
         if (array_key_exists('cnpj', $validated) && ($validated['cnpj'] === '' || $validated['cnpj'] === null)) {
             $validated['cnpj'] = null;
         }
+
+        // Backfill autor/organization if missing
+        if ($user) {
+            if (empty($userToUpdate->autor) && !isset($validated['autor'])) {
+                $validated['autor'] = $user->id;
+            }
+            if (empty($userToUpdate->organization_id) && !isset($validated['organization_id'])) {
+                if (isset($user->organization_id)) {
+                    $validated['organization_id'] = $user->organization_id;
+                }
+            }
+        }
+
         // dd($validated);
         $userToUpdate->update($validated);
 
@@ -482,6 +535,10 @@ class UserController extends Controller
             return response()->json(['error' => 'Acesso negado'], 403);
         }
         $userToDelete = User::find($id);
+        
+        if ($userToDelete && $user->permission_id && $userToDelete->permission_id < $user->permission_id) {
+             return response()->json(['error' => 'Acesso negado. Nível de permissão insuficiente.'], 403);
+        }
         if (!$userToDelete) {
             return response()->json(['error' => 'Usuário não encontrado'], 404);
         }
