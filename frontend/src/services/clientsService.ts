@@ -93,7 +93,7 @@ class ClientsService extends BaseApiService {
     return this.updateClient(id, data);
   }
 
-  async delete(id: string): Promise<ApiDeleteResponse> {
+  async deleteById(id: string): Promise<ApiDeleteResponse> {
     return this.deleteClient(id);
   }
   
@@ -112,6 +112,13 @@ class ClientsService extends BaseApiService {
    */
   async registerAttendance(clientId: string, payload: CreateClientAttendanceInput): Promise<any> {
     return this.post<any>(`/clients/${clientId}/attendances`, payload);
+  }
+
+  /**
+   * Consultar CPF (local e externo)
+   */
+  async consultCpf(cpf: string): Promise<any> {
+    return this.get<any>(`/clients/consult-cpf/${cpf}`);
   }
 }
 

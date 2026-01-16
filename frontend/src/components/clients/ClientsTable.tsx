@@ -94,6 +94,7 @@ export function ClientsTable({ clients, onEdit, onDelete, isLoading, trashEnable
             <TableHead>Nome</TableHead>
             <TableHead>CPF</TableHead>
             <TableHead>Email</TableHead>
+            <TableHead>Organização</TableHead>
             <TableHead>Proprietário</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Ações</TableHead>
@@ -112,6 +113,7 @@ export function ClientsTable({ clients, onEdit, onDelete, isLoading, trashEnable
                 {client.tipo_pessoa === 'pf' ? (client.cpf || 'Não informado') : (client.cnpj || 'Não informado')}
               </TableCell>
               <TableCell>{client.email || 'Não informado'}</TableCell>
+              <TableCell>{client.organization?.name || 'Não informada'}</TableCell>
               <TableCell>{client.autor_name || 'Não identificado'}</TableCell>
               <TableCell>
                 {/* Debug temporário */}
@@ -136,7 +138,7 @@ export function ClientsTable({ clients, onEdit, onDelete, isLoading, trashEnable
                     </DropdownMenuItem>
                     {trashEnabled && (
                       <DropdownMenuItem 
-                        onClick={() => restoreClientMutation.mutate(client.id)}
+                        onClick={() => { restoreClientMutation.mutate(client.id); }}
                         disabled={restoreClientMutation.isPending}
                       >
                         <RotateCcw className="mr-2 h-4 w-4" /> Restaurar

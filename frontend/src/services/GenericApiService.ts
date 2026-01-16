@@ -84,8 +84,8 @@ export class GenericApiService<T = any, CreateInput = any, UpdateInput = any> ex
    * Exclui um registro
    * @param id - ID do registro
    */
-  async deleteById(id: string | number): Promise<void> {
-    await this.delete<void>(`${this.endpoint}/${id}`);
+  async deleteById(id: string | number): Promise<any> {
+    return this.delete<any>(`${this.endpoint}/${id}`);
   }
 
   /**

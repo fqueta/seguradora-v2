@@ -217,6 +217,12 @@ export const defaultMenu: MenuItemDTO[] = [
         can_view: true
       },
       {
+        title: "Relatório Geral",
+        url: "/admin/reports/relatorio-geral",
+        permission: "reports.general.view",
+        can_view: true
+      },
+      {
         title: "Ordens de Serviço",
         url: "/admin/reports/service-orders",
         permission: "reports.service-orders.view",

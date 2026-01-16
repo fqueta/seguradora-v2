@@ -20,12 +20,7 @@ export interface GenericApiService<T, CreateInput, UpdateInput, ListParams = any
    * pt-BR: Preferencial — evita colisão com método protegido `delete(endpoint)`.
    * en-US: Preferred — avoids collision with protected `delete(endpoint)`.
    */
-  deleteById?: (id: string) => Promise<void>;
-  /**
-   * pt-BR: Fallback — alguns serviços implementam `delete(id)` diretamente.
-   * en-US: Fallback — some services implement `delete(id)` directly.
-   */
-  delete?: (id: string) => Promise<void>;
+  deleteById?: (id: string) => Promise<any>;
 }
 
 export interface UseGenericApiOptions<T, CreateInput, UpdateInput, ListParams = any> {
@@ -145,7 +140,7 @@ export function useGenericApi<T, CreateInput, UpdateInput, ListParams = any>(
    * @param mutationOptions - Opções do useMutation
    */
   const useDelete = (
-    mutationOptions?: UseMutationOptions<void, Error, string>
+    mutationOptions?: UseMutationOptions<any, Error, string>
   ) => {
     return useMutation({
       /**
@@ -155,7 +150,7 @@ export function useGenericApi<T, CreateInput, UpdateInput, ListParams = any>(
       mutationFn: (id: string) =>
         service.deleteById
           ? service.deleteById(id)
-          : (service.delete ? service.delete(id) : Promise.reject(new Error('Método de deleção não disponível'))),
+          : Promise.reject(new Error('Método de deleção não disponível')),
       onSuccess: (data, id) => {
         queryClient.invalidateQueries({ queryKey: [queryKey] });
         queryClient.removeQueries({ queryKey: [queryKey, 'detail', id] });

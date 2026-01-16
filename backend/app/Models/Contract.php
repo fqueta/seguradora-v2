@@ -60,4 +60,9 @@ class Contract extends Model
     {
         return $this->belongsTo(Product::class, 'product_id');
     }
+
+    public function organization()
+    {
+        return $this->belongsTo(Organization::class, 'organization_id');
+    }
 }

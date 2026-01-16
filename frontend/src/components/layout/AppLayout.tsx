@@ -32,6 +32,7 @@ import commentsService from "@/services/commentsService";
 import { useToast } from "@/components/ui/use-toast";
 import { BrandLogo } from "@/components/branding/BrandLogo";
 import { getInstitutionName, hydrateBrandingFromPublicApi } from "@/lib/branding";
+import { FindBeneficiaryModal } from "../clients/FindBeneficiaryModal";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -48,6 +49,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { applyThemeSettings } = useTheme();
   const navigate = useNavigate();
   const [cmdOpen, setCmdOpen] = React.useState(false);
+  const [beneficiaryModalOpen, setBeneficiaryModalOpen] = React.useState(false);
   const qc = useQueryClient();
   const { toast } = useToast();
   const [institutionName, setInstitutionName] = React.useState(getInstitutionName());
@@ -180,7 +182,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={() => setCmdOpen(true)} title="Pesquisar (Ctrl+K)">
+              <Button variant="ghost" size="icon" onClick={() => setBeneficiaryModalOpen(true)} title="Encontrar beneficiário">
                 <Search className="h-4 w-4" />
               </Button>
               <Button variant="ghost" size="icon" onClick={toggleTheme} title="Alternar tema">
@@ -299,7 +301,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               <CommandEmpty>Nenhum resultado.</CommandEmpty>
               <CommandGroup heading="Ir para">
                 <CommandItem onSelect={() => { setCmdOpen(false); navigate('/admin/school-dashboard'); }}>
-                  Dashboard Ead Control
+                  Dashboard
                 </CommandItem>
                 <CommandItem onSelect={() => { setCmdOpen(false); navigate('/admin/clients'); }}>
                   Clientes
@@ -325,6 +327,11 @@ export function AppLayout({ children }: AppLayoutProps) {
               </CommandGroup>
             </CommandList>
           </CommandDialog>
+          
+          <FindBeneficiaryModal 
+            open={beneficiaryModalOpen} 
+            onOpenChange={setBeneficiaryModalOpen} 
+          />
         </div>
       </div>
     </SidebarProvider>

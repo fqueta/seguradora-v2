@@ -37,13 +37,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import * as z from "zod";
 import { 
   Plus, 
-  Search
+  Search,
+  ShieldCheck,
+  Loader2
 } from "lucide-react";
+import { clientsService } from '@/services/clientsService';
 import { getBrazilianStates } from '@/lib/qlib';
 import { 
   useClientsList, 
@@ -227,13 +230,15 @@ const brazilianStates = getBrazilianStates();
  */
 export default function Clients() {
   // State for search, dialogs, and client operations
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [editingClient, setEditingClient] = useState<ClientRecord | null>(null);
   const [clientToDelete, setClientToDelete] = useState<ClientRecord | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isConsulting, setIsConsulting] = useState(false);
   const [pageSize] = useState(100);
   // Filtro de lixeira (excluido=s)
   const [showTrash, setShowTrash] = useState(false);
@@ -279,6 +284,14 @@ export default function Clients() {
   useEffect(() => {
     clientsQuery.refetch();
   }, [showTrash]);
+
+  // Sync searchTerm with URL search param
+  useEffect(() => {
+    const urlSearch = searchParams.get("search");
+    if (urlSearch !== null && urlSearch !== searchTerm) {
+      setSearchTerm(urlSearch);
+    }
+  }, [searchParams]);
   // console.log('clientsQuery:', clientsQuery);
   // Compute total pages from API response (or mocks)
   const totalPages = useMock
@@ -812,8 +825,49 @@ export default function Clients() {
               </div>
             </div>
           ) : filteredClients.length === 0 ? (
-            <div className="flex justify-center items-center py-8">
-              <p>Nenhum cliente encontrado.</p>
+            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center">
+                <Search className="h-8 w-8 text-slate-400" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-medium text-slate-900">Nenhum cliente encontrado</h3>
+                <p className="text-slate-500 mb-6">
+                  {searchTerm 
+                    ? `Não encontramos resultados para "${searchTerm}".` 
+                    : "Sua lista de clientes está vazia."}
+                </p>
+                
+                {searchTerm && searchTerm.replace(/\D/g, '').length === 11 && (
+                  <Button 
+                    onClick={async () => {
+                      const cpf = searchTerm.replace(/\D/g, '');
+                      setIsConsulting(true);
+                      try {
+                        const res = await clientsService.consultCpf(cpf);
+                        if (res.exec && res.data) {
+                          toast({ title: "Cliente encontrado!", description: res.message });
+                          navigate(`/admin/clients/${res.data.id}/view`);
+                        } else {
+                          toast({ 
+                            title: "Não encontrado", 
+                            description: "Este CPF não consta em nossa base de dados nem na base da SulAmérica.",
+                            variant: "destructive"
+                          });
+                        }
+                      } catch (error: any) {
+                        toast({ title: "Erro na consulta", description: error.message, variant: "destructive" });
+                      } finally {
+                        setIsConsulting(false);
+                      }
+                    }}
+                    disabled={isConsulting}
+                    className="flex items-center gap-2"
+                  >
+                    {isConsulting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                    Consultar CPF Externamente
+                  </Button>
+                )}
+              </div>
             </div>
           ) : (
             <ClientsTable 

@@ -90,36 +90,16 @@ import Sales from "./pages/Sales";
 import ProposalsCreate from "./pages/ProposalsCreate";
 import ProposalsEdit from "./pages/ProposalsEdit";
 import ProposalsView from "./pages/ProposalsView";
-import Courses from "./pages/school/Courses";
-import CourseCreate from "./pages/school/CourseCreate";
-import CourseEdit from "./pages/school/CourseEdit";
- import CourseLanding from "./pages/school/CourseLanding";
- import CourseDetails from "./pages/school/CourseDetails";
-import InviteEnroll from "./pages/school/InviteEnroll";
-import InvitesAdminPage from "./pages/school/Invites";
-import StudentCourse from "./pages/school/StudentCourse";
-import StudentCourseProgress from "./pages/school/StudentCourseProgress";
-import AdminCourseProgress from "./pages/school/AdminCourseProgress";
-import AdminEnrollmentProgress from "./pages/school/AdminEnrollmentProgress";
-import StudentCourses from "./pages/school/StudentCourses";
-import StudentArea from "./pages/school/StudentArea";
 import StudentInvoices from "./pages/school/StudentInvoices";
 import StudentOrders from "./pages/school/StudentOrders";
 import StudentGrades from "./pages/school/StudentGrades";
 import StudentProfile from "./pages/school/StudentProfile";
-import CourseAdminPreview from "./pages/school/CourseAdminPreview";
-import CoursesPublicList from "./pages/school/CoursesPublicList";
-import Classes from "./pages/school/Classes";
-import ClassCreate from "./pages/school/ClassCreate";
-import ClassEdit from "./pages/school/ClassEdit";
-import Enroll from "./pages/school/Enroll";
-import EnrollmentSituationPage from "./pages/school/EnrollmentSituation";
-import Interested from "./pages/school/Interested";
 import MediaLibraryDemo from "./pages/media/MediaLibraryDemo";
 import CertificateTemplate from "./pages/school/CertificateTemplate";
 import CertificateGenerate from "./pages/school/CertificateGenerate";
 import CertificateView from "./pages/school/CertificateView";
 import CertificateValidate from "./pages/school/CertificateValidate";
+import RelatorioGeral from "./pages/reports/RelatorioGeral";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -250,13 +230,15 @@ const App = () => {
                 </AdminProtectedRoute>
               } />
               
-              {/* <Route path="/painel2" element={
-                <ProtectedRoute>
+              {/* Relatórios */}
+              <Route path="/admin/reports/relatorio-geral" element={
+                <AdminProtectedRoute>
                   <AppLayout>
-                    <Dashboard2 />
+                    <RelatorioGeral />
                   </AppLayout>
-                </ProtectedRoute>
-              } /> */}
+                </AdminProtectedRoute>
+              } />
+             
               <Route path="/admin/clients" element={
                 <AdminProtectedRoute>
                   <AppLayout>
@@ -294,15 +276,7 @@ const App = () => {
                   </AppLayout>
                 </AdminProtectedRoute>
               } />
-
-              {/* Escola / Cursos */}
-              <Route path="/admin/school/courses" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <Courses />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
+              
               {/* Tools / Email Send */}
               <Route path="/admin/tools/email-send" element={
                 <AdminProtectedRoute>
@@ -319,234 +293,7 @@ const App = () => {
                   </AppLayout>
                 </AdminProtectedRoute>
               } />
-              {/* Escola / Convites de matrícula */}
-              <Route path="/admin/school/invites" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <InvitesAdminPage />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-              <Route path="/admin/school/courses/create" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <CourseCreate />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-
-              {/* Escola / Módulos */}
-              <Route path="/admin/school/modules" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <Modules />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-              <Route path="/admin/school/modules/create" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <ModuleCreate />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-              <Route path="/admin/school/modules/:id/edit" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <ModuleEdit />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-
-              {/* Escola / Atividades */}
-              <Route path="/admin/school/activities" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <Activities />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-              {/* Escola / Atividade — Visualização de conteúdo (admin) */}
-              <Route path="/admin/school/activities/:id/view" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <ActivityView />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-              {/* Escola / Atividade • Conteúdo + Comentários (Moderação) */}
-              <Route path="/admin/school/activities/:id/comments" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <ActivityCommentsModeration />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-              <Route path="/admin/school/activities/create" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <ActivityCreate />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-              <Route path="/admin/school/activities/:id/edit" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <ActivityEdit />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-              <Route path="/admin/school/courses/:id/edit" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <CourseEdit />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-              {/* Escola / Cursos — Pré-visualização do aluno (admin) */}
-              <Route path="/admin/school/courses/:id/preview" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <CourseAdminPreview />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-              {/* Escola / Cursos — Progresso dos alunos (admin) */}
-              <Route path="/admin/school/courses/:id/progress" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <AdminCourseProgress />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-
-              {/* Escola / Matrículas — Detalhe de progresso (admin) */}
-              <Route path="/admin/school/enrollments/:id/progress" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <AdminEnrollmentProgress />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-
-              {/* Escola / Turmas */}
-              <Route path="/admin/school/classes" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <Classes />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-              {/* Escola / Matrículas */}
-              <Route path="/admin/school/enroll" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <Enroll />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-              {/* Escola / Interessados */}
-              <Route path="/admin/school/interested" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <Interested />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-              {/* Escola / Situações de Matrícula */}
-              <Route path="/admin/school/enrollment-situation" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <EnrollmentSituationPage />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-              {/* Biblioteca de Mídia — Demo */}
-              <Route path="/admin/settings/media-library-demo" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <MediaLibraryDemo />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
               
-              <Route path="/admin/school/classes/create" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <ClassCreate />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-              <Route path="/admin/school/classes/:id/edit" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <ClassEdit />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-              {/* Admin / Certificados (modelo e vinculação) */}
-              <Route path="/admin/school/certificados/modelo" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <CertificateTemplate />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-              <Route path="/admin/school/certificados/gerar" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <CertificateGenerate />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-              {/* Público / Lista de Cursos e Landing */}
-              <Route path="/cursos" element={<CoursesPublicList />} />
-              <Route path="/cursos/:id" element={<CourseLanding />} />
-              <Route path="/cursos/:id/detalhes" element={<CourseDetails />} />
-              {/**
-               * pt-BR: Página pública de convite de matrícula via link do curso.
-               * en-US: Public invitation enrollment page via course link.
-               */}
-              {/* <Route path="/cursos/:id/inscricao" element={<InviteEnroll />} /> */}
-              {/* Suporte a token de convite como segmento de caminho */}
-              <Route path="/cursos/:id/inscricao/:token" element={<InviteEnroll />} />
-              {/* Área do Aluno / Consumo de Conteúdo (protegida, sem layout de admin) */}
-              <Route path="/aluno/cursos/:slug" element={
-                <ProtectedRoute>
-                  <StudentCourse />
-                </ProtectedRoute>
-              } />
-              {/* Área do Aluno / Certificado imprimível (protegida) */}
-              <Route path="/aluno/certificado/:enrollmentId" element={
-                <ProtectedRoute>
-                  <CertificateView />
-                </ProtectedRoute>
-              } />
-              {/* Público / Validação de certificado por matrícula */}
-              <Route path="/certificado/validar/:enrollmentId" element={<CertificateValidate />} />
-              {/* Área do Aluno / Progresso do Curso (protegida) */}
-              <Route path="/aluno/cursos/:slug/progresso" element={
-                <ProtectedRoute>
-                  <StudentCourseProgress />
-                </ProtectedRoute>
-              } />
-              {/* Área do Aluno / Meus cursos (protegida) */}
-              <Route path="/aluno/cursos" element={
-                <ProtectedRoute>
-                  <StudentCourses />
-                </ProtectedRoute>
-              } />
-              {/* Área do Aluno / Painel (protegida) */}
-              {/**
-               * pt-BR: Painel do aluno EAD com lista de matrículas e acesso rápido.
-               * en-US: EAD student dashboard listing enrollments and quick access.
-               */}
-              <Route path="/aluno" element={
-                <ProtectedRoute>
-                  <StudentArea />
-                </ProtectedRoute>
-              } />
-              {/* Área do Aluno / Navegação adicional (protegida) */}
               {/**
                * pt-BR: Rotas placeholders de navegação: faturas, pedidos, notas e perfil.
                * en-US: Placeholder navigation routes: invoices, orders, grades and profile.
@@ -613,6 +360,13 @@ const App = () => {
                 <AdminProtectedRoute>
                   <AppLayout>
                     <Aircraft />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/settings/media-library-demo" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <MediaLibraryDemo />
                   </AppLayout>
                 </AdminProtectedRoute>
               } />

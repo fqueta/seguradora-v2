@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useCreateContract, useUpdateContract, useContract } from '@/hooks/contracts';
 import { useClientsList } from '@/hooks/clients';
 import { useProductsList } from '@/hooks/products';
@@ -48,7 +48,9 @@ export default function ContractForm() {
     const { id } = useParams();
     const isEdit = !!id;
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const queryClient = useQueryClient();
+    const clientIdParam = searchParams.get('client_id');
     const [isClientModalOpen, setIsClientModalOpen] = useState(false);
     const [editingClientId, setEditingClientId] = useState<string | null>(null);
     const [tempClients, setTempClients] = useState<any[]>([]);
@@ -103,13 +105,19 @@ export default function ContractForm() {
         }
     }, [contract, form]);
 
+    useEffect(() => {
+        if (!isEdit && clientIdParam) {
+            form.setValue('client_id', clientIdParam, { shouldValidate: true });
+        }
+    }, [isEdit, clientIdParam, form]);
+
     // Determine if the form should be restricted (only description editable)
     const isRestricted = useMemo(() => {
         return isEdit && (contract?.status === 'approved' || contract?.status === 'cancelled');
     }, [isEdit, contract]);
 
     const handleBack = () => {
-        navigate('/admin/contracts');
+        navigate(clientIdParam ? `/admin/clients/${clientIdParam}/view` : '/admin/contracts');
     };
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -155,7 +163,8 @@ export default function ContractForm() {
                         
                         // Redirect to edit mode
                         if (newContract?.exec !== false && newContract?.data?.id) {
-                            navigate(`/admin/contracts/${newContract.data.id}/edit`);
+                            const editUrl = `/admin/contracts/${newContract.data.id}/edit${clientIdParam ? `?client_id=${clientIdParam}` : ''}`;
+                            navigate(editUrl);
                         }
                     },
                     onError
@@ -191,7 +200,7 @@ export default function ContractForm() {
                         });
 
                          if (resp?.exec !== false) {
-                            navigate('/admin/contracts');
+                            navigate(clientIdParam ? `/admin/clients/${clientIdParam}/view` : '/admin/contracts');
                          }
                     },
                     onError
@@ -210,7 +219,7 @@ export default function ContractForm() {
                         });
 
                         if (newContract?.exec !== false) {
-                            navigate('/admin/contracts');
+                            navigate(clientIdParam ? `/admin/clients/${clientIdParam}/view` : '/admin/contracts');
                         }
                     },
                     onError

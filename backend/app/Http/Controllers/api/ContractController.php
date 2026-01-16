@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Services\Qlib;
 use App\Http\Controllers\api\SulAmericaController;
 use App\Models\Client;
+use Carbon\Carbon;
 
 class ContractController extends Controller
 {
@@ -303,7 +304,7 @@ class ContractController extends Controller
 
                 if ($client) {
                     // Tenta obter dados do cliente, verificando config se necessário
-                    $clientConfig = is_string($client->config) ? json_decode($client->config, true) : (is_array($client->config) ? $client->config : []);
+                    $clientConfig = is_array($client->config) ? $client->config : [];
 
                     // Mapeamento de Gênero
                     $sexo = strtoupper($client->genero ?? 'M'); // m -> M
@@ -318,8 +319,8 @@ class ContractController extends Controller
                         'token_contrato' => $contract->token,
                         'nomeSegurado' => $client->name,
                         'dataNascimento' => $nascimento,
-                        'inicioVigencia' => $contract->start_date ? $contract->start_date->format('Y-m-d') : null,
-                        'fimVigencia' => $contract->end_date ? $contract->end_date->format('Y-m-d') : null,
+                        'inicioVigencia' => $contract->start_date ? Carbon::parse($contract->start_date)->format('Y-m-d') : null,
+                        'fimVigencia' => $contract->end_date ? Carbon::parse($contract->end_date)->format('Y-m-d') : null,
                         'sexo' => $sexo,
                         'uf' => isset($contract->address['state']) ? $contract->address['state'] : ($clientConfig['uf'] ?? ($clientConfig['state'] ?? 'SP')),
                         //remover pontos e traços do cpf

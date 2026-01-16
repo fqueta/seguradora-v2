@@ -57,7 +57,7 @@ class ClientController extends Controller
         $order_by = $request->input('order_by', 'created_at');
         $order = $request->input('order', 'desc');
 
-        $query = Client::query()->where('permission_id','=', $this->cliente_permission_id)->orderBy($order_by, $order);
+        $query = Client::query()->with('organization')->where('permission_id','=', $this->cliente_permission_id)->orderBy($order_by, $order);
 
         // Security: visualiza apenas dados/cadastros de permission_id >= 3 da sua organization_id
         if ($user->permission_id >= 3) {
@@ -402,8 +402,8 @@ class ClientController extends Controller
         // dd($validated);
         $client = Client::create($validated);
         // converter o client->config para array
-        if (is_string($client->config)) {
-            $client->config = json_decode($client->config, true) ?? [];
+        if (!is_array($client->config)) {
+            $client->config = [];
         }
         $ret['data'] = $client;
         $ret['message'] = 'Cliente criado com sucesso';
@@ -428,8 +428,8 @@ class ClientController extends Controller
         $client = Client::findOrFail($id);
 
         // Converter config para array
-        if (is_string($client->config)) {
-            $client->config = json_decode($client->config, true) ?? [];
+        if (!is_array($client->config)) {
+            $client->config = [];
         }
 
         return response()->json($client);
@@ -539,8 +539,8 @@ class ClientController extends Controller
         $clientToUpdate->update($validated);
 
         // Converter config para array na resposta
-        if (is_string($clientToUpdate->config)) {
-            $clientToUpdate->config = json_decode($clientToUpdate->config, true) ?? [];
+        if (!is_array($clientToUpdate->config)) {
+            $clientToUpdate->config = [];
         }
 
         $ret['data'] = $clientToUpdate;
@@ -857,8 +857,8 @@ class ClientController extends Controller
         }
 
         $client = Client::create($validated);
-        if (is_string($client->config)) {
-            $client->config = json_decode($client->config, true) ?? [];
+        if (!is_array($client->config)) {
+            $client->config = [];
         }
         return response()->json([
             'data' => $client,
@@ -886,8 +886,8 @@ class ClientController extends Controller
             ->where('permission_id', $this->responsavel_permission_id)
             ->firstOrFail();
 
-        if (is_string($client->config)) {
-            $client->config = json_decode($client->config, true) ?? [];
+        if (!is_array($client->config)) {
+            $client->config = [];
         }
 
         return response()->json($client);
@@ -968,8 +968,8 @@ class ClientController extends Controller
 
         $clientToUpdate->update($validated);
 
-        if (is_string($clientToUpdate->config)) {
-            $clientToUpdate->config = json_decode($clientToUpdate->config, true) ?? [];
+        if (!is_array($clientToUpdate->config)) {
+            $clientToUpdate->config = [];
         }
 
         return response()->json([
@@ -1145,6 +1145,46 @@ class ClientController extends Controller
         return response()->json([
             'message' => 'Responsável excluído permanentemente',
             'status' => 200
+        ]);
+    }
+
+    /**
+     * Consultar CPF (local e opcionalmente em API externa)
+     * EN: Consult CPF (local and optionally in external API)
+     */
+    public function consultCpf(Request $request, string $cpf)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['error' => 'Acesso negado'], 403);
+        }
+        
+        // Limpar CPF (somente números)
+        $cpfClean = preg_replace('/\D/', '', $cpf);
+        
+        // 1. Procurar localmente
+        // PT: Busca na base local para evitar chamadas externas desnecessárias
+        $client = Client::where('cpf', $cpfClean)->first();
+        if ($client) {
+            return response()->json([
+                'exec' => true,
+                'found' => 'local',
+                'data' => $this->mapIndexItemOutput($client),
+                'message' => 'Cliente encontrado na base local'
+            ]);
+        }
+        
+        // 2. Procurar em API externa (Placeholder/Mock)
+        // PT: Aqui o sistema pode ser estendido para consultar SulAmérica ou provedores de dados
+        // EN: Here the system can be extended to consult SulAmérica or data providers
+        
+        // Mock de resposta para demonstração se for um CPF específico ou apenas retornar não encontrado
+        // No futuro, implementar Guzzle/Http para chamadas reais.
+        
+        return response()->json([
+            'exec' => false,
+            'found' => false,
+            'message' => 'CPF não encontrado na base de dados.'
         ]);
     }
 }

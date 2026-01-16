@@ -82,6 +82,10 @@ export interface ClientRecord {
   reg_excluido?: string | null;
   deletado?: "s" | "n";
   reg_deletado?: string | null;
+  organization?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 export interface CreateClientInput {

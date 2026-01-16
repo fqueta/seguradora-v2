@@ -1,6 +1,6 @@
 import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { ArrowLeft, Mail, Phone, MapPin, User, Building, Calendar, GraduationCap, Briefcase, FileText, DollarSign, Edit, Plus } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, User, Building, Calendar, Briefcase, FileText, DollarSign, Edit, Plus, Eye, Pencil, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,12 +11,8 @@ import { getMockClientById } from '@/mocks/clients';
 import { ClientRecord } from '@/types/clients';
 import { useFunnel, useStagesList } from '@/hooks/funnels';
 import { phoneApplyMask } from '@/lib/masks/phone-apply-mask';
-import { useEnrollmentsList } from '@/hooks/enrollments';
-import EnrollmentTable from '@/components/enrollments/EnrollmentTable';
-import { currencyRemoveMaskToNumber } from '@/lib/masks/currency';
-import { useQuery } from '@tanstack/react-query';
-import { coursesService } from '@/services/coursesService';
-import { useTurmasList } from '@/hooks/turmas';
+import { useContractsList } from '@/hooks/contracts';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 
 
@@ -79,119 +75,20 @@ export default function ClientView() {
     refetchOnReconnect: false,
   });
   const funnelName = (useMock ? 'Funil de Leads (mock)' : (funnelQuery.data?.name || funnelId || 'Não informado'));
+  const { data: contractsData, isLoading: isContractsLoading, error: contractsError } = useContractsList({ 
+    client_id: id,
+    per_page: 50 
+  }, { enabled: !!id });
+
   const stageName = (() => {
     if (useMock) return stageId ? `Etapa ${stageId}` : 'Não informado';
-    const list = stagesQuery.data?.data || [];
-    const found = list.find((s) => s.id === stageId);
+    const list = (stagesQuery.data as any)?.data || [];
+    const found = list.find((s: any) => s.id === stageId);
     return found?.name || (stageId || 'Não informado');
   })();
 
-  /**
-   * useEnrollmentsList (client scope)
-   * pt-BR: Carrega matrículas vinculadas ao cliente atual, filtrando por `id_cliente`.
-   * en-US: Loads enrollments linked to the current client, filtering by `id_cliente`.
-   */
-  const clientNumericId = (() => {
-    const n = Number((client as any)?.id ?? '');
-    return Number.isFinite(n) ? n : undefined;
-  })();
-  // Paginação e filtros
-  const [pageEnroll, setPageEnroll] = useState<number>(1);
-  const [perPageEnroll, setPerPageEnroll] = useState<number>(10);
-  const [selectedCourseId, setSelectedCourseId] = useState<string>('all');
-  const [selectedClassId, setSelectedClassId] = useState<string>('all');
 
-  const enrollmentListParams = {
-    page: pageEnroll,
-    per_page: perPageEnroll,
-    id_cliente: clientNumericId,
-    id_curso: selectedCourseId !== 'all' && selectedCourseId ? Number(selectedCourseId) : undefined,
-    id_turma: selectedClassId !== 'all' && selectedClassId ? Number(selectedClassId) : undefined,
-  } as any;
-  const { data: enrollmentsResp, isLoading: isEnrollmentsLoading, isFetching: isEnrollmentsFetching } = useEnrollmentsList(enrollmentListParams, { enabled: !!clientNumericId });
-  const enrollments = Array.isArray(enrollmentsResp?.data) ? (enrollmentsResp!.data as any[]) : [];
 
-  /**
-   * resolveEnrollmentAmountBRL
-   * pt-BR: Formata valor monetário (total/subtotal/amount_brl) em BRL para exibição.
-   * en-US: Formats monetary value (total/subtotal/amount_brl) in BRL for display.
-   */
-  function resolveEnrollmentAmountBRL(enroll: any): string {
-    try {
-      const raw = enroll?.amount_brl ?? enroll?.total ?? enroll?.subtotal ?? '';
-      const num = typeof raw === 'string' ? currencyRemoveMaskToNumber(raw) : Number(raw) || 0;
-      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
-    } catch {
-      const fallback = Number(enroll?.amount_brl || 0);
-      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(fallback);
-    }
-  }
-
-  /**
-   * handleAddEnrollmentClick
-   * pt-BR: Abre a página de criação de proposta/matrícula para o cliente atual.
-   * en-US: Opens the proposal/enrollment creation page for the current client.
-   */
-  function handleAddEnrollmentClick() {
-    const idCliente = String((client as any)?.id || '');
-    const qs = new URLSearchParams({ id_cliente: idCliente });
-    navigate(`/admin/sales/proposals/create?${qs.toString()}`, { state: { from: location } });
-  }
-
-  /**
-   * handleViewEnrollment
-   * pt-BR: Navega para visualização da proposta/matrícula.
-   * en-US: Navigates to proposal/enrollment view.
-   */
-  function handleViewEnrollment(enroll: any) {
-    const id = String(enroll?.id || '');
-    if (!id) return;
-    navigate(`/admin/sales/proposals/view/${id}`);
-  }
-
-  /**
-   * handleEditEnrollment
-   * pt-BR: Navega para edição da proposta/matrícula.
-   * en-US: Navigates to proposal/enrollment edit.
-   */
-  function handleEditEnrollment(enroll: any) {
-    const id = String(enroll?.id || '');
-    if (!id) return;
-    navigate(`/admin/sales/proposals/edit/${id}`);
-  }
-
-  /**
-   * handleDeleteEnrollment
-   * pt-BR: Encaminha para a listagem de matrículas, onde a exclusão está disponível.
-   * en-US: Redirects to the enrollments listing, where deletion is available.
-   */
-  function handleDeleteEnrollment(enroll: any) {
-    const id = String(enroll?.id || '');
-    const qs = id ? new URLSearchParams({ search: id }) : new URLSearchParams();
-    navigate(`/admin/school/enroll?${qs.toString()}`);
-  }
-
-  /**
-   * Courses and Classes filters
-   * pt-BR: Carrega opções de cursos e turmas para filtros locais.
-   * en-US: Loads course and class options for local filters.
-   */
-  const { data: coursesResp } = useQuery({
-    queryKey: ['cursos', 'list', 200],
-    queryFn: async () => coursesService.listCourses({ page: 1, per_page: 200 }),
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  });
-  const courseItems = (coursesResp?.data || []) as any[];
-
-  const { data: classesResp } = useTurmasList({ page: 1, per_page: 200, id_curso: selectedCourseId !== 'all' && selectedCourseId ? Number(selectedCourseId) : undefined }, {
-    enabled: selectedCourseId !== 'all' && !!selectedCourseId,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  });
-  const classItems = (classesResp?.data || []) as any[];
   /**
    * detectFunnelIdFromClient
    * pt-BR: Tenta detectar o funil do cliente a partir de diferentes caminhos
@@ -633,76 +530,109 @@ export default function ClientView() {
           </CardContent>
         </Card>
 
-        {/* Matrículas */}
-        <Card>
+        {/* Contratos */}
+        <Card className="md:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center">
-              <GraduationCap className="mr-2 h-5 w-5" />
-              Matrículas
+              <FileText className="mr-2 h-5 w-5" />
+              Contratos {process.env.NODE_ENV === 'development' && <span className="text-xs font-normal ml-2 opacity-50">(ID: {id})</span>}
             </CardTitle>
-            <Button size="sm" onClick={handleAddEnrollmentClick} title="Adicionar uma nova matrícula para este cliente">
-              <Plus className="mr-2 h-4 w-4" /> Nova matrícula
-            </Button>
+            <div className="flex items-center gap-2">
+                {contractsData?.total !== undefined && (
+                    <Badge variant="outline" className="font-normal">
+                        {contractsData.total} contrato(s)
+                    </Badge>
+                )}
+                <Button size="sm" onClick={() => navigate(`/admin/contracts/create?client_id=${id}`)} title="Adicionar um novo contrato para este cliente">
+                    <Plus className="mr-2 h-4 w-4" /> Novo contrato
+                </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            {/* Filtros de curso e turma */}
-            <div className="grid gap-3 md:grid-cols-3 mb-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Curso</label>
-                <Select value={selectedCourseId} onValueChange={(val) => { setSelectedCourseId(val); setSelectedClassId('all'); setPageEnroll(1); }}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione um curso" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    {courseItems.map((c: any) => (
-                      <SelectItem key={String(c.id)} value={String(c.id)}>{String(c?.titulo || c?.nome || c?.name || c.id)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Turma</label>
-                <Select value={selectedClassId} onValueChange={(val) => { setSelectedClassId(val); setPageEnroll(1); }}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione a turma" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
-                    {classItems.map((t: any) => (
-                      <SelectItem key={String(t.id)} value={String(t.id)}>{String(t?.nome || t?.name || t.id)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-end justify-end gap-2">
-                <Select value={String(perPageEnroll)} onValueChange={(val) => { setPerPageEnroll(Number(val)); setPageEnroll(1); }}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="Itens/página" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">5</SelectItem>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="20">20</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setPageEnroll((p) => Math.max(1, p - 1))} disabled={pageEnroll <= 1}>Anterior</Button>
-                  <span className="text-sm text-muted-foreground">Página {pageEnroll}</span>
-                  <Button variant="outline" size="sm" onClick={() => setPageEnroll((p) => p + 1)}>Próxima</Button>
-                </div>
-              </div>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Número</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Início</TableHead>
+                    <TableHead>Fim</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {/* Debug row to confirm rendering */}
+                  {isContractsLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center">
+                        Carregando contratos...
+                      </TableCell>
+                    </TableRow>
+                  ) : contractsError ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center text-destructive">
+                        Erro ao carregar contratos: {(contractsError as any)?.message || 'Erro desconhecido'}
+                      </TableCell>
+                    </TableRow>
+                  ) : (!contractsData || !Array.isArray(contractsData.data)) ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                        {(!contractsData) ? 'Aguardando dados...' : 'Estrutura de dados inválida'}
+                      </TableCell>
+                    </TableRow>
+                  ) : contractsData.data.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                        Nenhum contrato encontrado para este cliente.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    contractsData?.data?.map((contract: any) => {
+                      const statusMap: Record<string, string> = {
+                        'pending': 'Pendente',
+                        'active': 'Ativo',
+                        'cancelled': 'Cancelado',
+                        'approved': 'Aprovado',
+                        'rejected': 'Rejeitado',
+                        'draft': 'Rascunho'
+                      };
+                      const translatedStatus = statusMap[contract.status?.toLowerCase()] || contract.status || '-';
+                      
+                      return (
+                        <TableRow key={contract.id}>
+                          <TableCell className="font-medium">{contract.contract_number || contract.id}</TableCell>
+                          <TableCell>
+                            <Badge variant={
+                              contract.status === 'approved' || contract.status === 'active' ? 'default' :
+                              contract.status === 'cancelled' || contract.status === 'rejected' ? 'destructive' :
+                              'secondary'
+                            }>
+                              {translatedStatus}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{formatDate(contract.start_date)}</TableCell>
+                          <TableCell>{formatDate(contract.end_date)}</TableCell>
+                          <TableCell>
+                            {contract.value 
+                              ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(contract.value)
+                              : '-'}
+                          </TableCell>
+                          <TableCell className="text-right space-x-2">
+                             <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/contracts/${contract.id}?client_id=${client.id}`)}>
+                                <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/contracts/${contract.id}/edit?client_id=${client.id}`)}>
+                                <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
             </div>
-
-            <EnrollmentTable
-              items={enrollments}
-              isLoading={isEnrollmentsLoading}
-              isFetching={isEnrollmentsFetching}
-              onView={handleViewEnrollment}
-              onEdit={handleEditEnrollment}
-              onDelete={handleDeleteEnrollment}
-              resolveAmountBRL={resolveEnrollmentAmountBRL}
-            />
           </CardContent>
         </Card>
 
@@ -802,7 +732,7 @@ export default function ClientView() {
         </Card>
 
         {/* Link de Ativação - Para clientes pré-registrados */}
-        {client.status === 'pre_registred' && client.link_active_cad && (
+        {client.status === 'pre_registred' && (client as any).link_active_cad && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -826,7 +756,7 @@ export default function ClientView() {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={() => window.open(client.link_active_cad, '_blank')}
+                    onClick={() => window.open((client as any).link_active_cad, '_blank')}
                     className="w-full"
                   >
                     <FileText className="mr-2 h-4 w-4" />

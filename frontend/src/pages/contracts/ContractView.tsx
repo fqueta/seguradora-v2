@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useContract, useCancelContract } from '@/hooks/contracts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +22,8 @@ import {
 export default function ContractView() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const clientIdParam = searchParams.get('client_id');
     const { user } = useAuth();
     const { data: contract, isLoading, error } = useContract(id as string);
     const { mutate: cancelContract, isPending: isCancelling } = useCancelContract();
@@ -71,8 +73,8 @@ export default function ContractView() {
                         <p className="text-muted-foreground mb-4">
                             Não foi possível encontrar o contrato solicitado.
                         </p>
-                        <Button onClick={() => navigate('/admin/contracts')}>
-                            Voltar para lista
+                        <Button onClick={() => navigate(clientIdParam ? `/admin/clients/${clientIdParam}/view` : '/admin/contracts')}>
+                            {clientIdParam ? 'Voltar para o cliente' : 'Voltar para lista'}
                         </Button>
                     </CardContent>
                 </Card>
@@ -121,7 +123,7 @@ export default function ContractView() {
             {/* Header */}
             <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <Button variant="outline" size="sm" onClick={() => navigate('/admin/contracts')}>
+                    <Button variant="outline" size="sm" onClick={() => navigate(clientIdParam ? `/admin/clients/${clientIdParam}/view` : '/admin/contracts')}>
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Voltar
                     </Button>
