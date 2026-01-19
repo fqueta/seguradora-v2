@@ -18,8 +18,10 @@ import { FormActionBar } from '@/components/common/FormActionBar';
 import { useUsersList, useUpdateUser } from '@/hooks/users';
 import { Combobox, useComboboxOptions } from '@/components/ui/combobox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { User, UserMinus } from 'lucide-react';
+import { User, UserMinus, Package } from 'lucide-react';
 import { UserRecord } from '@/types/users';
+import { useProductsList } from '@/hooks/products';
+import { MultiSelect } from '@/components/ui/multi-select';
 
 const organizationSchema = z.object({
     name: z.string().min(1, "Nome é obrigatório"),
@@ -35,6 +37,7 @@ const organizationSchema = z.object({
         bairro: z.string().optional().nullable(),
         cidade: z.string().optional().nullable(),
         uf: z.string().optional().nullable(),
+        allowed_products: z.array(z.string()).optional().default([]),
     }).optional(),
 });
 
@@ -54,6 +57,11 @@ export default function OrganizationForm() {
     const { data: usersData, isLoading: isLoadingUsers } = useUsersList({ per_page: 100 });
     const allUsers = usersData?.data || [];
 
+    // Buscar produtos
+    const { data: productsData, isLoading: isLoadingProducts } = useProductsList({ per_page: 100 });
+    const allProducts = productsData?.data || [];
+    const productOptions = allProducts.map(p => ({ value: String(p.id), label: p.name }));
+
     const form = useForm<OrganizationFormData>({
         resolver: zodResolver(organizationSchema),
         defaultValues: {
@@ -70,26 +78,29 @@ export default function OrganizationForm() {
                 bairro: '',
                 cidade: '',
                 uf: '',
+                allowed_products: [],
             }
         }
     });
 
     useEffect(() => {
         if (organization) {
+            const config = organization.config || {};
             form.reset({
                 name: organization.name,
                 document: organization.document,
                 email: organization.email,
                 phone: organization.phone,
                 active: organization.active,
-                config: organization.config || {
-                    cep: '',
-                    endereco: '',
-                    numero: '',
-                    complemento: '',
-                    bairro: '',
-                    cidade: '',
-                    uf: '',
+                config: {
+                    cep: config.cep || '',
+                    endereco: config.endereco || '',
+                    numero: config.numero || '',
+                    complemento: config.complemento || '',
+                    bairro: config.bairro || '',
+                    cidade: config.cidade || '',
+                    uf: config.uf || '',
+                    allowed_products: config.allowed_products?.map(String) || [],
                 },
             });
         }
@@ -296,6 +307,38 @@ export default function OrganizationForm() {
                                 )}
                             />
 
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="flex flex-row items-center gap-2">
+                            <Package className="h-5 w-5 text-muted-foreground" />
+                            <CardTitle>Produtos Permitidos</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <FormField
+                                control={form.control}
+                                name="config.allowed_products"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Selecione os produtos que esta organização pode utilizar</FormLabel>
+                                        <FormControl>
+                                            <MultiSelect
+                                                options={productOptions}
+                                                value={field.value || []}
+                                                onChange={field.onChange}
+                                                placeholder="Selecione os produtos..."
+                                                searchPlaceholder="Buscar produtos..."
+                                                disabled={isLoadingProducts}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                        <p className="text-xs text-muted-foreground mt-2">
+                                            Apenas os produtos selecionados aparecerão para os usuários desta organização ao cadastrar novos contratos.
+                                        </p>
+                                    </FormItem>
+                                )}
+                            />
                         </CardContent>
                     </Card>
                 </form>

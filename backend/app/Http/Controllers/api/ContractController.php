@@ -49,13 +49,15 @@ class ContractController extends Controller
                 // Usuário restrito: vê apenas da sua organização
                 $query->where('organization_id', $user->organization_id);
             } else {
-                // Usuário Admin/Super: pode filtrar por organização e autor se solicitado
+                // Usuário Admin/Super: pode filtrar por organização se solicitado
                 if ($request->filled('organization_id')) {
                     $query->where('organization_id', $request->organization_id);
                 }
-                if ($request->filled('owner_id')) {
-                    $query->where('owner_id', $request->owner_id);
-                }
+            }
+
+            // Filtro por owner_id disponível para todos (respeitando organização se for o caso)
+            if ($request->filled('owner_id')) {
+                $query->where('owner_id', $request->owner_id);
             }
         }
 
@@ -81,7 +83,7 @@ class ContractController extends Controller
         }
 
         $data = $request->all();
-        
+
         // Verifica se cliente ja tem contrato para este produto com vigencia valida e que não está na lixeira ou deletado
         if(isset($data['client_id']) && isset($data['product_id'])){
              $exists = Contract::where('client_id', $data['client_id'])
@@ -94,12 +96,12 @@ class ContractController extends Controller
                  return response()->json([
                     'exec' => false,
                     'mens' => 'Este cliente já possui um contrato válido para este produto. Id contrato: '.$exists->id.' - '.$exists->contract_number
-                 ], 400); 
+                 ], 400);
              }
         }
         // HasUuids trait will generate uuid
         $data['token'] = uniqid();
-        
+
         // Create contract
         $user = auth()->user();
         if($user){
@@ -121,7 +123,7 @@ class ContractController extends Controller
 
         if ($contract) {
              $integrationRet = $this->processSulamericaIntegration($contract);
-             
+
              // Check integration result
              if (isset($integrationRet['exec']) && $integrationRet['exec'] === true) {
                  // Integration Success
@@ -174,7 +176,7 @@ class ContractController extends Controller
                 return response()->json([
                    'exec' => false,
                    'mens' => 'Este cliente já possui um contrato válido para este produto.'
-                ], 400); 
+                ], 400);
             }
        }
 
@@ -192,18 +194,18 @@ class ContractController extends Controller
         }
 
         $contract->update($data);
-        
+
         // Log status change if it changed
         if (isset($data['status']) && $oldStatus !== $contract->status) {
             // Get current user ID if authenticated
             $userId = auth()->id(); // Assuming basic auth or acting user
             \App\Services\ContractEventLogger::logStatusChange(
-                $contract, 
-                $oldStatus, 
-                $contract->status, 
-                'Status do contrato atualizado', 
-                [], 
-                null, 
+                $contract,
+                $oldStatus,
+                $contract->status,
+                'Status do contrato atualizado',
+                [],
+                null,
                 $userId
             );
         }
@@ -220,7 +222,7 @@ class ContractController extends Controller
                 'data' => $contract
             ]);
         }
-        
+
     }
     /**
      * Metodo para enviar para a lixeira so é permitido excluir contratos do status cancelled
@@ -299,21 +301,65 @@ class ContractController extends Controller
 
             // Verifica se o fornecedor se identifica como SulAmérica
             if ($supplier && (stripos($supplier, 'SulAmerica') !== false)) {
-
                 $client = $contract->client; // Relationship
+                // dd($client);
 
                 if ($client) {
+                    //Não deve integrar se o titular for Fornecedor
+                    $permission = $client->permission;
+                    // dd($permission);
+                    $permId = $permission ? $permission->id : null;
+                    $supplierPermission = Qlib::qoption('permission_supplier_id') ?? '6';
+                    if (!$permId || $permId == $supplierPermission) {
+                        \App\Services\ContractEventLogger::log(
+                            $contract,
+                            'integracao_sulamerica',
+                            'Integração não executada: titular é Fornecedor.',
+                            [
+                                'status' => 'skipped',
+                                'reason' => 'holder_not_cliente',
+                                'holder_permission' => $permId,
+                            ],
+                            null,
+                            auth()->id()
+                        );
+                        return $ret;
+                    }
                     // Tenta obter dados do cliente, verificando config se necessário
                     $clientConfig = is_array($client->config) ? $client->config : [];
-
+                    if(Qlib::isJson($client->config)){
+                        $clientConfig = json_decode($client->config, true);
+                    }
                     // Mapeamento de Gênero
                     $sexo = strtoupper($client->genero ?? 'M'); // m -> M
                     if ($sexo == 'NI') $sexo = 'M';
-
                     // Data Nascimento
-                    $nascimento = $clientConfig['data_nascimento'] ?? ($clientConfig['nascimento'] ?? ($clientConfig['birth_date'] ?? null));
+                    $nascimento = $clientConfig['nascimento'] ?? null;
                     $product = Qlib::getProductById($contract->product_id);
-                    // dd($product);
+                    // Validação mínima antes de integrar
+                    $documento = str_replace(['.', '-', ' '], '', $client->cpf ?? $client->cnpj ?? '');
+                    $missing = [];
+                    if (empty($documento)) $missing[] = 'C.P.F';
+                    if (empty($nascimento)) $missing[] = 'data Nascimento';
+                    // dd($missing);
+                    if (!empty($missing)) {
+                        \App\Services\ContractEventLogger::log(
+                            $contract,
+                            'integracao_sulamerica',
+                            'Integração não executada: dados do titular insuficientes.',
+                            [
+                                'status' => 'skipped',
+                                'reason' => 'insufficient_client_data',
+                                'missing_fields' => $missing,
+                            ],
+                            null,
+                            auth()->id()
+                        );
+                        $mensMissing = 'Campos insuficientes: ' . implode(', ', $missing);
+                        $ret['mens'] = $mensMissing;
+                        // dd($ret);
+                        return $ret;
+                    }
                     // Preparar config para API
                     $apiConfig = [
                         'token_contrato' => $contract->token,
@@ -324,7 +370,7 @@ class ContractController extends Controller
                         'sexo' => $sexo,
                         'uf' => isset($contract->address['state']) ? $contract->address['state'] : ($clientConfig['uf'] ?? ($clientConfig['state'] ?? 'SP')),
                         //remover pontos e traços do cpf
-                        'documento' => str_replace(['.', '-', ' '], '', $client->cpf ?? $client->cnpj),
+                        'documento' => $documento,
                         'planoProduto' => $product['plan'] ?? '1', //deve ser o plano do produto
                         'operacaoParceiro' => $contract->token ?? null, //deve ser o plano do produto
                         'premioSeguro' => $product['costPrice'] ?? null,
@@ -334,7 +380,7 @@ class ContractController extends Controller
                     // Instancia e chama o controller
                     $saController = new SulAmericaController();
                     $response = $saController->contratacao($apiConfig);
-                    
+
                     // Log response to contract_meta
                     $response_json = is_array($response) ? json_encode($response) : $response;
                     Qlib::update_contract_meta($contract->id, 'ultimo_envio_fornecedor', $response_json);
@@ -381,7 +427,33 @@ class ContractController extends Controller
                     }
                     $ret = $response;
 
+                } else {
+                    \App\Services\ContractEventLogger::log(
+                        $contract,
+                        'integracao_sulamerica',
+                        'Integração não executada: titular ausente no contrato.',
+                        [
+                            'status' => 'skipped',
+                            'reason' => 'holder_missing',
+                        ],
+                        null,
+                        auth()->id()
+                    );
                 }
+            } else {
+                // Fornecedor não é SulAmérica: registrar skip para auditoria
+                \App\Services\ContractEventLogger::log(
+                    $contract,
+                    'integracao_sulamerica',
+                    'Integração não aplicável: fornecedor do produto não é SulAmérica.',
+                    [
+                        'status' => 'skipped',
+                        'reason' => 'supplier_not_sulamerica',
+                        'supplier' => $supplier,
+                    ],
+                    null,
+                    auth()->id()
+                );
             }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Erro na automação SulAmerica: ' . $e->getMessage());
@@ -407,7 +479,7 @@ class ContractController extends Controller
 
         //Verificar quem é o fornecedor do produto
         $supplier = Qlib::getSupplier($contract->product_id);
-        
+
         $integrationResult = null;
         $integrationSuccess = true; // Assume success if no integration is needed, unless proven otherwise
 
@@ -420,7 +492,7 @@ class ContractController extends Controller
                 $canalVenda = $metadata['data']['canalVenda']??null;
                 $mesAnoFatura = $metadata['data']['mesAnoFatura']??null;
                 $id_contrato = $contract->id;
-                
+
                 $saController = new SulAmericaController();
                 $apiConfig = [
                     'numeroOperacao' => $numeroOperacao,
@@ -428,17 +500,17 @@ class ContractController extends Controller
                     'mesAnoFatura' => $mesAnoFatura,
                     'id_contrato' => $id_contrato,
                 ];
-                
+
                 $response = $saController->cancelamento($apiConfig);
                 $integrationResult = $response;
-                
+
                 // Check if integration failed
                 if (!isset($response['exec']) || $response['exec'] !== true) {
                     $integrationSuccess = false;
                 }
             } else {
                 // If expected metadata is missing, we might not be able to cancel correctly with the integration
-                // For now, let's treat it as a failure to be safe, or allow manual override? 
+                // For now, let's treat it as a failure to be safe, or allow manual override?
                 // Based on request, strict check seems better.
                  return response()->json([
                     'exec' => false,
@@ -450,15 +522,15 @@ class ContractController extends Controller
         if ($integrationSuccess) {
             $oldStatus = $contract->status;
             $contract->update(['status' => 'cancelled']);
-            
+
             // Log status change
             \App\Services\ContractEventLogger::logStatusChange(
-                $contract, 
-                $oldStatus, 
-                'cancelled', 
-                'Contrato cancelado com sucesso.', 
-                ['integration_response' => $integrationResult], 
-                null, 
+                $contract,
+                $oldStatus,
+                'cancelled',
+                'Contrato cancelado com sucesso.',
+                ['integration_response' => $integrationResult],
+                null,
                 auth()->id()
             );
 

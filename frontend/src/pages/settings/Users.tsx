@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, CalendarIcon } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, CalendarIcon, Eye } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -461,7 +461,14 @@ export default function Users() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleOpenModal(user)}
+                            onClick={() => navigate(`/admin/settings/users/${user.id}/view`)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(`/admin/settings/users/${user.id}/edit`)}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>

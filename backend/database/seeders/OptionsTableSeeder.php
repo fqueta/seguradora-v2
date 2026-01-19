@@ -24,9 +24,9 @@ class OptionsTableSeeder extends Seeder
                     'url'   => 'permission_client_id',
                 ],
                 [
-                    'name'  => 'Id da permissão dos instrutores',
+                    'name'  => 'Id da permissão dos fornecedores',
                     'value' => '6',
-                    'url'   => 'permission_instructor_id',
+                    'url'   => 'permission_supplier_id',
                 ],
                 [
                     'name'  => 'Url importação Api Aeroclube',
@@ -71,8 +71,8 @@ class OptionsTableSeeder extends Seeder
                     'tags'  => 'link',
                 ],
             ];
-        
-        
+
+
         foreach ($data as $item) {
             DB::table('options')->updateOrInsert(
                 ['url' => $item['url']],

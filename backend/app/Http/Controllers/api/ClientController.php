@@ -325,6 +325,7 @@ class ClientController extends Controller
             'cpf'     => $this->normalizeOptionalString($request->get('cpf')),
             'cnpj'    => $this->normalizeOptionalString($request->get('cnpj')),
             'celular' => $this->normalizeOptionalString($request->get('celular')),
+            'genero' => $this->normalizeOptionalString($request->get('genero')),
         ]);
         // Verificar se o CPF ou CNPJ já existe na lixeira
         if ($request->filled('cpf') || $request->filled('cnpj')) {
@@ -354,7 +355,7 @@ class ClientController extends Controller
             'tipo_pessoa'   => ['required', Rule::in(['pf','pj'])],
             'name'          => 'required|string|max:255',
             'razao'         => 'nullable|string|max:255',
-            'cpf'           => 'nullable|string|max:20|unique:users,cpf',
+            'cpf'           => 'required_if:tipo_pessoa,pf|string|max:20|unique:users,cpf',
             'cnpj'          => 'nullable|string|max:20|unique:users,cnpj',
             'email'         => 'nullable|email|unique:users,email',
             'celular'         => 'nullable|celular|unique:users,celular',
@@ -534,7 +535,7 @@ class ClientController extends Controller
                 }
             }
         }
-        
+
         // dd($validated);
         $clientToUpdate->update($validated);
 
@@ -605,7 +606,7 @@ class ClientController extends Controller
             ->where('permission_id', $this->cliente_permission_id)
             ->where('deletado', 's')
             ->orderBy($order_by, $order);
-        
+
         // Security: visualiza apenas dados/cadastros de permission_id >= 3 da sua organization_id
         if ($user->permission_id >= 3) {
             $query->where('organization_id', $user->organization_id);
@@ -1158,10 +1159,10 @@ class ClientController extends Controller
         if (!$user) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
-        
+
         // Limpar CPF (somente números)
         $cpfClean = preg_replace('/\D/', '', $cpf);
-        
+
         // 1. Procurar localmente
         // PT: Busca na base local para evitar chamadas externas desnecessárias
         $client = Client::where('cpf', $cpfClean)->first();
@@ -1173,14 +1174,14 @@ class ClientController extends Controller
                 'message' => 'Cliente encontrado na base local'
             ]);
         }
-        
+
         // 2. Procurar em API externa (Placeholder/Mock)
         // PT: Aqui o sistema pode ser estendido para consultar SulAmérica ou provedores de dados
         // EN: Here the system can be extended to consult SulAmérica or data providers
-        
+
         // Mock de resposta para demonstração se for um CPF específico ou apenas retornar não encontrado
         // No futuro, implementar Guzzle/Http para chamadas reais.
-        
+
         return response()->json([
             'exec' => false,
             'found' => false,

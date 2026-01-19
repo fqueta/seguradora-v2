@@ -6,14 +6,17 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { contractsService } from "@/services/contractsService";
 import { usersService } from "@/services/usersService";
+import { organizationService } from "@/services/organizationService";
 import type { ContractRecord, ContractsListParams } from "@/types/contracts";
 import type { UserRecord } from "@/types/users";
+import type { Organization } from "@/types/organization";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, FileDown, FileSpreadsheet, Filter, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { dataParaBR } from "@/lib/qlib";
 
 type PeriodField = "inicio" | "fim";
 
@@ -29,11 +32,21 @@ export default function RelatorioGeral() {
   const [total, setTotal] = useState<number>(0);
   const [items, setItems] = useState<ContractRecord[]>([]);
   const [owners, setOwners] = useState<UserRecord[]>([]);
+  const [orgMap, setOrgMap] = useState<Record<string | number, string>>({});
 
   useEffect(() => {
     usersService
       .listUsers({ per_page: 100 })
       .then((res) => setOwners(res.data))
+      .catch(() => {});
+    organizationService
+      .list({ per_page: 1000 })
+      .then((res) => {
+        const map = Object.fromEntries(
+          (res.data as Organization[]).map((o) => [o.id, o.name])
+        );
+        setOrgMap(map);
+      })
       .catch(() => {});
   }, []);
 
@@ -83,22 +96,64 @@ export default function RelatorioGeral() {
   const headerColumns = [
     "Data de Início",
     "Data de Fim",
+    "Organização",
     "Cliente",
     "Autor",
+    "Valor",
     "Status",
   ];
 
+  const formatBRDate = (value?: string) => {
+    if (!value) return "";
+    try {
+      const datePart = value.includes("T") ? value.split("T")[0] : value;
+      const [y, m, d] = datePart.split("-");
+      if (y && m && d) return `${d}/${m}/${y}`;
+      const dt = new Date(value);
+      return isNaN(dt.getTime()) ? value : dt.toLocaleDateString("pt-BR");
+    } catch {
+      return value;
+    }
+  };
+
+  const formatCurrencyBR = (v?: number) =>
+    typeof v === "number" ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "";
+
+  const translateStatus = (s?: string) => {
+    switch (s) {
+      case "approved": return "Aprovado";
+      case "active": return "Ativo";
+      case "pending": return "Pendente";
+      case "cancelled": return "Cancelado";
+      case "draft": return "Rascunho";
+      default: return s || "";
+    }
+  };
+
+  const organizationOf = (c: ContractRecord) => {
+    const orgFromEntities =
+      c.client?.organization?.name ||
+      c.owner?.organization?.name ||
+      (c as any)?.organization?.name ||
+      "";
+    if (orgFromEntities) return orgFromEntities;
+    const id = (c as any)?.organization_id;
+    return id ? orgMap[id] || "" : "";
+  };
+
   const rowsForExport = items.map((c) => ({
-    inicio: c.start_date || "",
-    fim: c.end_date || "",
+    inicio: formatBRDate(c.start_date),
+    fim: formatBRDate(c.end_date),
+    organizacao: organizationOf(c),
     cliente: c.client?.name || c.client?.full_name || "",
     autor: c.owner?.name || c.owner?.full_name || "",
-    status: c.status || "",
+    valor: formatCurrencyBR(c.value),
+    status: translateStatus(c.status),
   }));
 
   const exportExcel = () => {
     try {
-      const wsData = [headerColumns, ...rowsForExport.map((r) => [r.inicio, r.fim, r.cliente, r.autor, r.status])];
+      const wsData = [headerColumns, ...rowsForExport.map((r) => [r.inicio, r.fim, r.organizacao, r.cliente, r.autor, r.valor, r.status])];
       const ws = XLSX.utils.aoa_to_sheet(wsData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Relatório");
@@ -124,7 +179,7 @@ export default function RelatorioGeral() {
       doc.text("Relatórios: Usuários com Contratos", 14, 16);
       autoTable(doc, {
         head: [headerColumns],
-        body: rowsForExport.map((r) => [r.inicio, r.fim, r.cliente, r.autor, r.status]),
+        body: rowsForExport.map((r) => [r.inicio, r.fim, r.organizacao, r.cliente, r.autor, r.valor, r.status]),
         startY: 20,
         styles: { fontSize: 8 },
         headStyles: { fillColor: [22, 101, 216] },
@@ -228,8 +283,10 @@ export default function RelatorioGeral() {
               <TableRow>
                 <TableHead>Data de início</TableHead>
                 <TableHead>Data de fim</TableHead>
+                <TableHead>Organização</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Autor</TableHead>
+                <TableHead>Valor</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -252,13 +309,15 @@ export default function RelatorioGeral() {
               {!loading &&
                 items.map((c) => (
                   <TableRow key={c.id}>
-                    <TableCell>{c.start_date || "-"}</TableCell>
-                    <TableCell>{c.end_date || "-"}</TableCell>
+                    <TableCell>{formatBRDate(c.start_date) || "-"}</TableCell>
+                    <TableCell>{formatBRDate(c.end_date) || "-"}</TableCell>
+                    <TableCell>{organizationOf(c) || "-"}</TableCell>
                     <TableCell>{c.client?.name || c.client?.full_name || "-"}</TableCell>
                     <TableCell>{c.owner?.name || c.owner?.full_name || "-"}</TableCell>
+                    <TableCell>{formatCurrencyBR(c.value) || "-"}</TableCell>
                     <TableCell>
                       <Badge variant={c.status === "approved" ? "default" : c.status === "cancelled" ? "destructive" : "secondary"}>
-                        {c.status}
+                        {translateStatus(c.status)}
                       </Badge>
                     </TableCell>
                   </TableRow>

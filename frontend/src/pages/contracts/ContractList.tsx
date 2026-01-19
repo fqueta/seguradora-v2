@@ -169,7 +169,7 @@ export default function ContractList() {
                             <TableRow>
                                 <TableHead>Número</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead>Cliente</TableHead>
+                                <TableHead>Titular</TableHead>
                                 <TableHead>Valor</TableHead>
                                 <TableHead>Início</TableHead>
                                 <TableHead>Fim</TableHead>

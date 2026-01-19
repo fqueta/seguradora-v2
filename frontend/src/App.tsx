@@ -45,6 +45,8 @@ import ServiceView from "./pages/ServiceView";
 import Categories from "./pages/Categories";
 import Permissions from "./pages/settings/Permissions";
 import Users from "./pages/settings/Users";
+import UserView from "./pages/settings/UserView";
+import UserEdit from "./pages/settings/UserEdit";
 import UserCreate from "./pages/settings/UserCreate";
 import OrganizationList from "./pages/settings/organizations/OrganizationList";
 import OrganizationForm from "./pages/settings/organizations/OrganizationForm";
@@ -550,6 +552,30 @@ const App = () => {
                       requireRemote={false}
                     >
                       <Users />
+                    </PermissionGuard>
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/settings/users/:id/view" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <PermissionGuard 
+                      menuPath="/admin/settings/users"
+                      requireRemote={false}
+                    >
+                      <UserView />
+                    </PermissionGuard>
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/settings/users/:id/edit" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <PermissionGuard 
+                      menuPath="/admin/settings/users"
+                      requireRemote={false}
+                    >
+                      <UserEdit />
                     </PermissionGuard>
                   </AppLayout>
                 </AdminProtectedRoute>

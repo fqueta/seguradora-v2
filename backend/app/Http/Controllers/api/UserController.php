@@ -242,14 +242,14 @@ class UserController extends Controller
         if (!$this->permissionService->isHasPermission('view')) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
-        $user = User::findOrFail($id);
+        $user = User::with('organization')->findOrFail($id);
 
         // Security: visualiza apenas dados de permission_id >= ao seu
         if ($currentUser->permission_id && $user->permission_id < $currentUser->permission_id) {
              return response()->json(['error' => 'Acesso negado. Nível de permissão insuficiente.'], 403);
         }
 
-        return response()->json($user,201);
+        return response()->json($user, 200);
     }
     /**
      * retorna dados do usuario

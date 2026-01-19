@@ -12,6 +12,7 @@ import { UseFormReturn } from 'react-hook-form';
 import { Eye, EyeOff } from 'lucide-react';
 import { Organization } from '@/types/organization';
 import { phoneApplyMask } from '@/lib/masks/phone-apply-mask';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Permission {
   id: number;
@@ -99,6 +100,9 @@ export function UserForm({
   showBirthDate = true,
 }: UserFormProps): React.ReactElement {
   const [showPassword, setShowPassword] = React.useState(false);
+  const { user: currentUser } = useAuth();
+  const isOrgDisabled = currentUser ? Number(currentUser.permission_id) >= 3 : false;
+
   return (
     <Form {...form}>
       <form
@@ -107,7 +111,7 @@ export function UserForm({
         })}
         className="space-y-6"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
           <FormField
             control={form.control}
             name="name"
@@ -163,18 +167,24 @@ export function UserForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Permissão</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingPermissions}>
+                <Select 
+                  onValueChange={field.onChange} 
+                  value={field.value !== undefined && field.value !== null && field.value !== "" ? String(field.value) : undefined} 
+                  disabled={isLoadingPermissions}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder={isLoadingPermissions ? "Carregando..." : "Selecione a permissão"} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="z-[60]">
-                    {permissions.map((permission) => (
-                      <SelectItem key={permission.id} value={String(permission.id)}>
-                        {permission.name}
-                      </SelectItem>
-                    ))}
+                    {permissions
+                      .filter(p => !['Cliente', 'Clientes', 'Fornecedor', 'Fornecedores'].includes(p.name))
+                      .map((permission) => (
+                        <SelectItem key={permission.id} value={String(permission.id)}>
+                          {permission.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -187,7 +197,11 @@ export function UserForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Organização</FormLabel>
-                <Select onValueChange={(val) => field.onChange(val === 'none' ? null : Number(val))} value={field.value ? String(field.value) : undefined}>
+                <Select 
+                  onValueChange={(val) => field.onChange(val === 'none' ? null : Number(val))} 
+                  value={field.value !== null && field.value !== undefined ? String(field.value) : "none"}
+                  disabled={isOrgDisabled}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a organização" />
@@ -264,16 +278,25 @@ export function UserForm({
             control={form.control}
             name="ativo"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Ativo</FormLabel>
-                {ativoAsSwitch ? (
+              ativoAsSwitch ? (
+                <FormItem className="flex flex-row items-center justify-between rounded-xl border border-input bg-muted/30 px-4 py-2 md:mt-[24px] h-[40px] hover:bg-muted/50 transition-colors shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <FormLabel className="text-sm font-medium cursor-pointer mb-0">Status:</FormLabel>
+                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${field.value === 's' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      {field.value === 's' ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </div>
                   <FormControl>
                     <Switch
                       checked={field.value === 's'}
                       onCheckedChange={(checked) => field.onChange(checked ? 's' : 'n')}
+                      className="data-[state=checked]:bg-primary"
                     />
                   </FormControl>
-                ) : (
+                </FormItem>
+              ) : (
+                <FormItem>
+                  <FormLabel>Ativo</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -285,9 +308,9 @@ export function UserForm({
                       <SelectItem value="n">Não</SelectItem>
                     </SelectContent>
                   </Select>
-                )}
-                <FormMessage />
-              </FormItem>
+                  <FormMessage />
+                </FormItem>
+              )
             )}
           />
           {form.watch('tipo_pessoa') === 'pf' && (
@@ -390,18 +413,24 @@ export function UserForm({
           )}
           {showAddressSection && <AddressAccordion form={form} />}
         </div>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>
+        <div className="flex items-center justify-end space-x-4 pt-6 border-t mt-4">
+          <Button 
+            type="button" 
+            variant="ghost" 
+            onClick={onCancel}
+            className="px-8"
+          >
             Cancelar
           </Button>
           <Button
             type="submit"
             onClick={handleOnclick}
             disabled={isLoadingPermissions}
+            className="px-12 shadow-lg hover:shadow-primary/20 transition-all font-semibold"
           >
-            {editingUser ? 'Salvar' : 'Criar'}
+            {editingUser ? 'Salvar Alterações' : 'Criar Usuário'}
           </Button>
-        </DialogFooter>
+        </div>
       </form>
     </Form>
   );
