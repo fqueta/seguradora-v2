@@ -33,19 +33,35 @@ class TenantSeeder extends Seeder
                 $this->command->info("Tenant '{$tenantId}' created.");
             } catch (\Stancl\Tenancy\Exceptions\TenantDatabaseAlreadyExistsException $e) {
                 $this->command->warn("Tenant database '{$tenantId}' already exists. Creating tenant record without database creation.");
-                $tenant = new Tenant();
-                $tenant->fill([
-                    'id' => $tenantId,
-                    'name' => 'Yellow Seguradora',
-                    'ativo' => 's',
-                    'excluido' => 'n',
-                    'reg_excluido' => 'n',
-                    'deletado' => 'n',
-                    'reg_deletado' => 'n',
-                    'autor' => 'system',
-                ]);
-                $tenant->saveQuietly();
-                $this->command->info("Tenant '{$tenantId}' record restored.");
+                
+                // Check if tenant exists (ignoring scopes) or try to create and catch unique constraint
+                if (Tenant::withoutGlobalScopes()->where('id', $tenantId)->exists()) {
+                    $this->command->info("Tenant '{$tenantId}' record already exists.");
+                    $tenant = Tenant::find($tenantId);
+                } else {
+                    $tenant = new Tenant();
+                    $tenant->fill([
+                        'id' => $tenantId,
+                        'name' => 'Yellow Seguradora',
+                        'ativo' => 's',
+                        'excluido' => 'n',
+                        'reg_excluido' => 'n',
+                        'deletado' => 'n',
+                        'reg_deletado' => 'n',
+                        'autor' => 'system',
+                    ]);
+                    try {
+                        $tenant->saveQuietly();
+                        $this->command->info("Tenant '{$tenantId}' record restored.");
+                    } catch (\Illuminate\Database\QueryException $ex) {
+                        if ($ex->getCode() === '23000') { // Integrity constraint violation
+                             $this->command->info("Tenant '{$tenantId}' record already exists (caught during restore).");
+                             $tenant = Tenant::find($tenantId);
+                        } else {
+                            throw $ex;
+                        }
+                    }
+                }
             }
         } else {
             $this->command->info("Tenant '{$tenantId}' already exists.");

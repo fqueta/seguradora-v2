@@ -19,6 +19,7 @@ interface ClientsTableProps {
   clients: ClientRecord[];
   onEdit: (client: ClientRecord) => void;
   onDelete: (client: ClientRecord) => void;
+  onForceDelete?: (client: ClientRecord) => void;
   isLoading: boolean;
   /**
    * Indica se a visualização atual é a Lixeira.
@@ -32,7 +33,7 @@ interface ClientsTableProps {
  * Renders client rows with owner and status. When `trashEnabled` is true,
  * shows a purple banner at the top, hides the Delete action, e exibe "Restaurar".
  */
-export function ClientsTable({ clients, onEdit, onDelete, isLoading, trashEnabled }: ClientsTableProps) {
+export function ClientsTable({ clients, onEdit, onDelete, onForceDelete, isLoading, trashEnabled }: ClientsTableProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
@@ -51,6 +52,8 @@ export function ClientsTable({ clients, onEdit, onDelete, isLoading, trashEnable
   const [transferOpen, setTransferOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<ClientRecord | null>(null);
   const [targetOrgId, setTargetOrgId] = useState<string>('');
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [convertClient, setConvertClient] = useState<ClientRecord | null>(null);
   
   // Função para obter o nome do proprietário pelo ID do autor
   const getOwnerName = (autorId: string) => {
@@ -83,12 +86,6 @@ export function ClientsTable({ clients, onEdit, onDelete, isLoading, trashEnable
   if (clientsList.length === 0) {
     return (
       <div className="space-y-2">
-        {trashEnabled && (
-          <div className="flex items-center gap-2 rounded-md border border-purple-200 bg-purple-50 px-3 py-2 text-sm text-purple-800">
-            <Trash2 className="h-4 w-4" />
-            <span>Exibindo itens da Lixeira — registros excluídos.</span>
-          </div>
-        )}
         <div className="text-center py-4">Nenhum cliente encontrado</div>
       </div>
     );
@@ -97,12 +94,6 @@ export function ClientsTable({ clients, onEdit, onDelete, isLoading, trashEnable
   
   return (
     <div className="space-y-2">
-      {trashEnabled && (
-        <div className="flex items-center gap-2 rounded-md border border-purple-200 bg-purple-50 px-3 py-2 text-sm text-purple-800">
-          <Trash2 className="h-4 w-4" />
-          <span>Exibindo itens da Lixeira — registros excluídos.</span>
-        </div>
-      )}
       <Table>
         <TableHeader>
           <TableRow>
@@ -153,6 +144,13 @@ export function ClientsTable({ clients, onEdit, onDelete, isLoading, trashEnable
                     </DropdownMenuItem>
                     {Number(user?.permission_id || 99) <= 2 && (
                       <DropdownMenuItem
+                        onClick={() => { setConvertClient(client); setConvertOpen(true); }}
+                      >
+                        <Pencil className="mr-2 h-4 w-4" /> Transferir para usuário
+                      </DropdownMenuItem>
+                    )}
+                    {Number(user?.permission_id || 99) <= 2 && (
+                      <DropdownMenuItem
                         onClick={() => {
                           setSelectedClient(client);
                           setTargetOrgId('');
@@ -163,12 +161,22 @@ export function ClientsTable({ clients, onEdit, onDelete, isLoading, trashEnable
                       </DropdownMenuItem>
                     )}
                     {trashEnabled && (
-                      <DropdownMenuItem 
-                        onClick={() => { restoreClientMutation.mutate(client.id); }}
-                        disabled={restoreClientMutation.isPending}
-                      >
-                        <RotateCcw className="mr-2 h-4 w-4" /> Restaurar
-                      </DropdownMenuItem>
+                      <>
+                        <DropdownMenuItem 
+                          onClick={() => { restoreClientMutation.mutate(client.id); }}
+                          disabled={restoreClientMutation.isPending}
+                        >
+                          <RotateCcw className="mr-2 h-4 w-4" /> Restaurar
+                        </DropdownMenuItem>
+                        {onForceDelete && (
+                          <DropdownMenuItem 
+                            onClick={() => onForceDelete(client)}
+                            className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" /> Excluir Permanentemente
+                          </DropdownMenuItem>
+                        )}
+                      </>
                     )}
                     {!trashEnabled && (
                       <DropdownMenuItem onClick={() => onDelete(client)}>
@@ -231,6 +239,40 @@ export function ClientsTable({ clients, onEdit, onDelete, isLoading, trashEnable
                 }}
               >
                 Transferir
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>Transferir cliente para usuário</DialogTitle>
+            <DialogDescription>
+              Ao confirmar esta ação o cliente receberá os privilegios dos usuarios vendedores do sistema
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="text-sm">
+              Cliente: <span className="font-medium">{convertClient?.name}</span>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setConvertOpen(false)}>Cancelar</Button>
+              <Button
+                onClick={async () => {
+                  if (!convertClient) return;
+                  try {
+                    await clientsService.convertToUser(String(convertClient.id));
+                    toast({ variant: 'success' as any, title: 'Conversão concluída', description: 'Cliente agora possui privilégios de Vendedor.' });
+                    setConvertOpen(false);
+                    navigate('/admin/settings/users');
+                  } catch (e: any) {
+                    const msg = e?.body?.message || e?.message || 'Falha ao converter para usuário';
+                    toast({ title: 'Erro', description: msg, variant: 'destructive' as any });
+                  }
+                }}
+              >
+                Confirmar
               </Button>
             </div>
           </div>

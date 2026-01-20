@@ -51,8 +51,9 @@ class ContractsService extends BaseApiService {
    * Remove (soft delete) um contrato
    * @param id ID do contrato
    */
-  async deleteContract(id: string | number): Promise<void> {
-    await this.delete(`${this.endpoint}/${id}`);
+  async deleteContract(id: string | number): Promise<any> {
+    const response = await this.delete<any>(`${this.endpoint}/${id}`);
+    return response;
   }
 
   /**
@@ -61,6 +62,33 @@ class ContractsService extends BaseApiService {
    */
   async cancelContract(id: string | number): Promise<any> {
     const response = await this.post<any>(`${this.endpoint}/${id}/cancel`, {});
+    return response;
+  }
+
+  /**
+   * Lista contratos na lixeira (soft deleted)
+   * @param params Parâmetros de listagem
+   */
+  async getTrash(params?: ContractsListParams): Promise<PaginatedResponse<ContractRecord>> {
+    const response = await this.get<any>(`${this.endpoint}/trash`, params);
+    return this.normalizePaginatedResponse<ContractRecord>(response);
+  }
+
+  /**
+   * Restaura um contrato da lixeira
+   * @param id ID do contrato
+   */
+  async restoreContract(id: string | number): Promise<any> {
+    const response = await this.put<any>(`${this.endpoint}/${id}/restore`, {});
+    return response;
+  }
+
+  /**
+   * Remove permanentemente um contrato
+   * @param id ID do contrato
+   */
+  async forceDeleteContract(id: string | number): Promise<any> {
+    const response = await this.delete<any>(`${this.endpoint}/${id}/force`);
     return response;
   }
 

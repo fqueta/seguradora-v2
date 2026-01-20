@@ -209,6 +209,7 @@ Route::name('api.')->prefix('api/v1')->middleware([
             'clients' => 'id'
         ]]);
         Route::put('clients/{id}/transfer-organization', [ClientController::class, 'transferOrganization'])->name('clients.transferOrganization');
+        Route::put('clients/{id}/convert-to-user', [ClientController::class, 'convertToUser'])->name('clients.convertToUser');
         // Atendimentos do cliente (nested)
         Route::get('clients/{id}/attendances', [ClientAttendanceController::class, 'index'])->name('clients.attendances.index');
         Route::post('clients/{id}/attendances', [ClientAttendanceController::class, 'store'])->name('clients.attendances.store');
@@ -601,13 +602,13 @@ Route::name('api.')->prefix('api/v1')->middleware([
          Route::delete('service-orders/{id}/force', [ServiceOrderController::class, 'forceDelete'])->name('service-orders.forceDelete');
 
         // Rotas para contracts
+        Route::post('contracts/{id}/cancel', [\App\Http\Controllers\api\ContractController::class, 'cancelarContrato'])->name('contracts.cancel');
+        Route::get('contracts/trash', [\App\Http\Controllers\api\ContractController::class, 'trash'])->name('contracts.trash');
+        Route::put('contracts/{id}/restore', [\App\Http\Controllers\api\ContractController::class, 'restore'])->name('contracts.restore');
+        Route::delete('contracts/{id}/force', [\App\Http\Controllers\api\ContractController::class, 'forceDelete'])->name('contracts.forceDelete');
         Route::apiResource('contracts', \App\Http\Controllers\api\ContractController::class, ['parameters' => [
             'contracts' => 'id'
         ]]);
-        Route::post('contracts/{id}/cancel', [\App\Http\Controllers\api\ContractController::class, 'cancelarContrato'])->name('contracts.cancel');
-        // Route::get('contracts/trash', [\App\Http\Controllers\api\ContractController::class, 'trash'])->name('contracts.trash');
-        // Route::put('contracts/{id}/restore', [\App\Http\Controllers\api\ContractController::class, 'restore'])->name('contracts.restore');
-        // Route::delete('contracts/{id}/force', [\App\Http\Controllers\api\ContractController::class, 'forceDelete'])->name('contracts.forceDelete');
 
          // Rotas para dashboard-metrics
         Route::apiResource('dashboard-metrics', MetricasController::class,['parameters' => [

@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -44,7 +45,9 @@ import {
   Plus, 
   Search,
   ShieldCheck,
-  Loader2
+  Loader2,
+  Trash2,
+  RotateCcw
 } from "lucide-react";
 import { clientsService } from '@/services/clientsService';
 import { getBrazilianStates } from '@/lib/qlib';
@@ -52,7 +55,8 @@ import {
   useClientsList, 
   useCreateClient, 
   useUpdateClient,
-  useDeleteClient
+  useDeleteClient,
+  useForceDeleteClient
 } from '@/hooks/clients';
 import { generateMockClients } from '@/mocks/clients';
 import { useQueryClient } from '@tanstack/react-query';
@@ -235,8 +239,10 @@ export default function Clients() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [openForceDeleteDialog, setOpenForceDeleteDialog] = useState(false);
   const [editingClient, setEditingClient] = useState<ClientRecord | null>(null);
   const [clientToDelete, setClientToDelete] = useState<ClientRecord | null>(null);
+  const [clientToForceDelete, setClientToForceDelete] = useState<ClientRecord | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isConsulting, setIsConsulting] = useState(false);
   const [pageSize] = useState(100);
@@ -304,6 +310,7 @@ export default function Clients() {
   const createClientMutation = useCreateClient();
   const updateClientMutation = useUpdateClient();
   const deleteClientMutation = useDeleteClient();
+  const forceDeleteClientMutation = useForceDeleteClient();
 
   // Form setup with zod validation
   const form = useForm<ClientFormData>({
@@ -392,6 +399,12 @@ export default function Clients() {
     setClientToDelete(client);
     setOpenDeleteDialog(true);
   }, []);
+
+  // Handle force delete confirmation
+  const handleForceDeleteClient = useCallback((client: ClientRecord) => {
+    setClientToForceDelete(client);
+    setOpenForceDeleteDialog(true);
+  }, []);
   
   // Confirm client deletion - memoized for performance
   const confirmDeleteClient = useCallback(() => {
@@ -402,9 +415,11 @@ export default function Clients() {
           // console.log('Resposta de sucesso:', response);
           // Verifica se a operação foi executada com sucesso
           if (response.exec) {
+            const color = (res as any)?.color;
             toast({
               title: "Sucesso",
               description: response.message,
+              variant: color === 'success' ? 'success' : 'default',
             });
             setOpenDeleteDialog(false);
             setClientToDelete(null);
@@ -449,6 +464,30 @@ export default function Clients() {
       });
     }
   }, [clientToDelete, deleteClientMutation, toast]);
+
+  const confirmForceDeleteClient = useCallback(() => {
+    if (clientToForceDelete) {
+      forceDeleteClientMutation.mutate(clientToForceDelete.id, {
+        onSuccess: () => {
+          toast({
+            title: "Sucesso",
+            description: "Cliente excluído permanentemente",
+            variant: "success",
+          });
+          setOpenForceDeleteDialog(false);
+          setClientToForceDelete(null);
+          queryClient.invalidateQueries({ queryKey: ['clients'] });
+        },
+        onError: (error) => {
+          toast({
+            title: "Erro",
+            description: "Erro ao excluir cliente permanentemente",
+            variant: "destructive",
+          });
+        }
+      });
+    }
+  }, [clientToForceDelete, forceDeleteClientMutation, toast]);
 
   /**
    * Submit client update payload.
@@ -680,10 +719,25 @@ export default function Clients() {
     <div className="container mx-auto py-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Clientes</h1>
-        <Button onClick={handleNewClient}>
-          <Plus className="mr-2 h-4 w-4" /> Novo Cliente
-        </Button>
+        <div className="flex items-center gap-2">
+          <h1 className="text-3xl font-bold">Clientes</h1>
+          {showTrash && <Badge variant="destructive">LIXEIRA</Badge>}
+        </div>
+        <div className="flex gap-2">
+          <Button 
+            variant={showTrash ? "default" : "outline"}
+            onClick={() => setShowTrash(!showTrash)}
+            title={showTrash ? "Ver Ativos" : "Ver Lixeira"}
+          >
+            {showTrash ? <RotateCcw className="mr-2 h-4 w-4" /> : <Trash2 className="mr-2 h-4 w-4" />}
+            {showTrash ? "Ver Ativos" : "Lixeira"}
+          </Button>
+          {!showTrash && (
+            <Button onClick={handleNewClient}>
+              <Plus className="mr-2 h-4 w-4" /> Novo Cliente
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -771,15 +825,6 @@ export default function Clients() {
                   <SelectItem value="inactived">Inativos</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            {/* Toggle Lixeira */}
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={showTrash}
-                onCheckedChange={setShowTrash}
-                aria-label="Mostrar registros na lixeira"
-              />
-              <span className="text-sm">Lixeira</span>
             </div>
           </div>
         </CardHeader>
@@ -874,6 +919,7 @@ export default function Clients() {
               clients={filteredClients}
               onEdit={handleEditClient}
               onDelete={handleDeleteClient}
+              onForceDelete={handleForceDeleteClient}
               isLoading={useMock ? false : clientsQuery.isLoading}
               trashEnabled={showTrash}
             />
@@ -937,6 +983,28 @@ export default function Clients() {
               variant="destructive"
             >
               Excluir
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Force Delete Confirmation Dialog */}
+      <AlertDialog open={openForceDeleteDialog} onOpenChange={setOpenForceDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Permanentemente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o cliente {clientToForceDelete?.name} permanentemente? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button 
+              onClick={confirmForceDeleteClient} 
+              className="bg-red-600 hover:bg-red-700"
+              variant="destructive"
+            >
+              Excluir Permanentemente
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

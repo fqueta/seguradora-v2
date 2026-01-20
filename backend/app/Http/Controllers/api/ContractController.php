@@ -148,7 +148,11 @@ class ContractController extends Controller
         $contract = Contract::with(['client', 'owner', 'events.user', 'product'])->find($id);
         //dados do metacampo envio_fornecedor_sucesso deve ser enviado no campo events
         if (!$contract) {
-            return response()->json(['message' => 'Contrato não encontrado'], 404);
+            return response()->json([
+                'exec' => false,
+                'message' => 'Contrato não encontrado',
+                'color' => 'danger'
+            ], 404);
         }
         $contract['contato_integrado'] = [];
         $envio_fornecedor_sucesso = Qlib::get_contract_meta($contract->id, 'envio_fornecedor_sucesso');
@@ -177,7 +181,11 @@ class ContractController extends Controller
         $contract = Contract::find($id);
 
         if (!$contract) {
-            return response()->json(['message' => 'Contrato não encontrado'], 404);
+            return response()->json([
+                'exec' => false,
+                'message' => 'Contrato não encontrado',
+                'color' => 'danger'
+            ], 404);
         }
 
         $oldStatus = $contract->status;
@@ -243,44 +251,103 @@ class ContractController extends Controller
 
     }
     /**
+     * List trashed contracts
+     */
+    public function trash(Request $request): JsonResponse
+    {
+        $query = Contract::onlyTrashed()->with(['client', 'owner', 'organization']);
+
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('contract_number', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('client_id')) {
+            $query->where('client_id', $request->client_id);
+        }
+
+        // Security and Role-based filtering (same as index)
+        $user = auth()->user();
+        if ($user) {
+            if ($user->permission_id >= 3) {
+                $query->where('organization_id', $user->organization_id);
+            } else {
+                if ($request->filled('organization_id')) {
+                    $query->where('organization_id', $request->organization_id);
+                }
+            }
+            if ($request->filled('owner_id')) {
+                $query->where('owner_id', $request->owner_id);
+            }
+        }
+
+        $perPage = $request->get('per_page', 15);
+        $contracts = $query->latest()->paginate($perPage);
+
+        return response()->json($contracts);
+    }
+
+    /**
      * Metodo para enviar para a lixeira so é permitido excluir contratos do status cancelled
      */
-
     public function destroy($id): JsonResponse
     {
         $contract = Contract::find($id);
 
         if (!$contract) {
-            return response()->json(['message' => 'Contrato não encontrado'], 404);
+            return response()->json([
+                'exec' => false,
+                'message' => 'Contrato não encontrado',
+                'color' => 'danger'
+            ], 404);
         }
-
-        if ($contract->status !== 'cancelled') {
-            return response()->json(['message' => 'Contrato não pode ser excluído'], 400);
+        // dd($contract);
+        if ($contract->status == 'approved') {
+            return response()->json([
+                'exec' => false,
+                'message' => 'Contrato não pode ser excluído',
+                'color' => 'danger'
+            ], 400);
         }
         // $ret = $this->processSulamericaIntegration($contract);
         $contract->delete();
 
         return response()->json([
+            'exec' => true,
             'success' => true,
-            'message' => 'Contrato removido com sucesso'
+            'color' => 'success',
+            'mens' => 'Contrato removido com sucesso'
         ]);
     }
     /**
      * metodo para deletar permanentemente
      */
-    public function delete($id): JsonResponse
+    public function forceDelete($id): JsonResponse
     {
         $contract = Contract::withTrashed()->find($id);
 
         if (!$contract) {
-            return response()->json(['message' => 'Contrato não encontrado'], 404);
+            return response()->json([
+                'exec' => false,
+                'message' => 'Contrato não encontrado',
+                'color' => 'danger'
+            ], 404);
         }
 
         $contract->forceDelete();
 
         return response()->json([
+            'exec' => true,
             'success' => true,
-            'message' => 'Contrato removido permanentemente'
+            'color' => 'success',
+            'mens' => 'Contrato removido permanentemente'
         ]);
     }
     /**
@@ -485,13 +552,18 @@ class ContractController extends Controller
         $contract = Contract::find($id);
 
         if (!$contract) {
-            return response()->json(['message' => 'Contrato não encontrado'], 404);
+            return response()->json([
+                'exec' => false,
+                'message' => 'Contrato não encontrado',
+                'color' => 'danger'
+            ], 404);
         }
 
         if ($contract->status !== 'approved') {
             return response()->json([
                 'exec' => false,
-                'mens' => 'Apenas contratos aprovados podem ser cancelados.'
+                'message' => 'Apenas contratos aprovados podem ser cancelados.',
+                'color' => 'danger'
             ], 400);
         }
 
@@ -530,10 +602,14 @@ class ContractController extends Controller
                 // If expected metadata is missing, we might not be able to cancel correctly with the integration
                 // For now, let's treat it as a failure to be safe, or allow manual override?
                 // Based on request, strict check seems better.
-                 return response()->json([
-                    'exec' => false,
-                    'mens' => 'Dados de integração incompleto para cancelamento na SulAmérica.'
-                ], 400);
+                if ($request->input('force_cancel', false) !== true) {
+                    return response()->json([
+                        'exec' => false,
+                        'mens' => 'Dados de integração incompleto para cancelamento na SulAmérica.',
+                        'message' => 'Dados de integração incompleto para cancelamento na SulAmérica.',
+                        'color' => 'danger'
+                    ], 400);
+                }
             }
         }
 
@@ -555,6 +631,8 @@ class ContractController extends Controller
             return response()->json([
                 'exec' => true,
                 'mens' => 'Contrato cancelado com sucesso.',
+                'message' => 'Contrato cancelado com sucesso.',
+                'color' => 'success',
                 'data' => $contract
             ]);
         } else {

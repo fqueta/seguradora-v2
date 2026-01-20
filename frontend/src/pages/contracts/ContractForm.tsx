@@ -82,25 +82,14 @@ export default function ContractForm() {
         (permissions?.data || []).forEach((p: any) => { if (p?.id) map[String(p.id)] = String(p.name || ''); });
         return map;
     }, [permissions?.data]);
-    const combinedUsers = useMemo(() => {
-        const remoteUsers = users?.data || [];
+    const clientSource = useMemo(() => {
         const remoteClients = clients?.data || [];
-        const filteredTempUsers = tempUsers.filter(tu => 
-            !remoteUsers.find((c: any) => String(c.id) === String(tu.id)) &&
-            !remoteClients.find((c: any) => String(c.id) === String(tu.id))
-        );
         const filteredTempClients = tempClients.filter(tc => 
-            !remoteUsers.find((c: any) => String(c.id) === String(tc.id)) &&
             !remoteClients.find((c: any) => String(c.id) === String(tc.id))
         );
-        const base = [...filteredTempUsers, ...filteredTempClients, ...remoteUsers, ...remoteClients];
-        return base.filter((u: any) => {
-            const pname = permissionNameById[String(u.permission_id)]?.toLowerCase() || '';
-            if (profileFilter === 'cliente') return pname === 'cliente';
-            return pname !== 'cliente';
-        });
-    }, [users?.data, clients?.data, tempUsers, tempClients, profileFilter, permissionNameById]);
-    const clientOptions = useComboboxOptions(combinedUsers, 'id', 'name');
+        return [...filteredTempClients, ...remoteClients];
+    }, [clients?.data, tempClients]);
+    const clientOptions = useComboboxOptions(clientSource, 'id', 'name');
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<any | null>(null);
     const userForm = useHookForm<any>({
@@ -341,27 +330,16 @@ export default function ContractForm() {
                                 control={form.control}
                                 name="client_id"
                                 render={({ field }) => (
-                                    <FormItem>
+                                    <FormItem className="col-span-1 md:col-span-2">
                                         <FormLabel>Titular</FormLabel>
                                         <div className="flex gap-2">
-                                            <Select value={profileFilter} onValueChange={(v) => setProfileFilter(v as any)}>
-                                                <SelectTrigger className="w-[160px]">
-                                                    <SelectValue placeholder="Perfil" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="cliente">Clientes</SelectItem>
-                                                    <SelectItem value="usuario">Usuários</SelectItem>
-                                                </SelectContent>
-                                            </Select>
                                             <Combobox
                                                 options={clientOptions}
                                                 value={field.value}
                                                 onValueChange={(val) => {
                                                     field.onChange(val);
-                                                    const all = [...(users?.data || []), ...(clients?.data || [])];
-                                                    const selected = all.find((u: any) => String(u.id) === String(val));
-                                                    const pname = selected ? (permissionNameById[String(selected.permission_id)] || '').toLowerCase() : '';
-                                                    setProfileFilter(pname === 'cliente' ? 'cliente' : 'usuario');
+                                                    const selected = clientSource.find((u: any) => String(u.id) === String(val));
+                                                    setProfileFilter('cliente');
                                                 }}
                                                 placeholder="Selecione o titular"
                                                 searchPlaceholder="Buscar titular..."
@@ -392,32 +370,8 @@ export default function ContractForm() {
                                                     variant="outline"
                                                     size="icon"
                                                     onClick={() => {
-                                                        const selected = combinedUsers.find((u: any) => String(u.id) === String(field.value));
-                                                        const pname = selected ? (permissionNameById[String(selected.permission_id)] || '') : '';
-                                                        const isCliente = pname.toLowerCase() === 'cliente';
-                                                        if (isCliente) {
-                                                            setEditingClientId(field.value);
-                                                            setIsClientModalOpen(true);
-                                                        } else if (selected) {
-                                                            setEditingUser({
-                                                                id: selected.id,
-                                                                name: selected.name || '',
-                                                                email: selected.email || '',
-                                                                permission_id: String(selected.permission_id || ''),
-                                                                organization_id: selected.organization_id ?? null,
-                                                                ativo: selected.ativo ?? 's',
-                                                            });
-                                                            userForm.reset({
-                                                                name: selected.name || '',
-                                                                email: selected.email || '',
-                                                                permission_id: String(selected.permission_id || ''),
-                                                                organization_id: selected.organization_id ?? null,
-                                                                ativo: selected.ativo ?? 's',
-                                                                cpf: selected.cpf || '',
-                                                                config: { nascimento: selected.config?.nascimento || '' }
-                                                            });
-                                                            setIsUserModalOpen(true);
-                                                        }
+                                                        setEditingClientId(field.value);
+                                                        setIsClientModalOpen(true);
                                                     }}
                                                     title="Editar Titular"
                                                 >
@@ -428,13 +382,63 @@ export default function ContractForm() {
                                         {field.value && (
                                             <div className="text-xs text-muted-foreground mt-1">
                                                 {(() => {
-                                                    const selected = combinedUsers.find((u: any) => String(u.id) === String(field.value));
-                                                    const pname = selected ? (permissionNameById[String(selected.permission_id)] || '') : '';
-                                                    return pname ? `Perfil: ${pname}` : '';
+                                                    return '';
                                                 })()}
                                             </div>
                                         )}
                                         <FormMessage />
+
+                                        {(() => {
+                                            const selectedId = form.getValues('client_id');
+                                            const selected = clientSource.find((u: any) => String(u.id) === String(selectedId));
+                                            if (!selected) return null;
+                                            const isPF = (selected.tipo_pessoa || 'pf') === 'pf';
+                                            const nome = selected.name || '';
+                                            const cpf = selected.cpf || '';
+                                            const genero = selected.genero || 'ni';
+                                            const nasc = selected.config?.nascimento || '';
+                                            const formatCPF = (v: string) => v ? v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : 'Não informado';
+                                            const formatDate = (v: string) => {
+                                                if (!v) return 'Não informado';
+                                                try { return new Date(v).toLocaleDateString('pt-BR'); } catch { return v; }
+                                            };
+                                            const generoLabel = genero === 'm' ? 'Masculino' : genero === 'f' ? 'Feminino' : 'Não informado';
+                                            const missing = (val: string) => !val || String(val).trim() === '';
+                                            return (
+                                                <Card className="mt-3">
+                                                    <CardHeader>
+                                                        <CardTitle>Dados obrigatórios do titular</CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        <div>
+                                                            <label className="text-sm font-medium text-muted-foreground">Nome</label>
+                                                            <p className={`text-sm ${missing(nome) ? 'text-destructive' : ''}`}>{nome || 'Não informado'}</p>
+                                                        </div>
+                                                        {isPF && (
+                                                            <>
+                                                                <div>
+                                                                    <label className="text-sm font-medium text-muted-foreground">CPF</label>
+                                                                    <p className={`text-sm ${missing(cpf) ? 'text-destructive' : ''}`}>{formatCPF(cpf)}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-sm font-medium text-muted-foreground">Data de Nascimento</label>
+                                                                    <p className={`text-sm ${missing(nasc) ? 'text-destructive' : ''}`}>{formatDate(nasc)}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-sm font-medium text-muted-foreground">Sexo</label>
+                                                                    <p className={`text-sm ${genero === 'ni' ? 'text-destructive' : ''}`}>{generoLabel}</p>
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                        {!isPF && (
+                                                            <div className="md:col-span-2 text-sm text-muted-foreground">
+                                                                Este titular é Pessoa Jurídica. Campos obrigatórios do cadastro rápido de PF não se aplicam.
+                                                            </div>
+                                                        )}
+                                                    </CardContent>
+                                                </Card>
+                                            );
+                                        })()}
 
                                         <Dialog open={isClientModalOpen} onOpenChange={setIsClientModalOpen}>
                                             <DialogContent className="sm:max-w-[600px]">
@@ -462,112 +466,7 @@ export default function ContractForm() {
                                                 />
                                             </DialogContent>
                                         </Dialog>
-                                        <Dialog open={isUserModalOpen} onOpenChange={setIsUserModalOpen}>
-                                            <DialogContent className="sm:max-w-[700px]">
-                                                <DialogHeader>
-                                                    <DialogTitle>{editingUser ? 'Editar Usuário' : 'Novo Usuário'}</DialogTitle>
-                                                    <DialogDescription>{editingUser ? 'Altere os dados do usuário titular' : 'Preencha os dados do novo usuário titular'}</DialogDescription>
-                                                </DialogHeader>
-                                                <UserForm
-                                                    form={userForm as any}
-                                                    onSubmit={(data: any) => {
-                                                        if (!data?.cpf || !(data?.config?.nascimento)) {
-                                                            toast({ title: 'Campos obrigatórios', description: 'CPF e Data de Nascimento são obrigatórios', variant: 'destructive' });
-                                                            return;
-                                                        }
-                                                        if (editingUser?.id) {
-                                                            updateUserMutation.mutate({ id: String(editingUser.id), data }, {
-                                                                onSuccess: (updated: any) => {
-                                                                    setIsUserModalOpen(false);
-                                                                    queryClient.invalidateQueries({ queryKey: ['users'] });
-                                                                    const normalized = {
-                                                                        id: String(updated?.id ?? updated?.data?.id),
-                                                                        name: String(updated?.name ?? updated?.data?.name ?? updated?.email ?? 'Usuário'),
-                                                                        email: updated?.email ?? updated?.data?.email,
-                                                                        permission_id: String(updated?.permission_id ?? updated?.data?.permission_id ?? ''),
-                                                                        organization_id: updated?.organization_id ?? updated?.data?.organization_id ?? null,
-                                                                        config: updated?.config ?? updated?.data?.config ?? {},
-                                                                    };
-                                                                    setTempUsers(prev => {
-                                                                        const list = prev.filter((u: any) => String(u.id) !== String(normalized.id));
-                                                                        return [...list, normalized];
-                                                                    });
-                                                                    form.setValue('client_id', String(updated.id), { shouldValidate: true });
-                                                                    toast({ title: 'Usuário atualizado com sucesso' });
-                                                                },
-                                                                onError: (error: any) => {
-                                                                    const apiErrors = error?.body?.errors || error?.response?.data?.errors;
-                                                                    if (apiErrors) {
-                                                                        Object.keys(apiErrors).forEach((key) => {
-                                                                            const messages = apiErrors[key];
-                                                                            const msg = Array.isArray(messages) ? messages[0] : String(messages);
-                                                                            const fieldKey = key === 'nascimento' ? 'config.nascimento' : key;
-                                                                            userForm.setError(fieldKey as any, { message: msg });
-                                                                        });
-                                                                        const firstKey = Object.keys(apiErrors)[0];
-                                                                        const firstMsgArr = apiErrors[firstKey];
-                                                                        const firstMsg = Array.isArray(firstMsgArr) ? firstMsgArr[0] : String(firstMsgArr);
-                                                                        toast({ title: 'Erro de validação', description: firstMsg, variant: 'destructive' });
-                                                                    } else {
-                                                                        toast({ title: 'Erro ao atualizar usuário', description: error?.message || 'Erro desconhecido', variant: 'destructive' });
-                                                                    }
-                                                                }
-                                                            });
-                                                        } else {
-                                                            createUserMutation.mutate(data, {
-                                                                onSuccess: (created: any) => {
-                                                                    setIsUserModalOpen(false);
-                                                                    queryClient.invalidateQueries({ queryKey: ['users'] });
-                                                                    const normalized = {
-                                                                        id: String(created?.id ?? created?.data?.id),
-                                                                        name: String(created?.name ?? created?.data?.name ?? created?.email ?? 'Usuário'),
-                                                                        email: created?.email ?? created?.data?.email,
-                                                                        permission_id: String(created?.permission_id ?? created?.data?.permission_id ?? ''),
-                                                                        organization_id: created?.organization_id ?? created?.data?.organization_id ?? null,
-                                                                        config: created?.config ?? created?.data?.config ?? {},
-                                                                    };
-                                                                    setTempUsers(prev => {
-                                                                        const list = prev.filter((u: any) => String(u.id) !== String(normalized.id));
-                                                                        return [...list, normalized];
-                                                                    });
-                                                                    form.setValue('client_id', String(created.id), { shouldValidate: true });
-                                                                    toast({ title: 'Usuário criado com sucesso' });
-                                                                },
-                                                                onError: (error: any) => {
-                                                                    const apiErrors = error?.body?.errors || error?.response?.data?.errors;
-                                                                    if (apiErrors) {
-                                                                        Object.keys(apiErrors).forEach((key) => {
-                                                                            const messages = apiErrors[key];
-                                                                            const msg = Array.isArray(messages) ? messages[0] : String(messages);
-                                                                            const fieldKey = key === 'nascimento' ? 'config.nascimento' : key;
-                                                                            userForm.setError(fieldKey as any, { message: msg });
-                                                                        });
-                                                                        const firstKey = Object.keys(apiErrors)[0];
-                                                                        const firstMsgArr = apiErrors[firstKey];
-                                                                        const firstMsg = Array.isArray(firstMsgArr) ? firstMsgArr[0] : String(firstMsgArr);
-                                                                        toast({ title: 'Erro de validação', description: firstMsg, variant: 'destructive' });
-                                                                    } else {
-                                                                        toast({ title: 'Erro ao criar usuário', description: error?.message || 'Erro desconhecido', variant: 'destructive' });
-                                                                    }
-                                                                }
-                                                            });
-                                                        }
-                                                    }}
-                                                    onCancel={() => setIsUserModalOpen(false)}
-                                                    editingUser={editingUser}
-                                                    permissions={(permissions?.data || []) as any}
-                                                    organizations={organizations?.data || []}
-                                                    isLoadingPermissions={false}
-                                                    showTipoPessoa={true}
-                                                    showGenero={false}
-                                                    showAddressSection={false}
-                                                    showCpf={true}
-                                                    showPhones={false}
-                                                    ativoAsSwitch={true}
-                                                    showBirthDate={true}
-                                                />
-                                            </DialogContent>
-                                        </Dialog>
+                                        
                                     </FormItem>
                                 )}
                             />
@@ -576,7 +475,7 @@ export default function ContractForm() {
                                 control={form.control}
                                 name="product_id"
                                 render={({ field }) => (
-                                    <FormItem>
+                                    <FormItem className="col-span-1 md:col-span-2">
                                         <FormLabel>Produto</FormLabel>
                                         <Combobox
                                             options={productOptions}

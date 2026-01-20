@@ -510,25 +510,38 @@ export default function ClientView() {
           </CardContent>
         </Card>
 
-        {/* Atendimento (Funil e Etapa) */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Briefcase className="mr-2 h-5 w-5" />
-              Atendimento
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Funil</label>
-              <p className="text-sm">{funnelName}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Etapa</label>
-              <p className="text-sm">{stageName}</p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Informações Profissionais/Acadêmicas */}
+        {(client.config?.escolaridade || client.config?.profissao) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Briefcase className="mr-2 h-5 w-5" />
+                Informações Profissionais
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {client.config?.escolaridade && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Escolaridade</label>
+                  <p className="text-sm flex items-center">
+                    <GraduationCap className="mr-2 h-4 w-4" />
+                    {client.config.escolaridade}
+                  </p>
+                </div>
+              )}
+
+              {client.config?.profissao && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Profissão</label>
+                  <p className="text-sm flex items-center">
+                    <Briefcase className="mr-2 h-4 w-4" />
+                    {client.config.profissao}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Contratos */}
         <Card className="md:col-span-2">
@@ -771,6 +784,25 @@ export default function ClientView() {
           </Card>
         )}
 
+        {/* Atendimento (Funil e Etapa) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Briefcase className="mr-2 h-5 w-5" />
+              Atendimento
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Funil</label>
+              <p className="text-sm">{funnelName}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Etapa</label>
+              <p className="text-sm">{stageName}</p>
+            </div>
+          </CardContent>
+        </Card>
         {/* Integração Alloyal */}
         {client.is_alloyal && (
           <Card>

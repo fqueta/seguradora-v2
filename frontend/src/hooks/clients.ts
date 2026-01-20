@@ -53,9 +53,26 @@ export function useDeleteClient(mutationOptions?: any) {
 export const useClientsApi = getClientsApi;
 
 /**
- * Hook para restaurar cliente (soft delete)
- * Realiza PATCH em `/clients/{id}/restore` e atualiza caches relacionados.
+ * Hook para exclusão permanente de cliente
  */
+export function useForceDeleteClient(mutationOptions?: any) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => clientsService.forceDeleteClient(id),
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast.success('Cliente excluído permanentemente!');
+      mutationOptions?.onSuccess?.(data, id, undefined);
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao excluir permanentemente: ${error.message}`);
+      mutationOptions?.onError?.(error, undefined as any, undefined);
+    },
+    ...mutationOptions,
+  });
+}
+
 export function useRestoreClient(mutationOptions?: any) {
   const queryClient = useQueryClient();
 

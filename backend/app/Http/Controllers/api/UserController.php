@@ -62,7 +62,7 @@ class UserController extends Controller
         $permission_id = $user->permission_id;
         // dd($permission_id);
         $query = User::with('organization')->where('permission_id','!=',$this->cliente_permission_id)->orderBy($order_by,$order);
-        
+
         // Security: visualiza apenas dados/cadastros de permission_id >= ao seu
         if ($permission_id) {
             $query->where('permission_id', '>=', $permission_id);
@@ -171,6 +171,7 @@ class UserController extends Controller
             'permission_id' => 'nullable|integer',
             'organization_id' => 'nullable|integer|exists:organizations,id',
             'config'        => 'array',
+            'client_permission' => 'array',
         ]);
 
         if ($validator->fails()) {
@@ -216,6 +217,9 @@ class UserController extends Controller
         $validated['config'] = isset($validated['config']) ? $this->sanitizeInput($validated['config']) : [];
         if(is_array($validated['config'])){
             $validated['config'] = json_encode($validated['config']);
+        }
+        if (isset($validated['client_permission']) && is_array($validated['client_permission'])) {
+            $validated['client_permission'] = array_values(array_unique(array_map('intval', $validated['client_permission'])));
         }
 
         $validated['autor'] = $user->id; // Populate author
@@ -381,7 +385,7 @@ class UserController extends Controller
         $user = $request->user();
         $perPage = $request->input('per_page', 10);
         $query = User::query();
-        
+
         // Security: visualiza apenas dados/cadastros de permission_id >= ao seu
         if ($user->permission_id) {
             $query->where('permission_id', '>=', $user->permission_id);
@@ -446,7 +450,8 @@ class UserController extends Controller
             'permission_id' => 'nullable|integer',
             'organization_id' => 'nullable|integer|exists:organizations,id',
             'ativo'         => ['sometimes', Rule::in(['n','s'])],
-            'config'        => 'array'
+            'config'        => 'array',
+            'client_permission' => 'array'
         ]);
         //se ativo = n status = inactived
         if ($request->ativo == 'n') {
@@ -487,6 +492,9 @@ class UserController extends Controller
 
         if (isset($validated['config']) && is_array($validated['config'])) {
             $validated['config'] = json_encode($validated['config']);
+        }
+        if (isset($validated['client_permission']) && is_array($validated['client_permission'])) {
+            $validated['client_permission'] = array_values(array_unique(array_map('intval', $validated['client_permission'])));
         }
         // Normalizar campos únicos opcionais: strings vazias viram null
         if (array_key_exists('email', $validated) && ($validated['email'] === '' || $validated['email'] === null)) {
@@ -535,7 +543,7 @@ class UserController extends Controller
             return response()->json(['error' => 'Acesso negado'], 403);
         }
         $userToDelete = User::find($id);
-        
+
         if ($userToDelete && $user->permission_id && $userToDelete->permission_id < $user->permission_id) {
              return response()->json(['error' => 'Acesso negado. Nível de permissão insuficiente.'], 403);
         }

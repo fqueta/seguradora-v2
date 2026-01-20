@@ -17,6 +17,7 @@ import { toast } from '@/hooks/use-toast';
 const userEditSchema = z.object({
   tipo_pessoa: z.enum(['pf', 'pj']).default('pf'),
   permission_id: z.coerce.string().min(1, 'Permissão é obrigatória'),
+  client_permission: z.array(z.string()).default([]),
   organization_id: z.coerce.number().nullable().optional(),
   name: z.string().min(1, 'Nome é obrigatório'),
   email: z.string().email('Email inválido'),
@@ -81,6 +82,7 @@ export default function UserEdit() {
     defaultValues: {
       tipo_pessoa: 'pf',
       permission_id: '',
+    client_permission: [],
       organization_id: null,
       name: '',
       email: '',
@@ -107,6 +109,7 @@ export default function UserEdit() {
       form.reset({
         tipo_pessoa: user.tipo_pessoa || 'pf',
         permission_id: String(user.permission_id),
+        client_permission: (user.client_permission || []).map((v: number) => String(v)),
         organization_id: user.organization_id || null,
         name: user.name,
         email: user.email,
@@ -135,6 +138,7 @@ export default function UserEdit() {
     const payload: UpdateUserInput = {
       tipo_pessoa: data.tipo_pessoa as any,
       permission_id: data.permission_id,
+      client_permission: (data.client_permission || []).map((v) => Number(v)),
       organization_id: data.organization_id || null,
       email: data.email,
       name: data.name,

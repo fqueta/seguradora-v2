@@ -67,13 +67,21 @@ class ClientsService extends BaseApiService {
 
   /**
    * Restaura um cliente excluído (soft delete)
-   * Executa PATCH em `/clients/{id}/restore`.
+   * Executa PUT em `/clients/{id}/restore`.
    * @param id - ID do cliente a restaurar
    * @returns Registro do cliente restaurado
    */
   async restoreClient(id: string): Promise<ClientRecord> {
-    const response = await this.patch<ClientRecord>(`/clients/${id}/restore`, {});
+    const response = await this.put<ClientRecord>(`/clients/${id}/restore`, {});
     return response;
+  }
+
+  /**
+   * Remove permanentemente um cliente
+   * @param id ID do cliente
+   */
+  async forceDeleteClient(id: string): Promise<ApiDeleteResponse> {
+    return this.delete<ApiDeleteResponse>(`/clients/${id}/force`);
   }
 
   // Métodos para compatibilidade com o hook genérico
@@ -112,6 +120,13 @@ class ClientsService extends BaseApiService {
    */
   async transferOrganization(clientId: string, organizationId: string | number): Promise<any> {
     return this.put<any>(`/clients/${clientId}/transfer-organization`, { organization_id: Number(organizationId) });
+  }
+
+  /**
+   * Converte um cliente em usuário (permission_id=5) e move o antigo permission_id para client_permission
+   */
+  async convertToUser(clientId: string): Promise<any> {
+    return this.put<any>(`/clients/${clientId}/convert-to-user`, {});
   }
 
   /**

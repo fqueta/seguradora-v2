@@ -66,8 +66,11 @@
     "tailwindcss-animate": "^1.0.7",
     "use-debounce": "^10.0.5",
     "vaul": "^0.9.9",
-    "xlsx": "^0.18.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.2/xlsx-0.20.2.tgz",
     "zod": "^3.25.76"
+  },
+  "overrides": {
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.2/xlsx-0.20.2.tgz"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",

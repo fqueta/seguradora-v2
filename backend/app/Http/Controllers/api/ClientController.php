@@ -59,7 +59,7 @@ class ClientController extends Controller
         $order_by = $request->input('order_by', 'created_at');
         $order = $request->input('order', 'desc');
 
-        $query = Client::query()->with('organization')->where('permission_id','=', $this->cliente_permission_id)->orderBy($order_by, $order);
+        $query = Client::query()->with('organization')->orderBy($order_by, $order);
 
         // Security: visualiza apenas dados/cadastros de permission_id >= 3 da sua organization_id
         if ($user->permission_id >= 3) {
@@ -395,6 +395,7 @@ class ClientController extends Controller
         $validated['excluido'] = isset($validated['excluido']) ? $validated['excluido'] : 'n';
         $validated['deletado'] = isset($validated['deletado']) ? $validated['deletado'] : 'n';
         $validated['permission_id'] = $this->cliente_permission_id;
+        $validated['client_permission'] = [10];
         $validated['config'] = isset($validated['config']) ? $this->sanitizeInput($validated['config']) : [];
 
         if(is_array($validated['config'])){
@@ -404,8 +405,11 @@ class ClientController extends Controller
         $validated['autor'] = $user->id; // Populate author
         // dd($validated);
         $client = Client::create($validated);
-        // converter o client->config para array
-        if (!is_array($client->config)) {
+        // converter o client->config para array (decodificando JSON quando necessário)
+        if (is_string($client->config)) {
+            $decoded = json_decode($client->config, true);
+            $client->config = is_array($decoded) ? $decoded : [];
+        } elseif (!is_array($client->config)) {
             $client->config = [];
         }
         $ret['data'] = $client;
@@ -430,8 +434,11 @@ class ClientController extends Controller
 
         $client = Client::findOrFail($id);
 
-        // Converter config para array
-        if (!is_array($client->config)) {
+        // Converter config para array (decodifica se vier como string JSON)
+        if (is_string($client->config)) {
+            $decoded = json_decode($client->config, true);
+            $client->config = is_array($decoded) ? $decoded : [];
+        } elseif (!is_array($client->config)) {
             $client->config = [];
         }
 
@@ -515,8 +522,17 @@ class ClientController extends Controller
             unset($validated['password']);
         }
 
-        // Garantir que permission_id seja sempre 5 (cliente)
+        // Garantir que permission_id seja sempre o de cliente e que client_permission contenha 10
         $validated['permission_id'] = $this->cliente_permission_id;
+        if (isset($clientToUpdate->client_permission) && is_array($clientToUpdate->client_permission)) {
+            $base = $clientToUpdate->client_permission;
+        } else {
+            $base = [];
+        }
+        if (!in_array(10, $base, true)) {
+            $base[] = 10;
+        }
+        $validated['client_permission'] = $base;
 
         // Tratar config se fornecido
         if (isset($validated['config'])) {
@@ -541,8 +557,11 @@ class ClientController extends Controller
         // dd($validated);
         $clientToUpdate->update($validated);
 
-        // Converter config para array na resposta
-        if (!is_array($clientToUpdate->config)) {
+        // Converter config para array na resposta (decodifica se string JSON)
+        if (is_string($clientToUpdate->config)) {
+            $decoded = json_decode($clientToUpdate->config, true);
+            $clientToUpdate->config = is_array($decoded) ? $decoded : [];
+        } elseif (!is_array($clientToUpdate->config)) {
             $clientToUpdate->config = [];
         }
 
@@ -645,6 +664,45 @@ class ClientController extends Controller
     }
 
     /**
+     * Converter cliente em usuário
+     * - permission_id passa a ser 5
+     * - o antigo permission_id é adicionado em client_permission (mantendo únicos)
+     */
+    public function convertToUser(Request $request, string $id)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['error' => 'Acesso negado'], 403);
+        }
+        if (!$this->permissionService->isHasPermission('edit')) {
+            return response()->json(['error' => 'Acesso negado'], 403);
+        }
+        $client = Client::find($id);
+        if (!$client) {
+            return response()->json(['error' => 'Cliente não encontrado'], 404);
+        }
+        $oldPermission = intval($client->permission_id);
+        $newPermission = 5;
+        $list = [];
+        if (is_array($client->client_permission)) {
+            $list = $client->client_permission;
+        } elseif (is_string($client->client_permission)) {
+            $decoded = json_decode($client->client_permission, true);
+            $list = is_array($decoded) ? $decoded : [];
+        }
+        $list[] = $oldPermission;
+        $list = array_values(array_unique(array_map('intval', $list)));
+        $client->client_permission = $list;
+        $client->permission_id = $newPermission;
+        $client->save();
+        return response()->json([
+            'exec' => true,
+            'mens' => 'Cliente convertido em usuário com sucesso',
+            'data' => $client,
+        ]);
+    }
+
+    /**
      * Listar clientes na lixeira
      */
     public function trash(Request $request)
@@ -715,12 +773,18 @@ class ClientController extends Controller
 
         $client = Client::withoutGlobalScope('client')
             ->where('id', $id)
-            ->where('deletado', 's')
+            ->where(function ($query) {
+                $query->where('deletado', 's')
+                      ->orWhere('excluido', 's');
+            })
             ->where('permission_id', $this->cliente_permission_id)
             ->firstOrFail();
 
         $client->update([
             'deletado' => 'n',
+            'excluido' => 'n',
+            'ativo' => 's',
+            'status' => 'actived',
             'reg_deletado' => null
         ]);
 

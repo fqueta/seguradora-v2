@@ -22,6 +22,7 @@ class User extends Authenticatable
         'genero',
         'verificado',
         'permission_id',
+        'client_permission',
         'config',
         'preferencias',
         'foto_perfil',
@@ -39,6 +40,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'config' => 'array',
         'preferencias' => 'array',
+        'client_permission' => 'array',
     ];
 
     protected $hidden = [

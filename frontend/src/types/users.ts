@@ -22,6 +22,7 @@ export interface UserRecord {
   tipo_pessoa: "pf" | "pj";
   token: string;
   permission_id: string;
+  client_permission?: number[];
   email: string;
   name: string;
   cpf: string;
@@ -41,6 +42,7 @@ export interface CreateUserInput {
   tipo_pessoa: "pf" | "pj";
   token: string;
   permission_id: string;
+  client_permission?: number[];
   organization_id?: number | null;
   email: string;
   password: string;
@@ -57,6 +59,7 @@ export interface UpdateUserInput {
   tipo_pessoa?: "pf" | "pj";
   token?: string;
   permission_id?: string;
+  client_permission?: number[];
   organization_id?: number | null;
   email?: string;
   password?: string;

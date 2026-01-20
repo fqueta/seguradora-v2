@@ -22,6 +22,7 @@ const userCreateSchema = z.object({
   // Tipo de pessoa fixo: PF
   tipo_pessoa: z.literal('pf').default('pf'),
   permission_id: z.coerce.string().min(1, 'Permissão é obrigatória'),
+  client_permission: z.array(z.string()).default([]),
   organization_id: z.coerce.number().nullable().optional(),
   name: z.string().min(1, 'Nome é obrigatório'),
   email: z.string().email('Email inválido'),
@@ -72,6 +73,7 @@ export default function UserCreate() {
     defaultValues: {
       tipo_pessoa: 'pf',
       permission_id: '',
+    client_permission: [],
       organization_id: null,
       name: '',
       email: '',
@@ -108,6 +110,7 @@ export default function UserCreate() {
     const payload: CreateUserInput = {
       tipo_pessoa: 'pf',
       permission_id: data.permission_id,
+      client_permission: (data.client_permission || []).map((v) => Number(v)),
       organization_id: data.organization_id || null,
       email: data.email,
       password: data.password,

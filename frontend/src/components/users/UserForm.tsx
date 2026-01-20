@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { MultiSelect, type MultiSelectOption } from '@/components/ui/multi-select';
 import { DialogFooter } from '@/components/ui/dialog';
 import { AddressAccordion } from "@/components/lib/AddressAccordion";
 import { SmartDocumentInput } from '@/components/lib/SmartDocumentInput';
@@ -27,6 +28,7 @@ interface UserFormData {
   name: string;
   email: string;
   permission_id: string;
+  client_permission?: string[];
   organization_id?: string | number | null;
   tipo_pessoa?: 'pf' | 'pj';
   password?: string;
@@ -102,6 +104,9 @@ export function UserForm({
   const [showPassword, setShowPassword] = React.useState(false);
   const { user: currentUser } = useAuth();
   const isOrgDisabled = currentUser ? Number(currentUser.permission_id) >= 3 : false;
+  const usageOptions: MultiSelectOption[] = React.useMemo(() => {
+    return permissions.slice(3).map((p) => ({ value: String(p.id), label: p.name }));
+  }, [permissions]);
 
   return (
     <Form {...form}>
@@ -166,7 +171,7 @@ export function UserForm({
             name="permission_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Permissão</FormLabel>
+                <FormLabel>Permissão de Acesso</FormLabel>
                 <Select 
                   onValueChange={field.onChange} 
                   value={field.value !== undefined && field.value !== null && field.value !== "" ? String(field.value) : undefined} 
@@ -178,15 +183,34 @@ export function UserForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="z-[60]">
-                    {permissions
-                      .filter(p => !['Cliente', 'Clientes', 'Fornecedor', 'Fornecedores'].includes(p.name))
-                      .map((permission) => (
-                        <SelectItem key={permission.id} value={String(permission.id)}>
-                          {permission.name}
-                        </SelectItem>
-                      ))}
+                    {permissions.map((permission) => (
+                      <SelectItem key={permission.id} value={String(permission.id)}>
+                        {permission.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="client_permission"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Permissão de Uso</FormLabel>
+                <FormControl>
+                  <MultiSelect
+                    options={usageOptions}
+                    value={(field.value as string[]) || []}
+                    onChange={field.onChange}
+                    placeholder="Selecione uma ou mais permissões de uso"
+                    searchPlaceholder="Buscar..."
+                    emptyText="Nenhuma opção."
+                    disabled={isLoadingPermissions}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
