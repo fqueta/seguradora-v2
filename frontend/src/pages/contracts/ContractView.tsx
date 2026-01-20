@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Edit, FileText, User, Calendar, DollarSign, Package, XCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +28,16 @@ export default function ContractView() {
     const { data: contract, isLoading, error } = useContract(id as string);
     const { mutate: cancelContract, isPending: isCancelling } = useCancelContract();
     const [expandedEvents, setExpandedEvents] = useState<number[]>([]);
+    const integrationData = useMemo(() => {
+        const ci: any = (contract as any)?.contato_integrado;
+        if (!ci) return null;
+        const raw = ci?.data;
+        try {
+            return typeof raw === 'string' ? JSON.parse(raw) : raw;
+        } catch {
+            return raw && typeof raw === 'object' ? raw : null;
+        }
+    }, [contract]);
 
     const toggleJson = (eventId: number) => {
         setExpandedEvents(prev => 
@@ -116,6 +126,13 @@ export default function ContractView() {
             case 'cancelled': return 'destructive';
             default: return 'outline';
         }
+    };
+    const getGeneroLabel = (genero?: string) => {
+        if (!genero) return '-';
+        if (genero === 'm') return 'Masculino';
+        if (genero === 'f') return 'Feminino';
+        if (genero === 'ni') return 'Não Informado';
+        return genero;
     };
 
     return (
@@ -230,19 +247,24 @@ export default function ContractView() {
                                             
                                             <div>
                                                 <label className="text-xs text-muted-foreground">Sexo</label>
-                                                <p className="font-medium">{contract.client?.genero || '-'}</p>
+                                                <p className="font-medium">{getGeneroLabel(contract.client?.genero)}</p>
                                             </div>
 
                                             <div className="col-span-1 md:col-span-2">
                                                 <label className="text-xs text-muted-foreground">Endereço</label>
                                                 <p className="font-medium">
-                                                    {[
-                                                        clientConfig.endereco || contract.client?.address,
-                                                        clientConfig.numero || contract.client?.number,
-                                                        clientConfig.bairro || contract.client?.district,
-                                                        clientConfig.cidade || contract.client?.city,
-                                                        clientConfig.uf || contract.client?.state
-                                                    ].filter(Boolean).join(', ') || '-'}
+                                                    {(() => {
+                                                        const parts = [
+                                                            clientConfig.endereco,
+                                                            clientConfig.numero,
+                                                            clientConfig.complemento,
+                                                            clientConfig.bairro,
+                                                            clientConfig.cidade,
+                                                            clientConfig.uf,
+                                                            clientConfig.cep
+                                                        ].filter((v: any) => !!v && String(v).trim() !== '');
+                                                        return parts.length > 0 ? parts.join(', ') : '-';
+                                                    })()}
                                                 </p>
                                             </div>
                                         </>
@@ -296,6 +318,34 @@ export default function ContractView() {
                     </CardContent>
                 </Card>
 
+                {/* Resumo da Integração */}
+                {integrationData && (
+                    <Card className="md:col-span-2">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Badge variant="outline" className="bg-blue-600/10 text-blue-700 border-0">Integração</Badge>
+                                Resumo da Integração
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label className="text-sm font-medium text-muted-foreground">Número da Operação</label>
+                                    <p className="font-medium">{integrationData?.numOperacao || '-'}</p>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-muted-foreground">Número da Apólice</label>
+                                    <p className="font-medium">{integrationData?.apolices?.numApolice || '-'}</p>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-muted-foreground">Número do Certificado</label>
+                                    <p className="font-medium">{integrationData?.numCertificado || '-'}</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
                 {/* Observações */}
                 {contract.description && (
                     <Card className="md:col-span-2">
@@ -325,6 +375,8 @@ export default function ContractView() {
                                 <div className="space-y-6">
                                     {contract.events
                                         .filter((e: any) => e.event_type === 'status_update')
+                                        .slice()
+                                        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                                         .map((event: any, index: number) => (
                                         <div key={index} className="relative border-l-2 border-muted pl-4 pb-2 last:pb-0">
                                             <div className="absolute -left-[9px] top-0 h-4 w-4 rounded-full border-2 border-background bg-primary" />
@@ -391,6 +443,8 @@ export default function ContractView() {
                                 <div className="space-y-6">
                                     {contract.events
                                         .filter((e: any) => e.event_type !== 'status_update')
+                                        .slice()
+                                        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                                         .map((event: any, index: number) => (
                                         <div key={index} className="relative border-l-2 border-muted pl-4 pb-2 last:pb-0">
                                             <div className="absolute -left-[9px] top-0 h-4 w-4 rounded-full border-2 border-background bg-blue-500" />

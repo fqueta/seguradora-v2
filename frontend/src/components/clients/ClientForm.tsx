@@ -278,7 +278,7 @@ export function ClientForm({
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">Email *</FormLabel>
+                  <FormLabel className="text-sm font-medium text-gray-700">Email</FormLabel>
                   <div className="relative">
                     <FormControl>
                       <Input 
@@ -1070,7 +1070,7 @@ export function ClientForm({
           </AccordionItem>
         </Accordion>
 
-        {/* {renderActions ?? (
+        {renderActions ?? (
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancelar
@@ -1079,7 +1079,7 @@ export function ClientForm({
               {editingClient ? 'Atualizar' : 'Cadastrar'}
             </Button>
           </div>
-        )} */}
+        )}
     </div>
   );
 }

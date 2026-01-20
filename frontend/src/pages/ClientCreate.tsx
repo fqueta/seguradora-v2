@@ -81,10 +81,17 @@ const clientSchema = z.object({
   tipo_pessoa: z.enum(["pf", "pj"], {
     errorMap: () => ({ message: "Selecione o tipo de pessoa" })
   }),
-  email: z.string()
-    .min(1, "Email é obrigatório")
-    .email("Formato de email inválido")
-    .max(100, "Email deve ter no máximo 100 caracteres"),
+  /**
+   * email
+   * pt-BR: Torna o email opcional. Converte string vazia para undefined
+   *        para compatibilidade com o backend (nullable).
+   * en-US: Makes email optional. Converts empty string to undefined
+   *        for backend compatibility (nullable).
+   */
+  email: z.preprocess(
+    (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+    z.string().email("Formato de email inválido").max(100, "Email deve ter no máximo 100 caracteres").optional()
+  ),
   password: z.string().optional().refine((val) => {
     if (!val || val.trim() === '') return true;
     return val.length >= 6;

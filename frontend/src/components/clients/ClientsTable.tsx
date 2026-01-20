@@ -7,6 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { ClientRecord } from '@/types/clients';
 import { useUsersList } from '@/hooks/users';
 import { useRestoreClient } from '@/hooks/clients';
+import { useOrganizationsList } from '@/hooks/organizations';
+import { useAuth } from '@/contexts/AuthContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/use-toast';
+import { clientsService } from '@/services/clientsService';
 
 interface ClientsTableProps {
   clients: ClientRecord[];
@@ -28,6 +35,7 @@ interface ClientsTableProps {
 export function ClientsTable({ clients, onEdit, onDelete, isLoading, trashEnabled }: ClientsTableProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   // Garantir que clients seja sempre um array válido
   const clientsList = Array.isArray(clients) ? clients : [];
   // Hook de restauração
@@ -36,6 +44,13 @@ export function ClientsTable({ clients, onEdit, onDelete, isLoading, trashEnable
   // Buscar lista de usuários para identificar o proprietário
   const { data: usersData } = useUsersList();
   const usersList = usersData?.data || [];
+  // Organizações disponíveis
+  const { data: organizationsData } = useOrganizationsList({ per_page: 100 });
+  const organizations = organizationsData?.data || [];
+  // Estado do modal de transferência
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<ClientRecord | null>(null);
+  const [targetOrgId, setTargetOrgId] = useState<string>('');
   
   // Função para obter o nome do proprietário pelo ID do autor
   const getOwnerName = (autorId: string) => {
@@ -136,6 +151,17 @@ export function ClientsTable({ clients, onEdit, onDelete, isLoading, trashEnable
                     <DropdownMenuItem onClick={() => navigate(`/admin/clients/${client.id}/edit`, { state: { from: location } })}>
                       <Pencil className="mr-2 h-4 w-4" /> Editar
                     </DropdownMenuItem>
+                    {Number(user?.permission_id || 99) <= 2 && (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedClient(client);
+                          setTargetOrgId('');
+                          setTransferOpen(true);
+                        }}
+                      >
+                        <Pencil className="mr-2 h-4 w-4" /> Transferir organização
+                      </DropdownMenuItem>
+                    )}
                     {trashEnabled && (
                       <DropdownMenuItem 
                         onClick={() => { restoreClientMutation.mutate(client.id); }}
@@ -156,6 +182,60 @@ export function ClientsTable({ clients, onEdit, onDelete, isLoading, trashEnable
           ))}
         </TableBody>
       </Table>
+      {/* Modal de transferência de organização */}
+      <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>Transferir organização do cliente</DialogTitle>
+            <DialogDescription>
+              Ao continuar, o cliente será transferido para a nova organização e seus contratos serão ajustados para a mesma organização.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="text-sm">
+              Cliente: <span className="font-medium">{selectedClient?.name}</span>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              <label className="text-sm font-medium">Nova organização</label>
+              <Select value={targetOrgId} onValueChange={(v) => setTargetOrgId(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a organização" />
+                </SelectTrigger>
+                <SelectContent>
+                  {organizations.map((org: any) => (
+                    <SelectItem key={String(org.id)} value={String(org.id)}>
+                      {org.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Esta ação é permitida apenas para usuários com permissão administrativa (permission_id ≤ 2).
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setTransferOpen(false)}>Cancelar</Button>
+              <Button
+                onClick={async () => {
+                  if (!selectedClient || !targetOrgId) return;
+                  try {
+                    await clientsService.transferOrganization(String(selectedClient.id), targetOrgId);
+                    toast({ title: 'Transferência concluída', description: 'Organização e contratos atualizados.' });
+                    setTransferOpen(false);
+                    // Força atualização da página para refletir mudanças
+                    window.location.reload();
+                  } catch (e: any) {
+                    const msg = e?.body?.message || e?.message || 'Falha ao transferir organização';
+                    toast({ title: 'Erro', description: msg, variant: 'destructive' as any });
+                  }
+                }}
+              >
+                Transferir
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

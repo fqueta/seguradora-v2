@@ -106,6 +106,15 @@ class ClientsService extends BaseApiService {
   }
 
   /**
+   * transferOrganization
+   * pt-BR: Transfere um cliente para outra organização e atualiza seus contratos.
+   * en-US: Transfers a client to another organization and updates their contracts.
+   */
+  async transferOrganization(clientId: string, organizationId: string | number): Promise<any> {
+    return this.put<any>(`/clients/${clientId}/transfer-organization`, { organization_id: Number(organizationId) });
+  }
+
+  /**
    * registerAttendance
    * pt-BR: Registra um atendimento para o cliente via API.
    * en-US: Registers an attendance for a client via API.

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { object, z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,9 @@ import { toast } from "@/components/ui/use-toast"; // Correct toast import
 import { clientsService } from "@/services/clientsService";
 import { phoneApplyMask } from "@/lib/masks/phone-apply-mask";
 import { cpfApplyMask } from "@/lib/masks/cpf-apply-mask"; // Import CPF mask
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { InputMask, format } from "@react-input/mask";
+import { useCep } from '@/hooks/useCep';
 
 import { AddressInputs } from '@/components/lib/AddressInputs';
 
@@ -30,6 +33,10 @@ const quickClientSchema = z.object({
   cpf: z.string({ required_error: "CPF é obrigatório" }).min(14, "CPF incompleto"), // CPF is mandatory
   phone: z.string().optional(),
   birth_date: z.string({ required_error: "Data de Nascimento é obrigatória" }).min(1, "Data de Nascimento é obrigatória"),
+  genero: z
+    .enum(["m", "f", "ni"])
+    .or(z.literal(""))
+    .refine((val) => val !== "", { message: "Sexo é obrigatório" }),
   notes: z.string().optional(),
   config: z.object({
     cep: z.string().optional(),
@@ -82,6 +89,7 @@ export default function QuickClientForm({
       cpf: "",
       phone: "",
       birth_date: "",
+    genero: "",
       notes: "",
       config: {
         cep: "",
@@ -94,6 +102,23 @@ export default function QuickClientForm({
       }
     },
   });
+  const { fetchCep, isValidCep, clearAddressData } = useCep();
+
+  const handleCepChange = async (value: string) => {
+    const cleanCep = value.replace(/\D/g, "");
+    form.setValue("config.cep", value);
+    if (cleanCep.length === 8 && isValidCep(cleanCep)) {
+      const addr = await fetchCep(cleanCep);
+      if (addr) {
+        form.setValue("config.endereco", addr.endereco || "");
+        form.setValue("config.bairro", addr.bairro || "");
+        form.setValue("config.cidade", addr.cidade || "");
+        form.setValue("config.uf", addr.uf || "");
+      }
+    } else {
+      clearAddressData?.();
+    }
+  };
 
   // Fetch client data if in edit mode
   useEffect(() => {
@@ -107,6 +132,7 @@ export default function QuickClientForm({
             cpf: (client as any).cpf || "", // Load CPF
             phone: client.config?.celular || (client as any).celular || "",
             birth_date: client.config?.nascimento || "",
+            genero: client.genero || "ni",
             notes: client.config?.observacoes || "",
             config: {
               cep: client.config?.cep || "",
@@ -144,7 +170,7 @@ export default function QuickClientForm({
         celular: data.phone || undefined,
         // Preserve existing values or defaults
         tipo_pessoa: 'pf',
-        genero: 'ni',
+        genero: data.genero,
         config: {
             nascimento: data.birth_date || undefined,
             observacoes: data.notes || undefined,
@@ -332,16 +358,17 @@ export default function QuickClientForm({
                   </FormItem>
                 )}
               />
+            </div>
 
-               {/* Data Nascimento */}
-               <FormField
+            {/* Linha: Data de Nascimento, Sexo e CEP */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Data Nascimento */}
+              <FormField
                 control={form.control}
                 name="birth_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>
-                      Data de Nascimento *
-                    </FormLabel>
+                    <FormLabel>Data de Nascimento *</FormLabel>
                     <FormControl>
                       <Input
                         type="date"
@@ -354,10 +381,66 @@ export default function QuickClientForm({
                   </FormItem>
                 )}
               />
+              {/* Sexo */}
+              <FormField
+                control={form.control}
+                name="genero"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Sexo *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || undefined}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o sexo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="m">Masculino</SelectItem>
+                        <SelectItem value="f">Feminino</SelectItem>
+                        <SelectItem value="ni">Não Informado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {/* CEP */}
+              <FormField
+                control={form.control}
+                name="config.cep"
+                render={() => (
+                  <FormItem>
+                    <FormLabel>CEP</FormLabel>
+                    <FormControl>
+                      <Controller
+                        name="config.cep"
+                        control={form.control}
+                        render={({ field }) => (
+                          <InputMask
+                            mask="ddddd-ddd"
+                            replacement={{ d: /\d/ }}
+                            value={field.value && typeof field.value === 'string' && field.value.trim() !== '' ? format(field.value, { mask: "ddddd-ddd", replacement: { d: /\d/ } }) : ""}
+                            onChange={(e) => {
+                              field.onChange(e.target.value);
+                              handleCepChange(e.target.value);
+                            }}
+                            placeholder="00000-000"
+                            ref={field.ref}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          />
+                        )}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
-            {/* Endereço Completo */}
-            <AddressInputs form={form} />
+            {/* Endereço Completo (sem CEP) */}
+            <AddressInputs form={form} showCep={false} />
+
+            
 
             {/* Observações */}
             <FormField

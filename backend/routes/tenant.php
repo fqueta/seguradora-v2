@@ -208,6 +208,7 @@ Route::name('api.')->prefix('api/v1')->middleware([
         Route::apiResource('clients', ClientController::class,['parameters' => [
             'clients' => 'id'
         ]]);
+        Route::put('clients/{id}/transfer-organization', [ClientController::class, 'transferOrganization'])->name('clients.transferOrganization');
         // Atendimentos do cliente (nested)
         Route::get('clients/{id}/attendances', [ClientAttendanceController::class, 'index'])->name('clients.attendances.index');
         Route::post('clients/{id}/attendances', [ClientAttendanceController::class, 'store'])->name('clients.attendances.store');

@@ -90,7 +90,7 @@ export interface ClientRecord {
 
 export interface CreateClientInput {
   tipo_pessoa: "pf" | "pj";
-  email: string;
+  email?: string;
   /**
    * pt-BR: Telefone principal do cliente (opcional)
    * en-US: Primary phone of the client (optional)

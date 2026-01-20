@@ -105,10 +105,15 @@ const clientSchema = z.object({
   tipo_pessoa: z.enum(["pf", "pj"], {
     errorMap: () => ({ message: "Selecione o tipo de pessoa" })
   }),
-  email: z.string()
-    .min(1, "Email é obrigatório")
-    .email("Formato de email inválido")
-    .max(100, "Email deve ter no máximo 100 caracteres"),
+  /**
+   * email
+   * pt-BR: Torna o email opcional na edição. Converte string vazia para undefined.
+   * en-US: Makes email optional on edit. Converts empty string to undefined.
+   */
+  email: z.preprocess(
+    (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+    z.string().email("Formato de email inválido").max(100, "Email deve ter no máximo 100 caracteres").optional()
+  ),
   password: z.string().optional().refine((val) => {
     if (!val || val.trim() === '') return true;
     return val.length >= 6;
@@ -343,7 +348,7 @@ export default function ClientEdit() {
    * Garante que `config.funnelId` e `config.stage_id` sejam mantidos no payload.
    * @param data Dados do formulário validados
    */
-  const onSubmit = (data: ClientFormData) => {
+  const onSubmit = (data: ClientFormData, options?: { redirectAfterSave?: boolean }) => {
     
     setIsLoading(true);
     
@@ -375,25 +380,24 @@ export default function ClientEdit() {
             description: `Cliente ${data.name} atualizado com sucesso`,
           });
           setIsLoading(false);
-          // Redireciona de volta para a origem, priorizando state.from e ?returnTo
-          // pt-BR: Se houver origem no estado, volta para ela; caso contrário,
-          //        preserva o funil de origem como fallback.
-          // en-US: If origin exists in state, return to it; otherwise,
-          //        preserve origin funnel as fallback.
-          const from = (location.state as any)?.from;
-          if (from && typeof from === 'object') {
-            const path = String(from.pathname || '/');
-            const search = String(from.search || '');
-            const hash = String(from.hash || '');
-            navigate(`${path}${search}${hash}`);
-          } else {
-            const funnelFromQuery = searchParams.get('funnel') || '';
-            const fallbackFunnel = detectFunnelIdFromClient(client) || '';
-            const targetFunnel = funnelFromQuery || fallbackFunnel;
-            if (targetFunnel) {
-              navigate(`/admin/customers/leads?funnel=${encodeURIComponent(String(targetFunnel))}`);
+          const shouldRedirect = options?.redirectAfterSave ?? true;
+          if (shouldRedirect) {
+            // Redireciona de volta para a origem, priorizando state.from e ?returnTo
+            const from = (location.state as any)?.from;
+            if (from && typeof from === 'object') {
+              const path = String(from.pathname || '/');
+              const search = String(from.search || '');
+              const hash = String(from.hash || '');
+              navigate(`${path}${search}${hash}`);
             } else {
-              navigate(`/admin/clients`);
+              const funnelFromQuery = searchParams.get('funnel') || '';
+              const fallbackFunnel = detectFunnelIdFromClient(client) || '';
+              const targetFunnel = funnelFromQuery || fallbackFunnel;
+              if (targetFunnel) {
+                navigate(`/admin/customers/leads?funnel=${encodeURIComponent(String(targetFunnel))}`);
+              } else {
+                navigate(`/admin/clients`);
+              }
             }
           }
         },
@@ -706,26 +710,28 @@ export default function ClientEdit() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit((data) => onSubmit(data, { redirectAfterSave: true }))} className="space-y-6">
               <ClientForm
                 form={form}
-                onSubmit={onSubmit}
+                onSubmit={(data) => onSubmit(data, { redirectAfterSave: true })}
                 onCancel={handleCancel}
                 editingClient={client}
-                // Usa FormActionBar padronizado dentro do formulário via renderActions
-                renderActions={
-                  <FormActionBar
-                    mode="edit"
-                    fixed={true}
-                    onCancel={handleCancel}
-                    isLoading={isLoading}
-                  />
-                }
+                renderActions={<></>}
               />
            </form>
           </Form>
         </CardContent>
       </Card>
+      
+      {/* Fixed bottom action bar seguindo padrão da página de criação */}
+      <FormActionBar
+        mode="create"
+        fixed
+        onBack={handleCancel}
+        onSaveContinue={() => form.handleSubmit((data) => onSubmit(data, { redirectAfterSave: false }))()}
+        onSaveExit={() => form.handleSubmit((data) => onSubmit(data, { redirectAfterSave: true }))()}
+        isLoading={isLoading}
+      />
     </div>
   );
 }

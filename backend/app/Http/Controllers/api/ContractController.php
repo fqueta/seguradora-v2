@@ -146,9 +146,27 @@ class ContractController extends Controller
     public function show($id): JsonResponse
     {
         $contract = Contract::with(['client', 'owner', 'events.user', 'product'])->find($id);
-
+        //dados do metacampo envio_fornecedor_sucesso deve ser enviado no campo events
         if (!$contract) {
             return response()->json(['message' => 'Contrato não encontrado'], 404);
+        }
+        $contract['contato_integrado'] = [];
+        $envio_fornecedor_sucesso = Qlib::get_contract_meta($contract->id, 'envio_fornecedor_sucesso');
+        if ($envio_fornecedor_sucesso) {
+            $successo_integra = is_array($envio_fornecedor_sucesso) ? $envio_fornecedor_sucesso : json_decode($envio_fornecedor_sucesso, true);
+            // if($successo_integra && Qlib::isJson($successo_integra)){
+            //     $successo_integra = json_decode($successo_integra, true);
+            // }
+            if(isset($successo_integra['exec'])){
+                $contract['contato_integrado'] =  $successo_integra;
+            }
+            if (!is_array($successo_integra)) {
+                $successo_integra = ['mens' => (string) $envio_fornecedor_sucesso];
+            }
+            if (!$contract->relationLoaded('events') || $contract->events === null) {
+                $contract->setRelation('events', collect());
+            }
+
         }
 
         return response()->json($contract);

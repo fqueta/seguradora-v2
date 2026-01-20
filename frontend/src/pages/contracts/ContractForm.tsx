@@ -76,7 +76,7 @@ export default function ContractForm() {
     const createUserMutation = useCreateUser();
     const { data: products } = useProductsList({ per_page: 100 });
     
-    const [profileFilter, setProfileFilter] = useState<'all' | 'cliente' | 'usuario'>('all');
+    const [profileFilter, setProfileFilter] = useState<'cliente' | 'usuario'>('cliente');
     const permissionNameById = useMemo(() => {
         const map: Record<string, string> = {};
         (permissions?.data || []).forEach((p: any) => { if (p?.id) map[String(p.id)] = String(p.name || ''); });
@@ -94,7 +94,6 @@ export default function ContractForm() {
             !remoteClients.find((c: any) => String(c.id) === String(tc.id))
         );
         const base = [...filteredTempUsers, ...filteredTempClients, ...remoteUsers, ...remoteClients];
-        if (profileFilter === 'all') return base;
         return base.filter((u: any) => {
             const pname = permissionNameById[String(u.permission_id)]?.toLowerCase() || '';
             if (profileFilter === 'cliente') return pname === 'cliente';
@@ -178,8 +177,16 @@ export default function ContractForm() {
                 value: contract.value,
                 description: contract.description,
             });
+            const selectedId = contract.client_id ?? contract.owner_id;
+            if (selectedId && !contract.client_id) {
+                form.setValue('client_id', String(selectedId), { shouldValidate: true });
+            }
+            const all = [...(users?.data || []), ...(clients?.data || [])];
+            const selected = all.find((u: any) => String(u.id) === String(selectedId ?? contract.client_id));
+            const pname = selected ? (permissionNameById[String(selected.permission_id)] || '').toLowerCase() : '';
+            setProfileFilter(pname === 'cliente' ? 'cliente' : 'usuario');
         }
-    }, [contract, form]);
+    }, [contract, form, users?.data, clients?.data, permissionNameById]);
 
     useEffect(() => {
         if (!isEdit && clientIdParam) {
@@ -342,7 +349,6 @@ export default function ContractForm() {
                                                     <SelectValue placeholder="Perfil" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="all">Todos</SelectItem>
                                                     <SelectItem value="cliente">Clientes</SelectItem>
                                                     <SelectItem value="usuario">Usuários</SelectItem>
                                                 </SelectContent>
@@ -350,7 +356,13 @@ export default function ContractForm() {
                                             <Combobox
                                                 options={clientOptions}
                                                 value={field.value}
-                                                onValueChange={field.onChange}
+                                                onValueChange={(val) => {
+                                                    field.onChange(val);
+                                                    const all = [...(users?.data || []), ...(clients?.data || [])];
+                                                    const selected = all.find((u: any) => String(u.id) === String(val));
+                                                    const pname = selected ? (permissionNameById[String(selected.permission_id)] || '').toLowerCase() : '';
+                                                    setProfileFilter(pname === 'cliente' ? 'cliente' : 'usuario');
+                                                }}
                                                 placeholder="Selecione o titular"
                                                 searchPlaceholder="Buscar titular..."
                                                 emptyText="Nenhum titular encontrado"
@@ -638,7 +650,7 @@ export default function ContractForm() {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Status</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value || ""} disabled={isRestricted}>
+                                        <Select onValueChange={field.onChange} value={field.value || ""} disabled={true}>
                                             <FormControl>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Selecione o status" />

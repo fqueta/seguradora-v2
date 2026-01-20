@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use App\Models\Organization;
+use App\Models\Contract;
 
 class ClientController extends Controller
 {
@@ -582,6 +584,63 @@ class ClientController extends Controller
             'exec'=>true,
             'message' => 'Cliente movido para a lixeira com sucesso',
             'status' => 200
+        ]);
+    }
+
+    /**
+     * transferOrganization
+     * pt-BR: Transfere o cliente para outra organização e atualiza seus contratos.
+     *        Permitido somente para permission_id <= 2.
+     * en-US: Transfers the client to another organization and updates their contracts.
+     *        Allowed only for permission_id <= 2.
+     */
+    public function transferOrganization(Request $request, string $id)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['error' => 'Acesso negado'], 403);
+        }
+        if (intval($user->permission_id) > 2) {
+            return response()->json(['error' => 'Permissão insuficiente'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'organization_id' => ['required', 'integer', 'exists:organizations,id'],
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'exec' => false,
+                'message' => 'Erro de validação',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $client = Client::find($id);
+        if (!$client) {
+            return response()->json(['message' => 'Cliente não encontrado'], 404);
+        }
+
+        $targetOrgId = intval($validator->validated()['organization_id']);
+        $targetOrg = Organization::find($targetOrgId);
+        if (!$targetOrg) {
+            return response()->json(['message' => 'Organização destino não encontrada'], 404);
+        }
+
+        $fromOrgId = $client->organization_id;
+        $client->organization_id = $targetOrgId;
+        $client->save();
+
+        // Atualiza todos os contratos do cliente para nova organização
+        Contract::where('client_id', $client->id)->update(['organization_id' => $targetOrgId]);
+
+        return response()->json([
+            'exec' => true,
+            'mens' => 'Cliente transferido e contratos atualizados com sucesso.',
+            'data' => [
+                'client_id' => $client->id,
+                'from_organization_id' => $fromOrgId,
+                'to_organization_id' => $targetOrgId,
+            ],
         ]);
     }
 

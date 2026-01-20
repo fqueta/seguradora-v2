@@ -16,6 +16,7 @@ import { useCep } from '@/hooks/useCep';
 
 interface AddressInputsProps {
   form: any;
+  showCep?: boolean;
 }
 
 interface ViaCepResponse {
@@ -33,7 +34,7 @@ interface ViaCepResponse {
  * pt-BR: Renderiza campos de endereço com máscara de CEP e auto-preenchimento via useCep.
  * en-US: Renders address fields with CEP mask and auto-fill using useCep.
  */
-export function AddressInputs({form}: AddressInputsProps){
+export function AddressInputs({form, showCep = true}: AddressInputsProps){
   const [isLoadingCep, setIsLoadingCep] = useState(false);
   const numeroInputRef = useRef<HTMLInputElement>(null);
   const { fetchCep, isValidCep, clearAddressData } = useCep();
@@ -73,37 +74,39 @@ export function AddressInputs({form}: AddressInputsProps){
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
       {/* Campo CEP com máscara e busca automática (config.cep) */}
-      <FormField
-        control={form.control}
-        name="config.cep"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>CEP {isLoadingCep && "(Buscando...)"}</FormLabel>
-            <FormControl>
-              <Controller
-                name="config.cep"
-                control={form.control}
-                render={({ field }) => (
-                  <InputMask
-                    mask="ddddd-ddd"
-                    replacement={{ d: /\d/ }}
-                    value={field.value && typeof field.value === 'string' && field.value.trim() !== '' ? format(field.value, { mask: "ddddd-ddd", replacement: { d: /\d/ } }) : ""}
-                    onChange={(e) => {
-                        field.onChange(e.target.value);
-                        handleCepChange(e.target.value);
-                    }}
-                    disabled={isLoadingCep}
-                    placeholder="00000-000"
-                    ref={field.ref}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  />
-                )}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      {showCep && (
+        <FormField
+          control={form.control}
+          name="config.cep"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>CEP {isLoadingCep && "(Buscando...)"}</FormLabel>
+              <FormControl>
+                <Controller
+                  name="config.cep"
+                  control={form.control}
+                  render={({ field }) => (
+                    <InputMask
+                      mask="ddddd-ddd"
+                      replacement={{ d: /\d/ }}
+                      value={field.value && typeof field.value === 'string' && field.value.trim() !== '' ? format(field.value, { mask: "ddddd-ddd", replacement: { d: /\d/ } }) : ""}
+                      onChange={(e) => {
+                          field.onChange(e.target.value);
+                          handleCepChange(e.target.value);
+                      }}
+                      disabled={isLoadingCep}
+                      placeholder="00000-000"
+                      ref={field.ref}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  )}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
       
       <FormField
         control={form.control}

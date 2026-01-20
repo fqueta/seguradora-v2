@@ -4,6 +4,7 @@ import { MenuItemDTO } from '@/types/menu';
 import { authService } from '@/services/authService';
 import type { UserPointsBalance } from '@/services/userPointsService';
 import { toast } from '@/hooks/use-toast';
+import { organizationService } from '@/services/organizationService';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<boolean>;
@@ -140,7 +141,40 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshUser = async (): Promise<void> => {
     try {
       const user = await authService.getCurrentUser();
-      setState((prev) => ({ ...prev, user }));
+      /**
+       * ensureOrganizationLoaded
+       * pt-BR: Se o usuário possui organização sem `config`, busca detalhes completos da organização.
+       * en-US: If the user has an organization without `config`, fetch full organization details.
+       */
+      const hydrateOrgIfNeeded = async (u: User): Promise<User> => {
+        const orgId = u?.organization?.id;
+        const hasConfig = !!u?.organization && u.organization.config !== undefined;
+        if (orgId && !hasConfig) {
+          try {
+            const fullOrg = await organizationService.getById(String(orgId));
+            return { ...u, organization: fullOrg };
+          } catch {
+            return u;
+          }
+        }
+        return u;
+      };
+      /**
+       * mergeUserPreservingOrganization
+       * pt-BR: Mescla o usuário novo com o anterior preservando `organization` quando o novo não traz esse campo.
+       * en-US: Merges the new user with the previous one preserving `organization` when the new payload omits it.
+       */
+      const mergedUser = ((prevUser: User | null, nextUser: User): User => {
+        if (!prevUser) return nextUser;
+        return {
+          ...prevUser,
+          ...nextUser,
+          organization: nextUser.organization ?? prevUser.organization,
+        };
+      })(state.user, user);
+      const enrichedUser = await hydrateOrgIfNeeded(mergedUser);
+      setState((prev) => ({ ...prev, user: enrichedUser }));
+      try { localStorage.setItem('auth_user', JSON.stringify(enrichedUser)); } catch {}
     } catch (error) {
       const status = (error as any)?.status;
       console.error('Erro ao atualizar dados do usuário:', error);
@@ -162,7 +196,40 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       // Buscar dados atualizados do usuário (sem saldo de pontos)
       const user = await authService.getCurrentUser();
-      setState((prev) => ({ ...prev, user }));
+      /**
+       * ensureOrganizationLoaded
+       * pt-BR: Carrega detalhes da organização se necessário.
+       * en-US: Load organization details if needed.
+       */
+      const hydrateOrgIfNeeded = async (u: User): Promise<User> => {
+        const orgId = u?.organization?.id;
+        const hasConfig = !!u?.organization && u.organization.config !== undefined;
+        if (orgId && !hasConfig) {
+          try {
+            const fullOrg = await organizationService.getById(String(orgId));
+            return { ...u, organization: fullOrg };
+          } catch {
+            return u;
+          }
+        }
+        return u;
+      };
+      /**
+       * mergeUserPreservingOrganization
+       * pt-BR: Mescla o usuário novo com o anterior preservando `organization`.
+       * en-US: Merge new user with previous preserving `organization`.
+       */
+      const mergedUser = ((prevUser: User | null, nextUser: User): User => {
+        if (!prevUser) return nextUser;
+        return {
+          ...prevUser,
+          ...nextUser,
+          organization: nextUser.organization ?? prevUser.organization,
+        };
+      })(state.user, user);
+      const enrichedUser = await hydrateOrgIfNeeded(mergedUser);
+      setState((prev) => ({ ...prev, user: enrichedUser }));
+      try { localStorage.setItem('auth_user', JSON.stringify(enrichedUser)); } catch {}
     } catch (error) {
       console.error('Erro geral na sincronização de dados:', error);
     }
@@ -274,7 +341,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Validação e sincronização em segundo plano
         try {
           const freshUser = await authService.getCurrentUser();
-          updateAuthState(freshUser, storedToken, storedPermissions, storedMenu);
+          /**
+           * mergeUserPreservingOrganization
+           * pt-BR: Mescla o `freshUser` com `storedUser` preservando `organization` se ausente.
+           * en-US: Merge `freshUser` with `storedUser` preserving `organization` when absent.
+           */
+          let mergedUser = {
+            ...storedUser,
+            ...freshUser,
+            organization: freshUser.organization ?? storedUser.organization,
+          };
+          /**
+           * ensureOrganizationLoaded
+           * pt-BR: Garante organização completa (com config) ao iniciar.
+           * en-US: Ensure full organization (with config) on init.
+           */
+          try {
+            const orgId = mergedUser?.organization?.id;
+            const hasConfig = !!mergedUser?.organization && mergedUser.organization.config !== undefined;
+            if (orgId && !hasConfig) {
+              const fullOrg = await organizationService.getById(String(orgId));
+              mergedUser = { ...mergedUser, organization: fullOrg };
+            }
+          } catch {}
+          updateAuthState(mergedUser, storedToken, storedPermissions, storedMenu);
+          try { localStorage.setItem('auth_user', JSON.stringify(mergedUser)); } catch {}
           
           // Sincronizar dados após validação bem-sucedida da sessão
           await syncUserData();

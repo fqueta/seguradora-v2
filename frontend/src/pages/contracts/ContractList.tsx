@@ -170,6 +170,7 @@ export default function ContractList() {
                                 <TableHead>Número</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead>Titular</TableHead>
+                                <TableHead>Organização</TableHead>
                                 <TableHead>Valor</TableHead>
                                 <TableHead>Início</TableHead>
                                 <TableHead>Fim</TableHead>
@@ -179,11 +180,11 @@ export default function ContractList() {
                         <TableBody>
                             {isLoading ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center">Carregando...</TableCell>
+                                    <TableCell colSpan={8} className="text-center">Carregando...</TableCell>
                                 </TableRow>
                             ) : data?.data?.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center">Nenhum contrato encontrado</TableCell>
+                                    <TableCell colSpan={8} className="text-center">Nenhum contrato encontrado</TableCell>
                                 </TableRow>
                             ) : (
                                 data?.data?.map((contract: any) => {
@@ -202,6 +203,7 @@ export default function ContractList() {
                                             <TableCell>{contract.contract_number || contract.id}</TableCell>
                                             <TableCell>{translatedStatus}</TableCell>
                                             <TableCell>{contract.client?.name || '-'}</TableCell>
+                                            <TableCell>{contract.organization?.name || '-'}</TableCell>
                                             <TableCell>
                                                 {contract.value 
                                                     ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(contract.value)
