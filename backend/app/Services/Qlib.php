@@ -5,9 +5,9 @@
 // namespace App\Qlib;
 namespace App\Services;
 use App\Http\Controllers\admin\EventController;
-use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\api\CategoryController;
 use App\Http\Controllers\api\ProductController;
-use App\Http\Controllers\Api\ProductUnitController;
+use App\Http\Controllers\api\ProductUnitController;
 // use App\Http\Controllers\admin\PostController;
 // use App\Http\Controllers\LeilaoController;
 use App\Http\Controllers\MatriculasController;

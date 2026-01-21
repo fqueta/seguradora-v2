@@ -160,7 +160,7 @@ const App = () => {
           <BrowserRouter>
             <Routes>
               {/* Rotas públicas */}
-              <Route path="/"  element={<LandingPage linkLoja={link_loja} />} />
+              <Route path="/" element={<Navigate to="/admin" replace />} />
               <Route path="/login" element={
                 <AuthRedirect>
                   <Login />

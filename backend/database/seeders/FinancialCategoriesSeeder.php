@@ -7,7 +7,7 @@ use Illuminate\Database\Seeder;
 use App\Models\Category;
 use App\Services\Qlib;
 use Carbon\Carbon;
-use App\Http\Controllers\Api\FinancialCategoryController;
+use App\Http\Controllers\api\FinancialCategoryController;
 
 class FinancialCategoriesSeeder extends Seeder
 {
@@ -85,7 +85,7 @@ class FinancialCategoriesSeeder extends Seeder
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
-                
+
                 // Criar a categoria usando a conexão tenant
                 Category::create($mappedData);
 

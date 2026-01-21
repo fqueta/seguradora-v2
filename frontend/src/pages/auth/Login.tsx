@@ -283,7 +283,7 @@ export default function Login() {
 
               <div className="text-center text-sm mt-4">
                 <span className="text-blue-100">Não tem uma conta? </span>
-                <Link to="/public-client-form" className="text-blue-100 underline hover:text-white font-medium">
+                <Link to="/register" className="text-blue-100 underline hover:text-white font-medium">
                   Cadastre-se
                 </Link>
               </div>

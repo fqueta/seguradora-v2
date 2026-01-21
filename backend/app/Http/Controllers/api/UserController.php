@@ -58,16 +58,19 @@ class UserController extends Controller
         $perPage = $request->input('per_page', 10);
         $order_by = $request->input('order_by', 'created_at');
         $order = $request->input('order', 'desc');
-        //listar usuarios com permissões dele pra cima
         $permission_id = $user->permission_id;
-        // dd($permission_id);
-        $query = User::with('organization')->where('permission_id','!=',$this->cliente_permission_id)->orderBy($order_by,$order);
+        $query = User::with('organization')
+            ->where('permission_id','!=',$this->cliente_permission_id)
+            ->orderBy($order_by,$order);
 
-        // Security: visualiza apenas dados/cadastros de permission_id >= ao seu
-        if ($permission_id) {
-            $query->where('permission_id', '>=', $permission_id);
-            if ($permission_id >= 3) {
-                $query->where('organization_id', $user->organization_id);
+        if ($permission_id >= 5) {
+            $query->where('id', $user->id);
+        } else {
+            if ($permission_id) {
+                $query->where('permission_id', '>=', $permission_id);
+                if ($permission_id >= 3) {
+                    $query->where('organization_id', $user->organization_id);
+                }
             }
         }
 
