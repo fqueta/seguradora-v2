@@ -31,6 +31,21 @@ class UserController extends Controller
         }
         return $input;
     }
+    /**
+     * Normaliza strings opcionais para null quando vazias.
+     * Normalize optional string inputs to null when empty.
+     */
+    private function normalizeOptionalString($value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        if (is_string($value)) {
+            $trimmed = trim($value);
+            return $trimmed === '' ? null : $trimmed;
+        }
+        return null;
+    }
     protected PermissionService $permissionService;
     public $routeName;
     public $sec;
@@ -270,7 +285,7 @@ class UserController extends Controller
         if (!$this->permissionService->isHasPermission('view')) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
-        $user = User::with('organization')->findOrFail($id);
+        $user = User::with(['organization', 'permission'])->findOrFail($id);
 
         // Security: visualiza apenas dados de permission_id >= ao seu
         if ($currentUser->permission_id && $user->permission_id < $currentUser->permission_id) {

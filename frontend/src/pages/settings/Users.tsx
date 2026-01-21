@@ -61,6 +61,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { cpfApplyMask } from '@/lib/masks/cpf-apply-mask';
 
 import { 
   useUsersList, 
@@ -291,8 +292,23 @@ export default function Users() {
         await createMutation.mutateAsync(payload);
       }
       handleCloseModal();
-    } catch (error) {
-      // Error is handled by the mutation hooks
+    } catch (error: any) {
+      const body = error?.body;
+      const apiMessage = error?.message || 'Erro desconhecido';
+      if (body?.errors && typeof body.errors === 'object') {
+        const errorsObj = body.errors as Record<string, string[]>;
+        Object.entries(errorsObj).forEach(([field, messages]) => {
+          const msg = Array.isArray(messages) && messages.length ? messages[0] : apiMessage;
+          try {
+            form.setError(field as any, { message: msg });
+          } catch {
+            // fallback ignore
+          }
+        });
+        // Deixa o toast para o hook de criação tratar a mensagem
+      } else {
+        // Sem erros de campo estruturados; o hook exibirá um toast genérico
+      }
     }
   };
 

@@ -21,7 +21,11 @@ export interface UserRecord {
   id: string;
   tipo_pessoa: "pf" | "pj";
   token: string;
-  permission_id: string;
+  permission_id: string | number;
+  permission?: {
+    id: string | number;
+    name: string;
+  } | null;
   client_permission?: number[];
   email: string;
   name: string;

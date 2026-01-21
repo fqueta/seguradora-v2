@@ -209,37 +209,52 @@ class SulAmericaController extends Controller
         $canalVenda = isset($config['canalVenda']) ? $config['canalVenda'] : 'site';
         $mesAnoFatura = isset($config['mesAnoFatura']) ? $config['mesAnoFatura'] : '032025';
         $id_contrato = isset($config['id_contrato']) ? $config['id_contrato'] : '';
-        if(!$numeroOperacao){
-            $ret['exec'] = false;
-            $ret['mens'] = 'Número de operação é obrigatório';
-            ContractEventLogger::logByToken(
-                $id_contrato,
-                'cancelamento_end',
-                $ret['mens'],
-                [
-                    'success' => isset($ret['exec']) ? (bool)$ret['exec'] : null,
-                    'response' => $ret,
-                ],
+        $contract = $id_contrato ? \App\Models\Contract::find($id_contrato) : null;
 
+        // Log de início do processamento do cancelamento na integração
+        if ($contract) {
+            ContractEventLogger::log(
+                $contract,
+                'cancelamento_integracao',
+                'Início do processamento do cancelamento (SulAmérica)',
+                ['request' => $config],
                 null,
                 auth()->id()
             );
+        }
+        if(!$numeroOperacao){
+            $ret['exec'] = false;
+            $ret['mens'] = 'Número de operação é obrigatório';
+            if ($contract) {
+                ContractEventLogger::log(
+                    $contract,
+                    'cancelamento_integracao',
+                    $ret['mens'],
+                    [
+                        'status' => 'error',
+                        'response' => $ret,
+                    ],
+                    null,
+                    auth()->id()
+                );
+            }
             return $ret;
         }elseif(!$id_contrato){
             $ret['exec'] = false;
             $ret['mens'] = 'ID do contrato é obrigatório';
-            ContractEventLogger::logByToken(
-                $id_contrato,
-                'cancelamento_end',
-                $ret['mens'],
-                [
-                    'success' => isset($ret['exec']) ? (bool)$ret['exec'] : null,
-                    'response' => $ret,
-                ],
-
-                null,
-                auth()->id()
-            );
+            if ($contract) {
+                ContractEventLogger::log(
+                    $contract,
+                    'cancelamento_integracao',
+                    $ret['mens'],
+                    [
+                        'status' => 'error',
+                        'response' => $ret,
+                    ],
+                    null,
+                    auth()->id()
+                );
+            }
             return $ret;
         }
         $xml = '
@@ -279,17 +294,16 @@ class SulAmericaController extends Controller
             //Atualizar o status do contrato
             (new ContratoController)->status_update($token_contrato,'Cancelado',$ret);
         }
-        if(!empty($token_contrato)){
-            // Log de término do cancelamento (end)
-            ContractEventLogger::logByToken(
-                $token_contrato,
-                'cancelamento_end',
+        // Log de término do processamento na integração
+        if ($contract) {
+            ContractEventLogger::log(
+                $contract,
+                'cancelamento_integracao',
                 'Fim do processamento do cancelamento (SulAmérica)',
                 [
                     'success' => isset($ret['exec']) ? (bool)$ret['exec'] : null,
                     'response' => $ret,
                 ],
-
                 $resposta,
                 auth()->id()
             );

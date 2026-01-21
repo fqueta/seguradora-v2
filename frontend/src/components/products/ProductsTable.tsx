@@ -127,7 +127,6 @@ export default function ProductsTable({
 
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (product.description || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -158,7 +157,6 @@ export default function ProductsTable({
               <TableRow>
                 <TableHead>Imagem</TableHead>
                 <TableHead>Produto</TableHead>
-                <TableHead>Categoria</TableHead>
                 <TableHead>Preço de Venda</TableHead>
                 {/* <TableHead>Pontos</TableHead> */}
                 <TableHead>Estoque</TableHead>
@@ -169,7 +167,7 @@ export default function ProductsTable({
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     <div className="flex items-center justify-center space-x-2">
                       <Package className="h-4 w-4 animate-spin" />
                       <span>Carregando produtos...</span>
@@ -178,7 +176,7 @@ export default function ProductsTable({
                 </TableRow>
               ) : error ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     <div className="flex flex-col items-center space-y-2 text-destructive">
                       <AlertTriangle className="h-8 w-8" />
                       <div>
@@ -200,7 +198,7 @@ export default function ProductsTable({
                 </TableRow>
               ) : !products || products.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     <div className="flex flex-col items-center space-y-2 text-muted-foreground">
                       <Package className="h-8 w-8" />
                       <div>
@@ -220,7 +218,7 @@ export default function ProductsTable({
                 </TableRow>
               ) : filteredProducts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     <div className="flex flex-col items-center space-y-2 text-muted-foreground">
                       <Search className="h-8 w-8" />
                       <div>
@@ -259,9 +257,6 @@ export default function ProductsTable({
                           dangerouslySetInnerHTML={{ __html: product.description || '' }}
                         />
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{product.category}</Badge>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm font-medium">

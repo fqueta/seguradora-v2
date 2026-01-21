@@ -46,10 +46,24 @@ export function useCreateUser() {
         description: "O usuário foi criado com sucesso.",
       });
     },
-    onError: (error: Error & { status?: number }) => {
+    onError: (error: Error & { status?: number; body?: any }) => {
+      const body = error?.body;
+      const fieldErrors = body?.errors;
+      const parts: string[] = [];
+      if (error?.message) parts.push(String(error.message));
+      if (fieldErrors && typeof fieldErrors === 'object') {
+        const lines: string[] = [];
+        Object.entries(fieldErrors).forEach(([field, msgs]) => {
+          const first = Array.isArray(msgs) && msgs.length ? msgs[0] : String(msgs);
+          lines.push(`${field}: ${first}`);
+        });
+        if (lines.length) parts.push(lines.join("\n"));
+      }
+      if (body) parts.push(`Detalhes: ${JSON.stringify(body)}`);
+      const description = parts.join("\n");
       toast({
         title: "Erro ao criar usuário",
-        description: error.message || "Erro desconhecido",
+        description,
         variant: "destructive",
       });
     },

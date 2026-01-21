@@ -70,8 +70,11 @@ class ProductController extends Controller
         if (!$user) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
-        if (!$this->permissionService->isHasPermission('view')) {
-            return response()->json(['error' => 'Acesso negado'], 403);
+        $permission_id = $user->permission_id ?? null;
+        if($permission_id < 2){
+            if (!$this->permissionService->isHasPermission('view')) {
+                return response()->json(['error' => 'Acesso negado'], 403);
+            }
         }
 
         $perPage = $request->input('per_page', 10);

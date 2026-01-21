@@ -123,7 +123,7 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-2">
           <Badge className="bg-blue-100 text-blue-700">Resumo</Badge>
-          <Badge className="bg-gray-100 text-gray-700">KPI</Badge>
+          {/* <Badge className="bg-gray-100 text-gray-700">KPI</Badge> */}
         </div>
       </div>
 

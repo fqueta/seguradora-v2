@@ -603,6 +603,16 @@ class ContractController extends Controller
         $integrationResult = null;
         $integrationSuccess = true; // Assume success if no integration is needed, unless proven otherwise
 
+        // Log de início da operação de cancelamento (auditoria de integração)
+        \App\Services\ContractEventLogger::log(
+            $contract,
+            'cancelamento_integracao',
+            'Início do cancelamento do contrato',
+            ['supplier' => $supplier],
+            null,
+            auth()->id()
+        );
+
         if($supplier == 'SulAmerica'){
             //Verificar o metadata do envio_fornecedor_sucesso
             $metadata = Qlib::get_contract_meta($contract->id, 'envio_fornecedor_sucesso');
@@ -633,6 +643,15 @@ class ContractController extends Controller
                 // For now, let's treat it as a failure to be safe, or allow manual override?
                 // Based on request, strict check seems better.
                 if ($request->input('force_cancel', false) !== true) {
+                    // Log de erro por metadados ausentes
+                    \App\Services\ContractEventLogger::log(
+                        $contract,
+                        'cancelamento_integracao',
+                        'Dados de integração incompletos para cancelamento na SulAmérica.',
+                        ['status' => 'error', 'reason' => 'metadata_missing'],
+                        null,
+                        auth()->id()
+                    );
                     return response()->json([
                         'exec' => false,
                         'mens' => 'Dados de integração incompleto para cancelamento na SulAmérica.',
@@ -642,10 +661,35 @@ class ContractController extends Controller
                 }
             }
         }
+        else {
+            // Fornecedor não é SulAmérica: registrar skip para auditoria
+            \App\Services\ContractEventLogger::log(
+                $contract,
+                'cancelamento_integracao',
+                'Integração não aplicável ao cancelamento: fornecedor do produto não é SulAmérica.',
+                [
+                    'status' => 'skipped',
+                    'reason' => 'supplier_not_sulamerica',
+                    'supplier' => $supplier,
+                ],
+                null,
+                auth()->id()
+            );
+        }
 
         if ($integrationSuccess) {
             $oldStatus = $contract->status;
             $contract->update(['status' => 'cancelled']);
+
+            // Log de sucesso da integração antes da mudança de status
+            \App\Services\ContractEventLogger::log(
+                $contract,
+                'cancelamento_integracao',
+                'Cancelamento na integração concluído com sucesso',
+                ['status' => 'success'],
+                is_array($integrationResult) ? json_encode($integrationResult) : null,
+                auth()->id()
+            );
 
             // Log status change
             \App\Services\ContractEventLogger::logStatusChange(
@@ -666,6 +710,15 @@ class ContractController extends Controller
                 'data' => $contract
             ]);
         } else {
+             // Log de erro na integração
+             \App\Services\ContractEventLogger::log(
+                 $contract,
+                 'cancelamento_integracao',
+                 'Falha ao cancelar na integração: ' . ($integrationResult['mens'] ?? 'Erro desconhecido'),
+                 ['status' => 'error'],
+                 is_array($integrationResult) ? json_encode($integrationResult) : null,
+                 auth()->id()
+             );
              return response()->json([
                 'exec' => false,
                 'mens' => 'Falha ao cancelar na integração: ' . ($integrationResult['mens'] ?? 'Erro desconhecido'),
