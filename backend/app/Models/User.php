@@ -42,6 +42,10 @@ class User extends Authenticatable
         'preferencias' => 'array',
         'client_permission' => 'array',
     ];
+    
+    protected $attributes = [
+        'client_permission' => '[]',
+    ];
 
     protected $hidden = [
         'password',
