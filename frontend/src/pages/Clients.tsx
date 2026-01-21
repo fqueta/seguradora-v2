@@ -47,7 +47,15 @@ import {
   ShieldCheck,
   Loader2,
   Trash2,
-  RotateCcw
+  RotateCcw,
+  Calendar,
+  CalendarX,
+  Check, 
+  Archive,
+  X,
+  Filter,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { clientsService } from '@/services/clientsService';
 import { getBrazilianStates } from '@/lib/qlib';
@@ -65,6 +73,7 @@ import { ClientForm } from '@/components/clients/ClientForm';
 import { ClientsTable } from '@/components/clients/ClientsTable';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Switch } from "@/components/ui/switch";
+import { SummaryCards } from '@/components/common/SummaryCards';
 interface ApiDeleteResponse {
   exec: boolean;
   message: string;
@@ -248,6 +257,7 @@ export default function Clients() {
   const [pageSize] = useState(100);
   // Filtro de lixeira (excluido=s)
   const [showTrash, setShowTrash] = useState(false);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -307,6 +317,28 @@ export default function Clients() {
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearchTerm, statusFilter, showTrash]);
+
+  const summaryItems = useMemo(() => {
+    const total = useMock ? effectiveClients.length : (clientsQuery.data?.total || 0);
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+    const recent = effectiveClients.filter(c => {
+      if (!c.created_at) return false;
+      return new Date(c.created_at) >= threeDaysAgo;
+    }).length;
+
+    const active = effectiveClients.filter(c => c.status === 'actived').length;
+    const inactive = effectiveClients.filter(c => c.status === 'inactived').length;
+
+    return [
+      { label: 'Todos cadastros', value: total, icon: Calendar },
+      { label: 'Cadastros recentes', value: recent, icon: CalendarX },
+      { label: 'Cadastros ativos', value: active, icon: Check },
+      { label: 'Cadastros inativos', value: inactive, icon: Archive },
+    ];
+  }, [effectiveClients, useMock, clientsQuery.data?.total]);
+
   const createClientMutation = useCreateClient();
   const updateClientMutation = useUpdateClient();
   const deleteClientMutation = useDeleteClient();
@@ -695,6 +727,12 @@ export default function Clients() {
     form.reset();
   }, [form]);
 
+  const clearFilters = useCallback(() => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setCurrentPage(1);
+  }, []);
+
   // Filter clients based on search term and status - memoized for performance
   const filteredClients = useMemo(() => {
     const searchTermLower = searchTerm.toLowerCase();
@@ -716,9 +754,9 @@ export default function Clients() {
   }, [effectiveClients, searchTerm, statusFilter]);
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="p-0 space-y-4">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center px-4 pt-4">
         <div className="flex items-center gap-2">
           <h1 className="text-3xl font-bold">Clientes</h1>
           {showTrash && <Badge variant="destructive">LIXEIRA</Badge>}
@@ -741,92 +779,68 @@ export default function Clients() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {useMock ? effectiveClients.length : (clientsQuery.data?.total || 0)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Clientes cadastrados no sistema
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Clientes Ativos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {effectiveClients.filter(client => client.status === 'actived').length || 0}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Clientes com status ativo
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Pré-registrados</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {effectiveClients.filter(client => client.status === 'pre_registred').length || 0}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Clientes pré-registrados
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Clientes Inativos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {effectiveClients.filter(client => client.status === 'inactived').length || 0}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Clientes com status inativo
-            </p>
-          </CardContent>
-        </Card>
+      <div className="px-4">
+        <SummaryCards items={summaryItems} />
       </div>
 
       {/* Client List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Lista de Clientes</CardTitle>
-          <CardDescription>
-            Gerencie seus clientes, visualize informações e histórico de atividades.
-          </CardDescription>
-          <div className="flex flex-col sm:flex-row gap-4 mt-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome, email ou documento..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
-              />
+      <div className="px-4 pb-4">
+        <Card>
+        <CardHeader className="space-y-4 relative z-0">
+          <div className="flex flex-col lg:flex-row gap-2 items-start lg:items-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:flex-1 gap-2 w-full">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome, email ou documento..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+              <div className="w-full">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar por status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os Status</SelectItem>
+                    <SelectItem value="actived">Ativados</SelectItem>
+                    <SelectItem value="pre_registred">Pré-registrados</SelectItem>
+                    <SelectItem value="inactived">Inativos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="w-full sm:w-48">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filtrar por status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os Status</SelectItem>
-                  <SelectItem value="actived">Ativados</SelectItem>
-                  <SelectItem value="pre_registred">Pré-registrados</SelectItem>
-                  <SelectItem value="inactived">Inativos</SelectItem>
-                </SelectContent>
-              </Select>
+
+            <div className="flex gap-2 w-full lg:w-auto">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+                className="flex items-center gap-2 flex-1 lg:flex-none"
+              >
+                <Filter className="h-4 w-4" />
+                {isFiltersOpen ? "Menos Filtros" : "Mais Filtros"}
+                {isFiltersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
             </div>
           </div>
+
+          {isFiltersOpen && (
+            <div className="space-y-2 pt-2 border-t animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className="flex justify-end pt-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={clearFilters}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="mr-2 h-4 w-4" /> Limpar Filtros
+                </Button>
+              </div>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {(useMock ? false : clientsQuery.isLoading) ? (
@@ -1009,6 +1023,7 @@ export default function Clients() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { useUser } from '@/hooks/users';
 import { useContractsList } from '@/hooks/contracts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
+import { cpfApplyMask } from '@/lib/masks/cpf-apply-mask';
 
 export default function UserView() {
   const { id } = useParams<{ id: string }>();

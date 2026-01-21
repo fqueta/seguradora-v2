@@ -68,7 +68,7 @@ class FornecedorController extends Controller
                   ->orWhere('cnpj', 'like', '%' . $files . '%');
             });
         }
-        
+
         $query->orderBy($order_by, $order);
 
         $users = $query->paginate($perPage);
@@ -93,9 +93,23 @@ class FornecedorController extends Controller
         //     return response()->json(['error' => 'Acesso negado'], 403);
         // }
 
-        // Validação de exclusão lógica
-        if (!empty($request->cpf)) {
-            $userCpfDel = User::where('cpf', $request->cpf)
+        // 1. Limpeza e normalização inicial
+        $email = $this->normalizeOptionalString($request->get('email'));
+        $cpf = $request->get('cpf') ? preg_replace('/\D/', '', $request->get('cpf')) : null;
+        $cnpj = $request->get('cnpj') ? preg_replace('/\D/', '', $request->get('cnpj')) : null;
+
+        // Atualizar o request com os valores limpos
+        $request->merge([
+            'email' => $email,
+            'cpf' => $cpf,
+            'cnpj' => $cnpj,
+        ]);
+
+        // 2. Verificações de Lixeira (apenas se o campo estiver preenchido)
+
+        // CPF
+        if ($cpf) {
+            $userCpfDel = User::where('cpf', $cpf)
                 ->where(function($q){
                     $q->where('deletado', 's')->orWhere('excluido', 's');
                 })->first();
@@ -106,8 +120,10 @@ class FornecedorController extends Controller
                 ], 422);
             }
         }
-        if (!empty($request->email)) {
-            $userEmailDel = User::where('email', $request->email)
+
+        // Email
+        if ($email) {
+            $userEmailDel = User::where('email', $email)
                 ->where(function($q){
                     $q->where('deletado', 's')->orWhere('excluido', 's');
                 })->first();
@@ -163,8 +179,12 @@ class FornecedorController extends Controller
         if (array_key_exists('email', $validated) && ($validated['email'] === '' || $validated['email'] === null)) {
             $validated['email'] = null;
         }
-        if (array_key_exists('cpf', $validated) && ($validated['cpf'] === '' || $validated['cpf'] === null)) {
-            $validated['cpf'] = null;
+        if (array_key_exists('cpf', $validated)) {
+            if ($validated['cpf'] === '' || $validated['cpf'] === null) {
+                $validated['cpf'] = null;
+            } else {
+                $validated['cpf'] = preg_replace('/\D/', '', $validated['cpf']);
+            }
         }
         if (array_key_exists('cnpj', $validated) && ($validated['cnpj'] === '' || $validated['cnpj'] === null)) {
             $validated['cnpj'] = null;
@@ -200,7 +220,7 @@ class FornecedorController extends Controller
         // }
         // Ensure we only show fornecedores
         $user = User::where('permission_id', 6)->findOrFail($id);
-        
+
         if (is_string($user->config)) {
             $user->config = json_decode($user->config, true) ?? [];
         }
@@ -216,6 +236,14 @@ class FornecedorController extends Controller
         // if (!$this->permissionService->isHasPermission('edit')) {
         //     return response()->json(['error' => 'Acesso negado'], 403);
         // }
+
+        // Limpar CPF e CNPJ antes de qualquer verificação
+        if ($request->filled('cpf')) {
+            $request->merge(['cpf' => preg_replace('/\D/', '', $request->cpf)]);
+        }
+        if ($request->filled('cnpj')) {
+            $request->merge(['cnpj' => preg_replace('/\D/', '', $request->cnpj)]);
+        }
 
         $userToUpdate = User::where('permission_id', 6)->findOrFail($id);
 
@@ -276,8 +304,12 @@ class FornecedorController extends Controller
         if (array_key_exists('email', $validated) && ($validated['email'] === '' || $validated['email'] === null)) {
             $validated['email'] = null;
         }
-        if (array_key_exists('cpf', $validated) && ($validated['cpf'] === '' || $validated['cpf'] === null)) {
-            $validated['cpf'] = null;
+        if (array_key_exists('cpf', $validated)) {
+            if ($validated['cpf'] === '' || $validated['cpf'] === null) {
+                $validated['cpf'] = null;
+            } else {
+                $validated['cpf'] = preg_replace('/\D/', '', $validated['cpf']);
+            }
         }
         if (array_key_exists('cnpj', $validated) && ($validated['cnpj'] === '' || $validated['cnpj'] === null)) {
             $validated['cnpj'] = null;

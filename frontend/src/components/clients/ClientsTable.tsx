@@ -14,6 +14,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { clientsService } from '@/services/clientsService';
+import { cpfApplyMask } from '@/lib/masks/cpf-apply-mask';
 
 interface ClientsTableProps {
   clients: ClientRecord[];
@@ -116,7 +117,7 @@ export function ClientsTable({ clients, onEdit, onDelete, onForceDelete, isLoadi
             >
               <TableCell className="font-medium">{client.name}</TableCell>
               <TableCell>
-                {client.tipo_pessoa === 'pf' ? (client.cpf || 'Não informado') : (client.cnpj || 'Não informado')}
+                {client.tipo_pessoa === 'pf' ? (client.cpf ? cpfApplyMask(client.cpf) : 'Não informado') : (client.cnpj || 'Não informado')}
               </TableCell>
               <TableCell>{client.email || 'Não informado'}</TableCell>
               <TableCell>{client.organization?.name || 'Não informada'}</TableCell>

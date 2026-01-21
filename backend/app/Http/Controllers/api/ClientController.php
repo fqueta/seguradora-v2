@@ -283,76 +283,93 @@ class ClientController extends Controller
             return response()->json(['error' => 'Acesso negado'], 403);
         }
 
-        // Verificar se o email já existe na lixeira
-        if ($request->filled('email')) {
-            $existingUser = Client::withoutGlobalScope('client')
-                ->where('email', $request->email)
+        // 1. Limpeza e normalização inicial de todos os campos
+        $email = $this->normalizeOptionalString($request->get('email'));
+        $cpf = $request->get('cpf') ? preg_replace('/\D/', '', $request->get('cpf')) : null;
+        $cnpj = $request->get('cnpj') ? preg_replace('/\D/', '', $request->get('cnpj')) : null;
+        $celular = $request->get('celular') ? preg_replace('/\D/', '', $request->get('celular')) : null;
+        $genero = $this->normalizeOptionalString($request->get('genero')) ?: 'ni';
+        $tipo_pessoa = $request->get('tipo_pessoa') ?: 'pf';
+
+        // Atualizar o request com os valores limpos para validações posteriores
+        $request->merge([
+            'email' => $email,
+            'cpf' => $cpf,
+            'cnpj' => $cnpj,
+            'celular' => $celular,
+            'genero' => $genero,
+            'tipo_pessoa' => $tipo_pessoa,
+        ]);
+
+        // 2. Verificações de Lixeira (apenas se o campo estiver preenchido)
+
+        // Email
+        if ($email) {
+            $existingEmail = Client::withoutGlobalScope('client')
+                ->where('email', $email)
                 ->where(function($q) {
                     $q->where('deletado', 's')->orWhere('excluido', 's');
                 })
                 ->first();
 
-            if ($existingUser) {
+            if ($existingEmail) {
                 return response()->json([
                     'message' => 'Este cadastro já está em nossa base de dados, verifique na lixeira.',
                     'errors'  => ['email' => ['Cadastro com este e-mail está na lixeira']],
                 ], 422);
             }
         }
-        // verificar se ja existe o celular na lixeira
-        if ($request->filled('celular')) {
-            $existingUser = Client::withoutGlobalScope('client')
-                ->where('celular', $request->celular)
+
+        // Celular
+        if ($celular) {
+            $existingCelular = Client::withoutGlobalScope('client')
+                ->where('celular', $celular)
                 ->where(function($q) {
                     $q->where('deletado', 's')->orWhere('excluido', 's');
                 })
                 ->first();
 
-            if ($existingUser) {
+            if ($existingCelular) {
                 return response()->json([
                     'message' => 'Este cadastro já está em nossa base de dados, verifique na lixeira.',
                     'errors'  => ['celular' => ['Cadastro com este celular está na lixeira']],
                 ], 422);
             }
         }
-        //remover a mascara do celular
-        if ($request->filled('celular')) {
-            $request->merge([
-                'celular' => preg_replace('/\D/', '', $request->celular),
-            ]);
-        }
-        // Normalizar campos opcionais para null quando vazios (evita unique com "")
-        $request->merge([
-            'email'   => $this->normalizeOptionalString($request->get('email')),
-            'cpf'     => $this->normalizeOptionalString($request->get('cpf')),
-            'cnpj'    => $this->normalizeOptionalString($request->get('cnpj')),
-            'celular' => $this->normalizeOptionalString($request->get('celular')),
-            'genero' => $this->normalizeOptionalString($request->get('genero')),
-        ]);
-        // Verificar se o CPF ou CNPJ já existe na lixeira
-        if ($request->filled('cpf') || $request->filled('cnpj')) {
-            $existingUser = Client::withoutGlobalScope('client')
-                ->where(function($q) use ($request) {
-                    $q->where('cpf', $request->cpf)->orWhere('cnpj', $request->cnpj);
+
+        // CPF/CNPJ
+        if ($cpf || $cnpj) {
+            $existingDoc = Client::withoutGlobalScope('client')
+                ->where(function($q) use ($cpf, $cnpj) {
+                    if ($cpf) {
+                        $q->where('cpf', $cpf);
+                    }
+                    if ($cnpj) {
+                        if ($cpf) {
+                            $q->orWhere('cnpj', $cnpj);
+                        } else {
+                            $q->where('cnpj', $cnpj);
+                        }
+                    }
                 })
                 ->where(function($q) {
                     $q->where('deletado', 's')->orWhere('excluido', 's');
                 })
                 ->first();
 
-            if ($existingUser) {
+            if ($existingDoc) {
+                $errors = [];
+                if ($cpf && $existingDoc->cpf === $cpf) $errors['cpf'] = ['Cadastro com este CPF está na lixeira'];
+                if ($cnpj && $existingDoc->cnpj === $cnpj) $errors['cnpj'] = ['Cadastro com este CNPJ está na lixeira'];
+
                 return response()->json([
                     'message' => 'Este cadastro já está em nossa base de dados, verifique na lixeira.',
-                    'errors'  => ['cpf' => ['Cadastro com este CPF está na lixeira'], 'cnpj' => ['Cadastro com este CNPJ está na lixeira']],
+                    'errors'  => $errors,
                 ], 422);
             }
         }
 
-        $request->merge([
-            'tipo_pessoa' => $request->get('tipo_pessoa') ? $request->get('tipo_pessoa') : 'pf',
-            'genero' => $request->get('genero') ? $request->get('genero') : 'ni',
-        ]);
-
+        // 3. Validação principal
         $validator = Validator::make($request->all(), [
             'tipo_pessoa'   => ['required', Rule::in(['pf','pj'])],
             'name'          => 'required|string|max:255',
@@ -472,12 +489,18 @@ class ClientController extends Controller
 
         $clientToUpdate = Client::findOrFail($id);
 
-        // Normalizar campos opcionais para null quando vazios (evita unique com "")
+        // 1. Limpeza e normalização inicial
+        $email = $this->normalizeOptionalString($request->get('email'));
+        $cpf = $request->get('cpf') ? preg_replace('/\D/', '', $request->get('cpf')) : null;
+        $cnpj = $request->get('cnpj') ? preg_replace('/\D/', '', $request->get('cnpj')) : null;
+        $celular = $request->get('celular') ? preg_replace('/\D/', '', $request->get('celular')) : null;
+
+        // Atualizar o request com os valores limpos
         $request->merge([
-            'email'   => $this->normalizeOptionalString($request->get('email')),
-            'cpf'     => $this->normalizeOptionalString($request->get('cpf')),
-            'cnpj'    => $this->normalizeOptionalString($request->get('cnpj')),
-            'celular' => $this->normalizeOptionalString($request->get('celular')),
+            'email' => $email,
+            'cpf' => $cpf,
+            'cnpj' => $cnpj,
+            'celular' => $celular,
         ]);
 
         $validator = Validator::make($request->all(), [

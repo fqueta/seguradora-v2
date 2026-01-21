@@ -304,17 +304,7 @@ const App = () => {
                 <ProtectedRoute>
                   <StudentInvoices />
                 </ProtectedRoute>
-              } />
-              <Route path="/aluno/pedidos" element={
-                <ProtectedRoute>
-                  <StudentOrders />
-                </ProtectedRoute>
-              } />
-              <Route path="/aluno/notas" element={
-                <ProtectedRoute>
-                  <StudentGrades />
-                </ProtectedRoute>
-              } />
+              } />              
               <Route path="/aluno/perfil" element={
                 <ProtectedRoute>
                   <StudentProfile />

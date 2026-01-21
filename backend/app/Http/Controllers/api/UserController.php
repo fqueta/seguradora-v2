@@ -134,9 +134,24 @@ class UserController extends Controller
         if (!$this->permissionService->isHasPermission('create')) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
-        // Verifica se já existe usuário deletado com o mesmo CPF
-        if (!empty($request->cpf)) {
-            $userCpfDel = User::where('cpf', $request->cpf)
+
+        // 1. Limpeza e normalização inicial
+        $email = $this->normalizeOptionalString($request->get('email'));
+        $cpf = $request->get('cpf') ? preg_replace('/\D/', '', $request->get('cpf')) : null;
+        $cnpj = $request->get('cnpj') ? preg_replace('/\D/', '', $request->get('cnpj')) : null;
+
+        // Atualizar o request com os valores limpos
+        $request->merge([
+            'email' => $email,
+            'cpf' => $cpf,
+            'cnpj' => $cnpj,
+        ]);
+
+        // 2. Verificações de Lixeira (apenas se o campo estiver preenchido)
+
+        // CPF
+        if ($cpf) {
+            $userCpfDel = User::where('cpf', $cpf)
                 ->where(function($q){
                     $q->where('deletado', 's')->orWhere('excluido', 's');
                 })->first();
@@ -147,9 +162,10 @@ class UserController extends Controller
                 ], 422);
             }
         }
-        // Verifica se já existe usuário deletado com o mesmo EMAIL
-        if (!empty($request->email)) {
-            $userEmailDel = User::where('email', $request->email)
+
+        // Email
+        if ($email) {
+            $userEmailDel = User::where('email', $email)
                 ->where(function($q){
                     $q->where('deletado', 's')->orWhere('excluido', 's');
                 })->first();
@@ -160,6 +176,7 @@ class UserController extends Controller
                 ], 422);
             }
         }
+
         $validator = Validator::make($request->all(), [
             'tipo_pessoa'   => ['required', Rule::in(['pf','pj'])],
             'name'          => 'required|string|max:255',
@@ -202,8 +219,12 @@ class UserController extends Controller
         if (array_key_exists('email', $validated) && ($validated['email'] === '' || $validated['email'] === null)) {
             $validated['email'] = null;
         }
-        if (array_key_exists('cpf', $validated) && ($validated['cpf'] === '' || $validated['cpf'] === null)) {
-            $validated['cpf'] = null;
+        if (array_key_exists('cpf', $validated)) {
+            if ($validated['cpf'] === '' || $validated['cpf'] === null) {
+                $validated['cpf'] = null;
+            } else {
+                $validated['cpf'] = preg_replace('/\D/', '', $validated['cpf']);
+            }
         }
         if (array_key_exists('cnpj', $validated) && ($validated['cnpj'] === '' || $validated['cnpj'] === null)) {
             $validated['cnpj'] = null;
@@ -432,6 +453,14 @@ class UserController extends Controller
             return response()->json(['error' => 'Acesso negado'], 403);
         }
 
+        // Limpar CPF e CNPJ antes de qualquer verificação
+        if ($request->filled('cpf')) {
+            $request->merge(['cpf' => preg_replace('/\D/', '', $request->cpf)]);
+        }
+        if ($request->filled('cnpj')) {
+            $request->merge(['cnpj' => preg_replace('/\D/', '', $request->cnpj)]);
+        }
+
         $userToUpdate = User::findOrFail($id);
 
         // Security: não pode editar visualiza dados de permission_id < ao seu
@@ -503,8 +532,12 @@ class UserController extends Controller
         if (array_key_exists('email', $validated) && ($validated['email'] === '' || $validated['email'] === null)) {
             $validated['email'] = null;
         }
-        if (array_key_exists('cpf', $validated) && ($validated['cpf'] === '' || $validated['cpf'] === null)) {
-            $validated['cpf'] = null;
+        if (array_key_exists('cpf', $validated)) {
+            if ($validated['cpf'] === '' || $validated['cpf'] === null) {
+                $validated['cpf'] = null;
+            } else {
+                $validated['cpf'] = preg_replace('/\D/', '', $validated['cpf']);
+            }
         }
         if (array_key_exists('cnpj', $validated) && ($validated['cnpj'] === '' || $validated['cnpj'] === null)) {
             $validated['cnpj'] = null;

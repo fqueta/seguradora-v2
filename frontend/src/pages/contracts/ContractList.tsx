@@ -1,18 +1,37 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useContractsList, useDeleteContract, useContractsTrash, useRestoreContract, useForceDeleteContract } from '@/hooks/contracts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, Pencil, Trash, Eye, X, MoreHorizontal, RotateCcw, Trash2 } from 'lucide-react';
+import { 
+    Plus, 
+    Search, 
+    Pencil, 
+    Trash, 
+    Eye, 
+    X, 
+    MoreHorizontal, 
+    RotateCcw, 
+    Trash2,
+    Calendar,
+    CalendarX,
+    Check,
+    Archive,
+    Filter,
+    ChevronDown,
+    ChevronUp
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProductsList } from '@/hooks/products';
 import { useOrganizationsList } from '@/hooks/organizations';
 import { useUsersList } from '@/hooks/users';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from "@/components/ui/badge";
+import { SummaryCards } from '@/components/common/SummaryCards';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -34,14 +53,17 @@ export default function ContractList() {
     const [search, setSearch] = useState('');
     const debouncedSearch = useDebounce(search, 500);
     const [status, setStatus] = useState<string>('all');
+    const [productId, setProductId] = useState<string>('all');
     const [vigenciaInicio, setVigenciaInicio] = useState<string>('');
     const [vigenciaFim, setVigenciaFim] = useState<string>('');
     const [orgId, setOrgId] = useState<string>('all');
     const [ownerId, setOwnerId] = useState<string>('all');
     const [page, setPage] = useState(1);
+    const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
     const { data: orgs } = useOrganizationsList({ per_page: 100 });
     const { data: users } = useUsersList({ per_page: 100 });
+    const { data: products } = useProductsList({ per_page: 100 });
 
     const [isTrashMode, setIsTrashMode] = useState(false);
 
@@ -49,6 +71,7 @@ export default function ContractList() {
         page, 
         search: debouncedSearch,
         status: status !== 'all' ? status : undefined,
+        product_id: productId !== 'all' ? productId : undefined,
         vigencia_inicio: vigenciaInicio || undefined,
         vigencia_fim: vigenciaFim || undefined,
         organization_id: orgId !== 'all' ? orgId : undefined,
@@ -60,6 +83,29 @@ export default function ContractList() {
 
     const data = isTrashMode ? trashData : regularData;
     const isLoading = isTrashMode ? trashLoading : regularLoading;
+    const totalContracts = data?.total || 0;
+
+    const summaryItems = useMemo(() => {
+        const contracts = data?.data || [];
+        const total = data?.total || 0;
+        const threeDaysAgo = new Date();
+        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+        const recent = contracts.filter((c: any) => {
+            if (!c.created_at) return false;
+            return new Date(c.created_at) >= threeDaysAgo;
+        }).length;
+
+        const active = contracts.filter((c: any) => c.status === 'active' || c.status === 'approved').length;
+        const inactive = contracts.filter((c: any) => c.status === 'cancelled' || c.status === 'rejected').length;
+
+        return [
+            { label: 'Todos cadastros', value: total, icon: Calendar },
+            { label: 'Cadastros recentes', value: recent, icon: CalendarX },
+            { label: 'Cadastros ativos', value: active, icon: Check },
+            { label: 'Cadastros inativos', value: inactive, icon: Archive },
+        ];
+    }, [data]);
 
     const deleteMutation = useDeleteContract();
     const restoreMutation = useRestoreContract();
@@ -111,6 +157,7 @@ export default function ContractList() {
     const clearFilters = () => {
         setSearch('');
         setStatus('all');
+        setProductId('all');
         setVigenciaInicio('');
         setVigenciaFim('');
         setOrgId('all');
@@ -119,8 +166,8 @@ export default function ContractList() {
     };
 
     return (
-        <div className="p-6 space-y-6">
-            <div className="flex justify-between items-center">
+        <div className="p-0 space-y-4">
+            <div className="flex justify-between items-center px-4 pt-4">
                 <div className="flex items-center gap-2">
                     <h1 className="text-3xl font-bold">Contratos</h1>
                     {isTrashMode && <Badge variant="destructive">LIXEIRA</Badge>}
@@ -142,85 +189,131 @@ export default function ContractList() {
                 </div>
             </div>
 
-            <Card>
+            <div className="px-4">
+                <SummaryCards items={summaryItems} />
+            </div>
+
+            <div className="px-4 pb-4">
+                <Card>
                 <CardHeader className="space-y-4 relative z-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="relative">
-                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Buscar contratos..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-8"
-                            />
+                    <div className="flex flex-col lg:flex-row gap-2 items-start lg:items-center">
+                        <div className="grid grid-cols-1 md:grid-cols-3 lg:flex-1 gap-2 w-full">
+                            <div className="relative">
+                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Buscar contratos..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-8"
+                                />
+                            </div>
+
+                            <Select value={status} onValueChange={setStatus}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todos os Status</SelectItem>
+                                    <SelectItem value="pending">Pendente</SelectItem>
+                                    <SelectItem value="approved">Aprovado</SelectItem>
+                                    <SelectItem value="active">Ativo</SelectItem>
+                                    <SelectItem value="cancelled">Cancelado</SelectItem>
+                                    <SelectItem value="rejected">Rejeitado</SelectItem>
+                                    <SelectItem value="draft">Rascunho</SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <Select value={productId} onValueChange={setProductId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Produto" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todos os Produtos</SelectItem>
+                                    {products?.data?.map((product: any) => (
+                                        <SelectItem key={product.id} value={product.id.toString()}>
+                                            {product.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
 
-                        <Select value={status} onValueChange={setStatus}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Todos os Status</SelectItem>
-                                <SelectItem value="pending">Pendente</SelectItem>
-                                <SelectItem value="approved">Aprovado</SelectItem>
-                                <SelectItem value="active">Ativo</SelectItem>
-                                <SelectItem value="cancelled">Cancelado</SelectItem>
-                                <SelectItem value="rejected">Rejeitado</SelectItem>
-                                <SelectItem value="draft">Rascunho</SelectItem>
-                            </SelectContent>
-                        </Select>
-
-                        <div className="flex items-center gap-2 col-span-1 md:col-span-2 lg:col-span-2">
-                            <Input
-                                type="date"
-                                value={vigenciaInicio}
-                                onChange={(e) => setVigenciaInicio(e.target.value)}
-                                className="text-xs"
-                                placeholder="Início"
-                            />
-                            <span className="text-muted-foreground text-xs">até</span>
-                            <Input
-                                type="date"
-                                value={vigenciaFim}
-                                onChange={(e) => setVigenciaFim(e.target.value)}
-                                className="text-xs"
-                                placeholder="Fim"
-                            />
-                            <Button variant="outline" size="icon" onClick={clearFilters} title="Limpar Filtros">
-                                <X className="h-4 w-4" />
-                            </Button>
-                        </div>
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+                            className="flex items-center gap-2 w-full lg:w-auto"
+                        >
+                            <Filter className="h-4 w-4" />
+                            {isFiltersOpen ? "Menos Filtros" : "Mais Filtros"}
+                            {isFiltersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </Button>
                     </div>
 
-                    {canFilterAdmin && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Select value={orgId} onValueChange={setOrgId}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Organização" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Todas as Organizações</SelectItem>
-                                    {orgs?.data?.map((org: any) => (
-                                        <SelectItem key={org.id} value={org.id.toString()}>
-                                            {org.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                    {isFiltersOpen && (
+                        <div className="space-y-2 pt-2 border-t animate-in fade-in slide-in-from-top-1 duration-200">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+                                <div className="flex items-center gap-2 col-span-1 md:col-span-2 lg:col-span-2 min-w-0">
+                                    <Input
+                                        type="date"
+                                        value={vigenciaInicio}
+                                        onChange={(e) => setVigenciaInicio(e.target.value)}
+                                        className="text-xs w-full flex-1 min-w-0"
+                                        placeholder="Início"
+                                    />
+                                    <span className="text-muted-foreground text-xs whitespace-nowrap">até</span>
+                                    <Input
+                                        type="date"
+                                        value={vigenciaFim}
+                                        onChange={(e) => setVigenciaFim(e.target.value)}
+                                        className="text-xs w-full flex-1 min-w-0"
+                                        placeholder="Fim"
+                                    />
+                                </div>
 
-                            <Select value={ownerId} onValueChange={setOwnerId}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Autor/Vendedor" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Todos os Autores</SelectItem>
-                                    {users?.data?.map((u: any) => (
-                                        <SelectItem key={u.id} value={u.id.toString()}>
-                                            {u.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                {canFilterAdmin && (
+                                    <>
+                                        <Select value={orgId} onValueChange={setOrgId}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Organização" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Todas as Organizações</SelectItem>
+                                                {orgs?.data?.map((org: any) => (
+                                                    <SelectItem key={org.id} value={org.id.toString()}>
+                                                        {org.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+
+                                        <Select value={ownerId} onValueChange={setOwnerId}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Autor/Vendedor" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Todos os Autores</SelectItem>
+                                                {users?.data?.map((u: any) => (
+                                                    <SelectItem key={u.id} value={u.id.toString()}>
+                                                        {u.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </>
+                                )}
+                            </div>
+
+                            <div className="flex justify-end pt-2">
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={clearFilters}
+                                    className="text-muted-foreground hover:text-foreground"
+                                >
+                                    <X className="mr-2 h-4 w-4" /> Limpar Filtros
+                                </Button>
+                            </div>
                         </div>
                     )}
                 </CardHeader>
@@ -232,7 +325,7 @@ export default function ContractList() {
                                 <TableHead>Status</TableHead>
                                 <TableHead>Titular</TableHead>
                                 <TableHead>Organização</TableHead>
-                                <TableHead>Valor</TableHead>
+                                <TableHead>Produto</TableHead>
                                 <TableHead>Início</TableHead>
                                 <TableHead>Fim</TableHead>
                                 <TableHead className="text-right">Ações</TableHead>
@@ -265,11 +358,7 @@ export default function ContractList() {
                                             <TableCell>{translatedStatus}</TableCell>
                                             <TableCell>{contract.client?.name || '-'}</TableCell>
                                             <TableCell>{contract.organization?.name || '-'}</TableCell>
-                                            <TableCell>
-                                                {contract.value 
-                                                    ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(contract.value)
-                                                    : '-'}
-                                            </TableCell>
+                                            <TableCell>{contract.product?.name || contract.product?.post_title || '-'}</TableCell>
                                             <TableCell>
                                                 {contract.start_date 
                                                     ? new Date(contract.start_date).toLocaleDateString('pt-BR') 
@@ -351,6 +440,7 @@ export default function ContractList() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            </div>
         </div>
     );
 }

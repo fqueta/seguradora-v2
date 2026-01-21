@@ -50,7 +50,7 @@ export function SuppliersTable({ suppliers, onEdit, onDelete, onView, isLoading 
               {supplier.config?.telefone_comercial && <div className="flex items-center gap-1"><Phone className="h-3 w-3" /> {supplier.config.telefone_comercial}</div>}
             </TableCell>
             <TableCell>
-              {supplier.tipo_pessoa === 'pf' ? supplier.cpf : supplier.cnpj}
+              {supplier.tipo_pessoa === 'pf' ? (supplier.cpf ? cpfApplyMask(supplier.cpf) : 'Não informado') : (supplier.cnpj || 'Não informado')}
             </TableCell>
             <TableCell>
               {supplier.config?.cidade && `${supplier.config.cidade}/${supplier.config.uf}`}

@@ -427,6 +427,7 @@ export default function Users() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome</TableHead>
+                    <TableHead>CPF</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Permissão</TableHead>
                     {/* <TableHead>Status</TableHead> */}
@@ -440,6 +441,9 @@ export default function Users() {
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">
                         {user.name}
+                      </TableCell>
+                      <TableCell>
+                        {user.cpf ? cpfApplyMask(user.cpf) : '-'}
                       </TableCell>
                       <TableCell>
                         {user.email}

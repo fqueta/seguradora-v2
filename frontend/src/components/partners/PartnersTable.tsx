@@ -51,7 +51,7 @@ export function PartnersTable({ partners, onEdit, onDelete, onView, isLoading }:
               {partner.config?.celular && <div className="flex items-center gap-1"><Phone className="h-3 w-3" /> {partner.config.celular}</div>}
             </TableCell>
             <TableCell>
-              {partner.tipo_pessoa === 'pf' ? partner.cpf : partner.cnpj}
+              {partner.tipo_pessoa === 'pf' ? (partner.cpf ? cpfApplyMask(partner.cpf) : 'Não informado') : (partner.cnpj || 'Não informado')}
             </TableCell>
             <TableCell>
               {partner.config?.cidade && `${partner.config.cidade}/${partner.config.uf}`}

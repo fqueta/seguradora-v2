@@ -16,7 +16,7 @@ class ContractController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Contract::with(['client', 'owner', 'organization']);
+        $query = Contract::with(['client', 'owner', 'organization', 'product']);
 
         if ($request->has('search')) {
             $search = $request->search;
@@ -32,6 +32,10 @@ class ContractController extends Controller
 
         if ($request->filled('client_id')) {
             $query->where('client_id', $request->client_id);
+        }
+
+        if ($request->filled('product_id')) {
+            $query->where('product_id', $request->product_id);
         }
 
         // Filtros de Vigência (Periodo)
@@ -120,6 +124,18 @@ class ContractController extends Controller
             'data' => $contract
         ];
         $httpStatus = 201;
+
+        if ($contract && $contract->status === 'approved') {
+            \App\Services\ContractEventLogger::logStatusChange(
+                $contract,
+                null,
+                'approved',
+                'Contrato criado com status aprovado.',
+                [],
+                null,
+                auth()->id()
+            );
+        }
 
         if ($contract) {
              $integrationRet = $this->processSulamericaIntegration($contract);
@@ -271,6 +287,10 @@ class ContractController extends Controller
 
         if ($request->filled('client_id')) {
             $query->where('client_id', $request->client_id);
+        }
+
+        if ($request->filled('product_id')) {
+            $query->where('product_id', $request->product_id);
         }
 
         // Security and Role-based filtering (same as index)
@@ -478,6 +498,7 @@ class ContractController extends Controller
 
                     // Verifica resposta e atualiza status, contract_number, c_number
                     if (isset($response['exec']) && $response['exec'] === true) {
+                        $old = $contract->status;
                         $contract->update(['status' => 'approved']);
                         Qlib::update_contract_meta($contract->id, 'envio_fornecedor_sucesso', $response_json);
                         $contract_number = $response['data']['apolice']['numApolice']??null;
@@ -495,6 +516,15 @@ class ContractController extends Controller
                             'integracao_sulamerica',
                             'Integração SulAmérica realizada com sucesso.',
                             ['status' => 'success'],
+                            $fullLogPayload,
+                            auth()->id()
+                        );
+                        \App\Services\ContractEventLogger::logStatusChange(
+                            $contract,
+                            $old,
+                            'approved',
+                            'Status atualizado para aprovado via integração.',
+                            [],
                             $fullLogPayload,
                             auth()->id()
                         );
