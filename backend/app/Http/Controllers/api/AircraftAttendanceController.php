@@ -141,7 +141,7 @@ class AircraftAttendanceController extends Controller
                 'started_at' => 'required|date',
                 'client_id' => 'required|exists:users,id',
                 'client_name' => 'required|string|max:255',
-
+                
                 // Campos opcionais
                 'description' => 'nullable|string',
                 'current_funnel_id' => 'nullable|integer',
@@ -225,7 +225,7 @@ class AircraftAttendanceController extends Controller
                 'started_at' => 'sometimes|date',
                 'client_id' => 'sometimes|exists:users,id',
                 'client_name' => 'sometimes|string|max:255',
-
+                
                 // Campos opcionais
                 'description' => 'nullable|string',
                 'current_funnel_id' => 'nullable|integer',

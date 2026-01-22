@@ -234,7 +234,7 @@ class CategoryController extends Controller
     }
     /**
      * Metodo para mapear e normalizar
-     *
+     *  
      */
     private function mapData($data)
     {
