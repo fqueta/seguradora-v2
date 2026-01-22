@@ -150,6 +150,9 @@ Route::name('api.')->prefix('api/v1')->middleware([
         Route::get('options/branding', [OptionController::class, 'publicBranding'])
             ->name('options.public.branding')
             ->middleware('throttle:60,1');
+        Route::get('options/appearance', [OptionController::class, 'publicAppearance'])
+            ->name('options.public.appearance')
+            ->middleware('throttle:60,1');
 
     });
 

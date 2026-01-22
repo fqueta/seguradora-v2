@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Settings, Save, Palette, Link, Image as ImageIcon, Building2 } from "lucide-react";
+import { Settings, Save, Palette, Link, Image as ImageIcon, Building2, Loader2 } from "lucide-react";
 import { getInstitutionName, getInstitutionSlogan, getInstitutionDescription, getInstitutionUrl } from "@/lib/branding";
 import { systemSettingsService, AdvancedSystemSettings } from "@/services/systemSettingsService";
 import { useApiOptions } from "@/hooks/useApiOptions";
@@ -15,6 +15,7 @@ import { useFunnelsList, useStagesList } from "@/hooks/funnels";
 import { fileStorageService, type FileStorageItem, extractFileStorageUrl } from "@/services/fileStorageService";
 import { ImageUpload } from "@/components/lib/ImageUpload";
 import { SulAmericaSettingsCard } from "@/components/settings/SulAmericaSettingsCard";
+import { useTheme } from "@/contexts/ThemeContext";
 
 /**
  * Página de configurações do sistema
@@ -37,6 +38,8 @@ export default function SystemSettings() {
     saveMultipleOptions, 
     getApiConfigOptions 
   } = useApiOptions();
+
+  const { applyThemeSettings } = useTheme();
   
   // Estado local para as configurações de API (antes de salvar)
   const [localApiOptions, setLocalApiOptions] = useState<{[key: number]: string}>({});
@@ -110,6 +113,8 @@ export default function SystemSettings() {
     };
   });
 
+  const [appearanceHydratedFromDb, setAppearanceHydratedFromDb] = useState(false);
+
   // Estados para configurações avançadas - Switch
   const [advancedSwitchSettings, setAdvancedSwitchSettings] = useState({
     enableApiLogging: true,
@@ -167,7 +172,7 @@ export default function SystemSettings() {
     localStorage.setItem('appearanceSettings', JSON.stringify(newSettings));
     
     // Aplicar configurações de aparência em tempo real
-    applyAppearanceSettings(newSettings);
+    applyThemeSettings();
   };
 
   // -----------------------------
@@ -470,52 +475,58 @@ export default function SystemSettings() {
   /**
    * Aplica configurações de aparência em tempo real
    */
-  const applyAppearanceSettings = (settings: typeof appearanceSettings) => {
-    const root = document.documentElement;
-    
-    // Aplicar modo escuro
-    if (settings.darkMode) {
-      document.body.classList.add('dark');
-    } else {
-      document.body.classList.remove('dark');
-    }
-    
-    // Aplicar cores personalizadas
-    root.style.setProperty('--primary-color', settings.primaryColor);
-    root.style.setProperty('--secondary-color', settings.secondaryColor);
-    
-    // Aplicar tamanho da fonte
-    const fontSizes = {
-      small: '14px',
-      medium: '16px',
-      large: '18px',
-      'extra-large': '20px'
-    };
-    root.style.setProperty('--base-font-size', fontSizes[settings.fontSize as keyof typeof fontSizes]);
-    
-    // Aplicar modo compacto
-    if (settings.compactMode) {
-      document.body.classList.add('compact-mode');
-    } else {
-      document.body.classList.remove('compact-mode');
-    }
-    
-    // Aplicar animações
-    if (!settings.showAnimations) {
-      document.body.classList.add('no-animations');
-    } else {
-      document.body.classList.remove('no-animations');
+  const handleSaveAppearanceSettings = async () => {
+    setIsLoading(true);
+    try {
+      const ok = await saveMultipleOptions({
+        ui_primary_color: String(appearanceSettings.primaryColor || '').trim(),
+        ui_secondary_color: String(appearanceSettings.secondaryColor || '').trim(),
+      });
+
+      if (!ok) {
+        toast.error('Erro ao salvar cores do sistema');
+        return;
+      }
+
+      localStorage.setItem('appearanceSettings', JSON.stringify(appearanceSettings));
+      applyThemeSettings();
+      toast.success('Cores do sistema salvas e aplicadas!');
+    } catch (e) {
+      toast.error('Erro ao salvar cores do sistema');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  /**
-   * Salva configurações de aparência
-   */
-  const handleSaveAppearanceSettings = () => {
-    localStorage.setItem('appearanceSettings', JSON.stringify(appearanceSettings));
-    applyAppearanceSettings(appearanceSettings);
-    toast.success('Configurações de aparência salvas!');
-  };
+  useEffect(() => {
+    if (appearanceHydratedFromDb) return;
+    if (!apiOptions || apiOptions.length === 0) return;
+
+    const findOpt = (key: string) => (apiOptions as any[]).find((o) => String(o?.url || '') === key);
+    const primary = String(findOpt('ui_primary_color')?.value || '').trim();
+    const secondary = String(findOpt('ui_secondary_color')?.value || '').trim();
+
+    const isHex = (v: string) => /^#[0-9a-fA-F]{6}$/.test(v);
+    const saved = localStorage.getItem('appearanceSettings');
+    const current = saved ? JSON.parse(saved) : {};
+    const next = {
+      darkMode: false,
+      primaryColor: "#0b217b",
+      secondaryColor: "#4b89cd",
+      fontSize: "medium",
+      theme: "default",
+      compactMode: true,
+      showAnimations: true,
+      ...current,
+      ...(isHex(primary) ? { primaryColor: primary } : {}),
+      ...(isHex(secondary) ? { secondaryColor: secondary } : {}),
+    };
+
+    setAppearanceSettings(next);
+    localStorage.setItem('appearanceSettings', JSON.stringify(next));
+    applyThemeSettings();
+    setAppearanceHydratedFromDb(true);
+  }, [apiOptions, appearanceHydratedFromDb]);
 
   /**
    * Manipula mudanças nas configurações de API (apenas localmente)
@@ -903,8 +914,8 @@ export default function SystemSettings() {
               
               {/* Botão de salvamento do card de aparência */}
               <div className="flex justify-end pt-4 border-t">
-                <Button onClick={handleSaveAppearanceSettings} className="flex items-center space-x-2">
-                  <Save className="h-4 w-4" />
+                <Button onClick={handleSaveAppearanceSettings} disabled={isLoading} className="flex items-center space-x-2">
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   <span>Salvar Aparência</span>
                 </Button>
               </div>

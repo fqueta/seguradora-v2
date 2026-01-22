@@ -29,6 +29,16 @@ class OptionsTableSeeder extends Seeder
                     'url'   => 'permission_supplier_id',
                 ],
                 [
+                    'name'  => 'Cor primária do sistema',
+                    'value' => '#0b217b',
+                    'url'   => 'ui_primary_color',
+                ],
+                [
+                    'name'  => 'Cor secundária do sistema',
+                    'value' => '#4b89cd',
+                    'url'   => 'ui_secondary_color',
+                ],
+                [
                     'name'  => 'Url importação Api Aeroclube',
                     'value' => 'https://api.aeroclubejf.com.br/api/v1/metricas',
                     'url'   => 'url_api_aeroclube',

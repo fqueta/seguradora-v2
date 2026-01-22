@@ -88,6 +88,36 @@ class OptionController extends Controller
         return response()->json(['data' => $data]);
     }
 
+    public function publicAppearance(Request $request)
+    {
+        $allowedKeys = [
+            'ui_primary_color',
+            'ui_secondary_color',
+        ];
+
+        $options = Option::query()
+            ->whereIn('url', $allowedKeys)
+            ->where(function($q) {
+                $q->whereNull('deletado')->orWhere('deletado', '!=', 's');
+            })
+            ->where(function($q) {
+                $q->whereNull('excluido')->orWhere('excluido', '!=', 's');
+            })
+            ->get(['url', 'value']);
+
+        $data = [];
+        foreach ($options as $opt) {
+            $val = $opt->value;
+            if (is_string($val)) {
+                $decoded = json_decode($val, true);
+                $val = (json_last_error() === JSON_ERROR_NONE) ? $decoded : $val;
+            }
+            $data[$opt->url] = $val;
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
     /**
      * Listar todas as opções
      */

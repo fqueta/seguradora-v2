@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, ReactNode } from 'react';
+import { GenericApiService } from '@/services/GenericApiService';
 
 interface ThemeContextType {
   applyThemeSettings: () => void;
@@ -134,9 +135,53 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     }
   };
   
-  // Aplica as configurações quando o componente é montado
   useEffect(() => {
-    applyThemeSettings();
+    let alive = true;
+
+    const hydrateThemeFromDb = async () => {
+      const api = new GenericApiService('/public/options');
+      const resp = await api.customGet<{ data: Record<string, any> }>('/appearance');
+      const map = (resp as any)?.data ?? {};
+
+      const normalizeHex = (value: any): string | null => {
+        const v = String(value ?? '').trim();
+        return /^#[0-9a-fA-F]{6}$/.test(v) ? v : null;
+      };
+
+      const primary = normalizeHex(map.ui_primary_color);
+      const secondary = normalizeHex(map.ui_secondary_color);
+      if (!primary && !secondary) return;
+
+      const saved = localStorage.getItem('appearanceSettings');
+      const current = saved ? JSON.parse(saved) : {};
+      const next = {
+        darkMode: false,
+        primaryColor: '#0b217b',
+        secondaryColor: '#4b89cd',
+        fontSize: 'medium',
+        theme: 'default',
+        compactMode: true,
+        showAnimations: true,
+        ...current,
+        ...(primary ? { primaryColor: primary } : {}),
+        ...(secondary ? { secondaryColor: secondary } : {}),
+      };
+
+      localStorage.setItem('appearanceSettings', JSON.stringify(next));
+    };
+
+    (async () => {
+      try {
+        await hydrateThemeFromDb();
+      } catch {
+      } finally {
+        if (alive) applyThemeSettings();
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
   }, []);
   
   // Escuta mudanças no localStorage para aplicar configurações em tempo real
