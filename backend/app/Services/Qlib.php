@@ -36,7 +36,7 @@ use App\Models\Product;
 class Qlib
 {
     static $RAIZ;
-    
+
     public function __construct(){
         global $tab11,$tab12,$tab50,$tab55;
         $tab11 = 'turmas';
@@ -140,34 +140,41 @@ class Qlib
         return $idade;
     }
     static public function qoption($valor = false, $type = false){
-        //type é o tipo de respsta
-		$ret = false;
-		if($valor){
-			$result = Option::where('url','=',$valor)->
-               where('excluido','=','n')
-               ->where('deletado','=','n')
-               ->where('ativo','=','s')
-               ->select('value')
-               ->first();
-            //    ->toArray();
-            //    dd($valor,$result['value']);
-               if(isset($result['value'])) {
-                   // output data of each row
-                   $ret = $result['value'];
-					// if($valor=='urlroot'){
-					// 	$ret = str_replace('/home/ctloja/public_html/lojas/','/home/ctdelive/lojas/',$ret);
-					// }
-                    if($type=='array'){
+        $ret = false;
+        if ($valor) {
+            try {
+                $result = Option::where('url', '=', $valor)
+                    ->where('excluido', '=', 'n')
+                    ->where('deletado', '=', 'n')
+                    ->where('ativo', '=', 's')
+                    ->select('value')
+                    ->first();
+                if (isset($result['value'])) {
+                    $ret = $result['value'];
+                    if ($type == 'array') {
                         $ret = self::lib_json_array($ret);
                     }
-                    if($type=='json'){
+                    if ($type == 'json') {
                         $ret = self::lib_array_json($ret);
                     }
-			    }
-			//}
-		}
-		return $ret;
-	}
+                }
+            } catch (\Throwable $e) {
+                $fallbacks = [
+                    'default_frontend_url' => config('app.frontend_url'),
+                    'app_logo_url' => env('APP_LOGO_URL', ''),
+                    'app_institution_name' => env('APP_NAME', ''),
+                ];
+                $ret = $fallbacks[$valor] ?? $ret;
+                if ($type == 'array') {
+                    $ret = self::lib_json_array($ret);
+                }
+                if ($type == 'json') {
+                    $ret = self::lib_array_json($ret);
+                }
+            }
+        }
+        return $ret;
+    }
   static function dtBanco($data) {
 			$data = trim($data);
 			if (strlen($data) != 10)
@@ -3046,7 +3053,7 @@ class Qlib
     /**
      * retorna os dados do produto pelo id
      * @param mixed $product_id
-     * 
+     *
      */
     static function getProductById($product_id)
     {

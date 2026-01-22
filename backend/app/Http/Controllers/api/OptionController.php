@@ -57,16 +57,33 @@ class OptionController extends Controller
             'app_institution_url',
         ];
 
-        // Fetch options for allowed keys only
-        $options = Option::query()
-            ->whereIn('url', $allowedKeys)
-            ->where(function($q) {
-                $q->whereNull('deletado')->orWhere('deletado', '!=', 's');
-            })
-            ->where(function($q) {
-                $q->whereNull('excluido')->orWhere('excluido', '!=', 's');
-            })
-            ->get(['url', 'value']);
+        // Fetch options for allowed keys only (with fallback when tenant DB is unavailable/malformed)
+        try {
+            $options = Option::query()
+                ->whereIn('url', $allowedKeys)
+                ->where(function($q) {
+                    $q->whereNull('deletado')->orWhere('deletado', '!=', 's');
+                })
+                ->where(function($q) {
+                    $q->whereNull('excluido')->orWhere('excluido', '!=', 's');
+                })
+                ->get(['url', 'value']);
+        } catch (\Throwable $e) {
+            $defaults = [
+                'app_logo_url' => env('APP_LOGO_URL', ''),
+                'app_favicon_url' => env('APP_FAVICON_URL', ''),
+                'app_social_image_url' => env('APP_SOCIAL_IMAGE_URL', ''),
+                'app_institution_name' => env('APP_NAME', config('app.name')),
+                'app_institution_slogan' => env('APP_SLOGAN', ''),
+                'app_institution_description' => env('APP_DESCRIPTION', ''),
+                'app_institution_url' => env('APP_INSTITUTION_URL', config('app.frontend_url')),
+            ];
+            $data = [];
+            foreach ($allowedKeys as $key) {
+                $data[$key] = $defaults[$key] ?? '';
+            }
+            return response()->json(['data' => $data]);
+        }
 
         $data = [];
         foreach ($options as $opt) {
