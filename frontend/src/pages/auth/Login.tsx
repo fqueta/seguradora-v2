@@ -182,7 +182,6 @@ export default function Login() {
                   {/* Brand logo (dinâmico via API/options) */}
                   <BrandLogo alt={institutionName || 'Logo'} className="h-10 mx-auto mb-2" />
                   <h1 className="text-xl font-bold text-blue-700">{institutionName}</h1>
-                  <p className="text-xs text-blue-600">{institutionSlogan}</p>
                 </div>
               </div>
 

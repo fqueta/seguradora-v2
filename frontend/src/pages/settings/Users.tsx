@@ -454,7 +454,19 @@ export default function Users() {
                 </TableHeader>
                 <TableBody>
                   {filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
+                    <TableRow
+                      key={user.id}
+                      onDoubleClick={() => navigate(`/admin/settings/users/${user.id}/view`)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          navigate(`/admin/settings/users/${user.id}/view`);
+                        }
+                      }}
+                      tabIndex={0}
+                      role="button"
+                      className="cursor-pointer hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
                       <TableCell className="font-medium">
                         {user.name}
                       </TableCell>

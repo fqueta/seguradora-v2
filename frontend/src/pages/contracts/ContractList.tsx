@@ -353,7 +353,11 @@ export default function ContractList() {
                                     const translatedStatus = statusMap[contract.status?.toLowerCase()] || contract.status || '-';
                                     
                                     return (
-                                        <TableRow key={contract.id}>
+                                        <TableRow 
+                                            key={contract.id}
+                                            onDoubleClick={() => navigate(`/admin/contracts/${contract.id}`)}
+                                            className="cursor-pointer hover:bg-muted/50"
+                                        >
                                             <TableCell>{contract.contract_number || contract.id}</TableCell>
                                             <TableCell>{translatedStatus}</TableCell>
                                             <TableCell>{contract.client?.name || '-'}</TableCell>

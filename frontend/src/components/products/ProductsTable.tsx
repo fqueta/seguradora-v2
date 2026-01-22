@@ -230,7 +230,19 @@ export default function ProductsTable({
                 </TableRow>
               ) : (
                 filteredProducts.map((product) => (
-                  <TableRow key={product.id}>
+                  <TableRow
+                    key={product.id}
+                    onDoubleClick={() => handleViewProduct(product)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleViewProduct(product);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    className="cursor-pointer hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
                     <TableCell>
                       <div className="w-16 h-16 rounded-md overflow-hidden bg-muted flex items-center justify-center">
                         {product.image ? (

@@ -146,7 +146,6 @@ export function InclusiveSiteLayout({ children }: InclusiveSiteLayoutProps) {
             />
             <div className="hidden md:block">
               <h1 className="text-xl font-bold text-violet-800 dark:text-violet-100">{institutionName}</h1>
-              <p className="text-xs text-violet-600 dark:text-violet-300">{institutionSlogan}</p>
             </div>
           </div>
           {/* Mobile actions: theme toggle + menu */}
@@ -159,15 +158,7 @@ export function InclusiveSiteLayout({ children }: InclusiveSiteLayoutProps) {
             </Button>
           </div>
           <div className="hidden md:flex space-x-3 items-center">
-            <Button asChild variant="ghost" className="text-violet-700 hover:bg-violet-50">
-              <Link to="/cursos">Cursos</Link>
-            </Button>
-            <Button asChild variant="ghost" className="text-violet-700 hover:bg-violet-50">
-              <a href="https://incluireeducar.com.br/" target="_blank" rel="noreferrer">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Site institucional
-              </a>
-            </Button>
+            {/* Removed Cursos and Site institucional links */}
             {/* Theme toggle (desktop only) */}
             <Button variant="outline" className="border-violet-300 text-violet-700 hover:bg-violet-50 dark:text-violet-100 dark:border-violet-700" onClick={toggleDarkMode}>
               {isDark ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
@@ -251,7 +242,7 @@ export function InclusiveSiteLayout({ children }: InclusiveSiteLayoutProps) {
                   <Link to="/login">Entrar</Link>
                 </Button>
                 <Button asChild className="bg-violet-700 hover:bg-violet-800">
-                  <Link to="/public-client-form">Cadastrar</Link>
+                  <Link to="/register">Cadastrar</Link>
                 </Button>
               </>
             )}
@@ -266,12 +257,7 @@ export function InclusiveSiteLayout({ children }: InclusiveSiteLayoutProps) {
             <DrawerTitle>Menu</DrawerTitle>
           </DrawerHeader>
           <div className="p-3 space-y-2">
-            <Button asChild variant="ghost" className="w-full justify-start">
-              <Link to="/cursos" onClick={() => setMobileNavOpen(false)}>Cursos</Link>
-            </Button>
-            <Button asChild variant="ghost" className="w-full justify-start">
-              <a href="https://incluireeducar.com.br/" target="_blank" rel="noreferrer">Site institucional</a>
-            </Button>
+            {/* Removed Cursos and Site institucional from mobile menu */}
             <div className="border-t my-2" />
             <Button variant="outline" className="w-full justify-start" onClick={toggleDarkMode}>
               {isDark ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />} 
@@ -318,7 +304,7 @@ export function InclusiveSiteLayout({ children }: InclusiveSiteLayoutProps) {
                   <Link to="/login">Entrar</Link>
                 </Button>
                 <Button asChild className="w-full justify-start bg-violet-700 hover:bg-violet-800" onClick={() => setMobileNavOpen(false)}>
-                  <Link to="/public-client-form">Cadastrar</Link>
+                  <Link to="/register">Cadastrar</Link>
                 </Button>
               </>
             )}
@@ -332,7 +318,7 @@ export function InclusiveSiteLayout({ children }: InclusiveSiteLayoutProps) {
       {/* Footer */}
       <footer className="bg-violet-900 text-white py-12 px-4">
         <div className="container mx-auto">
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-1 gap-8">
             <div>
               <div className="flex items-center space-x-3 mb-4">
                 <BrandLogo
@@ -342,30 +328,8 @@ export function InclusiveSiteLayout({ children }: InclusiveSiteLayoutProps) {
                 />
                 <div>
                   <h3 className="font-bold">{institutionName}</h3>
-                  <p className="text-sm text-violet-200">{institutionSlogan}</p>
                 </div>
               </div>
-              <p className="text-violet-200 text-sm">
-                A maior distribuidora de soluções educacionais inclusivas do Brasil.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Acesso rápido</h4>
-              <ul className="space-y-2 text-sm text-violet-200">
-                <li><Link to="/cursos" className="hover:text-white">Cursos</Link></li>
-                <li><Link to="/login" className="hover:text-white">Entrar</Link></li>
-                <li><Link to="/public-client-form" className="hover:text-white">Cadastro</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Institucional</h4>
-              <ul className="space-y-2 text-sm text-violet-200">
-                <li>
-                  <a href="https://incluireeducar.com.br/" target="_blank" rel="noreferrer" className="hover:text-white">
-                    Site oficial
-                  </a>
-                </li>
-              </ul>
             </div>
           </div>
           <div className="border-t border-violet-800 mt-8 pt-8 text-center text-sm text-violet-200">

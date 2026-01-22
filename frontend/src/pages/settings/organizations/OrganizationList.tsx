@@ -96,7 +96,19 @@ export default function OrganizationList() {
                                 </TableRow>
                             ) : (
                                 data?.data?.map((org: Organization) => (
-                                    <TableRow key={org.id}>
+                                    <TableRow
+                                        key={org.id}
+                                        onDoubleClick={() => navigate(`/admin/settings/organizations/${org.id}/edit`)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                navigate(`/admin/settings/organizations/${org.id}/edit`);
+                                            }
+                                        }}
+                                        tabIndex={0}
+                                        role="button"
+                                        className="cursor-pointer hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring"
+                                    >
                                         <TableCell>{org.name}</TableCell>
                                         <TableCell>{org.document || '-'}</TableCell>
                                         <TableCell>{org.email || '-'}</TableCell>
