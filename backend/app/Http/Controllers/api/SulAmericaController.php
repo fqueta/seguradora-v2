@@ -82,6 +82,7 @@ class SulAmericaController extends Controller
         $premioSeguro = isset($config['premioSeguro']) ? $config['premioSeguro'] : '3.96'; //3.96;
         $tipoDocumento = isset($config['tipoDocumento']) ? $config['tipoDocumento'] : 'C'; //C para cpf;
         $produto = $this->produtoParceiro; //Produto padrão;
+        dd($produto);
         $canalVenda = isset($config['canalVenda']) ? $config['canalVenda'] : 'SITE'; //C para cpf;
         $operacaoParceiro = isset($config['operacaoParceiro']) ? $config['operacaoParceiro'] : '000004'; //Numero de controle do parceiro;
         $token_contrato = isset($config['token_contrato']) ? $config['token_contrato'] : ''; // Token do contrato para log
