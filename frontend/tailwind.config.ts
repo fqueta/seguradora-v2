@@ -3,12 +3,30 @@ import type { Config } from "tailwindcss";
 export default {
 	darkMode: ["class"],
 	content: [
-		"./src/**/*.{ts,tsx}",
-		"./components/**/*.{ts,tsx}",
-		"./pages/**/*.{ts,tsx}",
+		"./index.html",
+		"./src/App.tsx",
+		"./src/pages/**/*.{ts,tsx}",
+		"./src/components/ui/**/*.{ts,tsx}",
+		"./src/components/layout/**/*.{ts,tsx}",
+		// exclude heavy folders to prevent EMFILE on limited environments
 		"!./src/services/**/*",
 		"!./src/lib/**/*",
 		"!./src/types/**/*",
+		"!./src/components/metrics/**/*",
+		"!./src/pages/school/**/*",
+	],
+	safelist: [
+		// common utilities used across the app
+		'container','mx-auto','p-0','p-2','p-3','p-4','p-6','p-8',
+		'm-0','m-2','m-3','m-4','mt-2','mt-3','mt-4','mb-2','mb-3','mb-4',
+		'grid','grid-cols-1','grid-cols-2','grid-cols-3','grid-cols-4','gap-2','gap-3','gap-4','gap-6',
+		'flex','inline-flex','items-center','justify-center','justify-between','justify-end','justify-start','flex-col','flex-row','flex-wrap',
+		'w-full','max-w-full','h-full','min-h-[400px]',
+		'rounded','rounded-md','rounded-lg','rounded-full',
+		'border','border-muted','border-input',
+		'bg-background','bg-muted','bg-primary','bg-secondary','bg-white',
+		'text-foreground','text-muted-foreground','text-primary','text-secondary',
+		'hover:bg-primary','hover:bg-secondary','hover:text-primary','hover:text-secondary',
 	],
 	prefix: "",
 	theme: {
