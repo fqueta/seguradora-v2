@@ -29,7 +29,7 @@ class SulAmericaController extends Controller
             'url'=>$credencias['url'] ?? "https://canalvenda-internet-develop.executivoslab.com.br/services/canalvenda?wsdl",
             'user'=>$credencias['user'] ?? "yello1232user",
             'pass'=>$credencias['pass'] ?? "yello1232pass",
-            'produto'=>$credencias['produto'] ?? "10232",
+            'produto'=> $credencias['produto'] ?? "10124",
         ];
     }
     /**
@@ -81,7 +81,6 @@ class SulAmericaController extends Controller
         $documento = isset($config['documento']) ? $config['documento'] : ''; //85528114306;
         $premioSeguro = isset($config['premioSeguro']) ? $config['premioSeguro'] : '3.96'; //3.96;
         $tipoDocumento = isset($config['tipoDocumento']) ? $config['tipoDocumento'] : 'C'; //C para cpf;
-        // $produto = isset($config['produto']) ? $config['produto'] : '10232'; //C para cpf;
         $produto = $this->produtoParceiro; //Produto padrão;
         $canalVenda = isset($config['canalVenda']) ? $config['canalVenda'] : 'SITE'; //C para cpf;
         $operacaoParceiro = isset($config['operacaoParceiro']) ? $config['operacaoParceiro'] : '000004'; //Numero de controle do parceiro;
