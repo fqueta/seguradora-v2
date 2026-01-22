@@ -32,6 +32,8 @@ class PermissionSeeder extends Seeder
                     'description' => 'Desenvolvedores',
                     'redirect_login' => '/home',
                     'active' => 's',
+                    'excluido' => 'n',
+                    'deletado' => 'n',
                 ],
 
                 // ADMINISTRADOR → tudo, mas em configurações só "Usuários" e "Perfis"
@@ -39,7 +41,9 @@ class PermissionSeeder extends Seeder
                     'name' => 'Administrador',
                     'description' => 'Administradores do sistema',
                     'redirect_login' => '/home',
-                    'active' => 's'
+                    'active' => 's',
+                    'excluido' => 'n',
+                    'deletado' => 'n',
                 ],
 
                 // GERENTE → todos os menus exceto configurações
@@ -47,7 +51,9 @@ class PermissionSeeder extends Seeder
                     'name' => 'Gerente',
                     'description' => 'Gerente do sistema (sem acesso a configurações)',
                     'redirect_login' => '/home',
-                    'active' => 's'
+                    'active' => 's',
+                    'excluido' => 'n',
+                    'deletado' => 'n',
                 ],
 
                 // ESCRITÓRIO → somente dois primeiros menus
@@ -55,35 +61,45 @@ class PermissionSeeder extends Seeder
                     'name' => 'Escritório',
                     'description' => 'Acesso limitado a Dashboard e Clientes',
                     'redirect_login' => '/home',
-                    'active' => 's'
+                    'active' => 's',
+                    'excluido' => 'n',
+                    'deletado' => 'n',
                 ],
                 // CONSULTOR → somente dois primeiros menus
                 [
                     'name' => 'Consultor',
                     'description' => 'Consultores do sistema',
                     'redirect_login' => '/home',
-                    'active' => 's'
+                    'active' => 's',
+                    'excluido' => 'n',
+                    'deletado' => 'n',
                 ],
                 // INSTRUTOR → somente dois primeiros menus
                 [
                     'name' => 'Parceiros',
                     'description' => 'Parceiros do sistema',
                     'redirect_login' => '/home',
-                    'active' => 's'
+                    'active' => 's',
+                    'excluido' => 'n',
+                    'deletado' => 'n',
                 ],
                 // Cliente → para clientes sem acesso ao admin
                 [
                     'name' => 'Clientes',
                     'description' => 'Sem acesso ao Dashboard porem com acesso ao painel de Clientes',
                     'redirect_login' => '/home',
-                    'active' => 's'
+                    'active' => 's',
+                    'excluido' => 'n',
+                    'deletado' => 'n',
                 ],
                 // Fornecedor → para fornecedores sem acesso ao admin
                 [
                     'name' => 'Fornecedores',
                     'description' => 'Sem acesso ao Dashboard porem com acesso ao painel de Clientes',
                     'redirect_login' => '/home',
-                    'active' => 's'
+                    'active' => 's',
+                    'excluido' => 'n',
+                    'deletado' => 'n',
                 ],
             ];
         DB::table('permissions')->insert($data);

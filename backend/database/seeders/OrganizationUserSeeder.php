@@ -16,24 +16,101 @@ class OrganizationUserSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Create or Find Organization
-        $organization = Organization::firstOrCreate(
-            ['document' => '12345678000199'], // Example CNPJ/Document
-            [
-                'name' => 'Organização Exemplo',
-                'email' => 'contato@exemplo.com',
-                'phone' => '11999999999',
-                'address' => 'Rua Exemplo, 123',
-                'active' => true,
-                'config' => [],
-            ]
-        );
+        $payload = [
+            'data' => [
+                [
+                    'name' => 'FULLLIFE DIGITAL HEALTH LTDA',
+                    'document' => '63.121.689/0001-22',
+                    'email' => 'douglas.alvares@gmail.com',
+                    'phone' => null,
+                    'address' => null,
+                    'active' => true,
+                    'config' => [
+                        'cep' => null,
+                        'endereco' => 'Travessa Antônio Francisco Alves',
+                        'numero' => '52',
+                        'complemento' => 'Apto 401',
+                        'bairro' => 'Ingleses do Rio Vermelho',
+                        'cidade' => 'Florianópolis',
+                        'uf' => 'SC',
+                        'allowed_products' => ['12'],
+                    ],
+                ],
+                [
+                    'name' => 'MEDIGO ASSESSORIA MEDICA EM EDUCACAO S/A ',
+                    'document' => '46.432.496/0001-73',
+                    'email' => 'lucas.costa@mymedgo.com.br',
+                    'phone' => null,
+                    'address' => null,
+                    'active' => true,
+                    'config' => [
+                        'cep' => '30110-013',
+                        'endereco' => 'Avenida do Contorno',
+                        'numero' => '4747',
+                        'complemento' => 'Sala 805',
+                        'bairro' => 'Santa Efigênia',
+                        'cidade' => 'Belo Horizonte',
+                        'uf' => 'MG',
+                        'allowed_products' => ['12'],
+                    ],
+                ],
+                [
+                    'name' => 'Matriz Yellow BC',
+                    'document' => '12345678000199',
+                    'email' => 'yellowbcompany@gmail.com',
+                    'phone' => '11999999999',
+                    'address' => 'Rua Exemplo, 123',
+                    'active' => true,
+                    'config' => [
+                        'cep' => null,
+                        'endereco' => null,
+                        'numero' => null,
+                        'complemento' => null,
+                        'bairro' => null,
+                        'cidade' => null,
+                        'uf' => null,
+                        'allowed_products' => ['12', '9', '10'],
+                    ],
+                ],
+                [
+                    'name' => 'Mileto Servicos de Televisao por Assinatura S.A.',
+                    'document' => '53.059.901/0001-15',
+                    'email' => 'resgates.antenamais@oitv.net',
+                    'phone' => null,
+                    'address' => null,
+                    'active' => true,
+                    'config' => [
+                        'cep' => '22461-000',
+                        'endereco' => 'Rua Jardim Botânico',
+                        'numero' => '518',
+                        'complemento' => 'Sala 401',
+                        'bairro' => 'Jardim Botânico',
+                        'cidade' => 'Rio de Janeiro',
+                        'uf' => 'RJ',
+                        'allowed_products' => ['12'],
+                    ],
+                ],
+            ],
+        ];
 
-        $this->command->info("Organization '{$organization->name}' (ID: {$organization->id}) is ready.");
+        foreach ($payload['data'] as $org) {
+            $organization = Organization::updateOrCreate(
+                ['document' => $org['document'] ?? $org['name']],
+                [
+                    'name' => $org['name'],
+                    'email' => $org['email'] ?? null,
+                    'phone' => $org['phone'] ?? null,
+                    'address' => $org['address'] ?? null,
+                    'active' => $org['active'] ?? true,
+                    'config' => $org['config'] ?? [],
+                ]
+            );
+            $this->command->info("Organization '{$organization->name}' (ID: {$organization->id}) is ready.");
+        }
 
         // 2. Find Permission (e.g., Master or Administrador)
         // Adjust the name based on your PermissionSeeder (Master, Administrador, etc.)
-        $permissionName = 'Master'; 
+        $permissionName = 'Master';
         $permission = Permission::where('name', $permissionName)->first();
 
         if (!$permission) {
@@ -41,9 +118,8 @@ class OrganizationUserSeeder extends Seeder
             return;
         }
 
-        // 3. Create User
         $userEmail = 'admin@exemplo.com';
-        
+
         $user = User::where('email', $userEmail)->first();
 
         if (!$user) {

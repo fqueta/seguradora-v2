@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class UserController extends Controller
@@ -368,6 +369,26 @@ class UserController extends Controller
         $authUser->save();
 
         return response()->json($authUser);
+    }
+
+    public function changePassword(Request $request)
+    {
+        $authUser = $request->user();
+        if (!$authUser || ($authUser->ativo ?? null) !== 's') {
+            return response()->json(['error' => 'Usuário inativo'], 405);
+        }
+        $validator = Validator::make($request->all(), [
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', Password::defaults(), 'confirmed'],
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+        $validated = $validator->validated();
+        $authUser->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+        return response()->json(['message' => 'Senha atualizada com sucesso']);
     }
 
     /**

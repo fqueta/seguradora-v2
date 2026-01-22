@@ -200,6 +200,7 @@ Route::name('api.')->prefix('api/v1')->middleware([
         // User profile routes (self-service)
         Route::get('user/profile',[UserController::class,'profile'])->name('user.profile.show');
         Route::put('user/profile',[UserController::class,'updateProfile'])->name('user.profile.update');
+        Route::put('user/change-password',[UserController::class,'changePassword'])->name('user.change-password');
         Route::get('user/can',[UserController::class,'can_access'])->name('perfil.can');
         Route::post('/logout',[AuthController::class,'logout'])->name('logout');
         Route::apiResource('users', UserController::class,['parameters' => [
