@@ -214,7 +214,7 @@ class ClientController extends Controller
         }
 
         // Enriquecer autor_name quando possível
-        if (isset($data['autor']) && !empty($data['autor']) && is_numeric($data['autor'])) {
+        if (isset($data['autor']) && $data['autor'] !== null && $data['autor'] !== '') {
             $autorUser = null;
             try {
                 $autorUser = User::find($data['autor']);

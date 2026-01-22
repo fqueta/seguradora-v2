@@ -74,8 +74,10 @@ class UserController extends Controller
         $order_by = $request->input('order_by', 'created_at');
         $order = $request->input('order', 'desc');
         $permission_id = $user->permission_id;
+        $supplier_permission_id = Qlib::qoption('permission_supplier_id') ?: 6;
         $query = User::with('organization')
             ->where('permission_id','!=',$this->cliente_permission_id)
+            ->where('permission_id','!=',$supplier_permission_id)
             ->orderBy($order_by,$order);
 
         if ($permission_id >= 5) {
