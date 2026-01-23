@@ -211,11 +211,11 @@ const App = () => {
                   <RedemptionDetails linkLoja={link_loja} />
                 </ProtectedRoute>
               } />
-              <Route path={link_loja + "/area-cliente"} element={ 
+              {/* <Route path={link_loja + "/area-cliente"} element={ 
                 <ProtectedRoute>
                   <ClientArea linkLoja={link_loja} />
                 </ProtectedRoute>
-              } />
+              } /> */}
               <Route path={link_loja + "/configuracoes"} element={ 
                 <ProtectedRoute>
                   <Navigate to={`${link_loja}/area-cliente?tab=settings`} replace />
@@ -432,30 +432,7 @@ const App = () => {
                     <ProposalsCreate />
                   </AppLayout>
                 </AdminProtectedRoute>
-              } />
-
-              {/* Vendas / Editar Proposta */}
-              <Route path="/admin/sales/proposals/edit/:id" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <ProposalsEdit />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-
-              {/* Vendas / Visualizar Proposta */}
-              <Route path="/admin/sales/proposals/view/:id" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <ProposalsView />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-
-              {/* Alias sem prefixo admin (redireciona) */}
-              <Route path="/sales/proposals/create" element={<Navigate to="/admin/sales/proposals/create" replace />} />
-              <Route path="/sales/proposals/edit/:id" element={<Navigate to="/admin/sales/proposals/edit/:id" replace />} />
-              <Route path="/sales/proposals/view/:id" element={<Navigate to="/admin/sales/proposals/view/:id" replace />} />
+              } />             
 
               {/* Rotas de serviços */}
               <Route path="/admin/services" element={
