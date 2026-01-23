@@ -171,6 +171,7 @@ class SulAmericaController extends Controller
                 auth()->id()
             );
         }
+        dd($xml);
         $response = Http::withHeaders([
             'Content-Type' => 'application/xml',//'text/xml; charset=utf-8',
             'SOAPAction' => '',
