@@ -18,7 +18,7 @@ class SulAmericaController extends Controller
     public function __construct()
     {
         $credenciais = $this->credentials();
-        $this->url = $credenciais['url'];
+        $this->url = strtok($credenciais['url'], '?');
         $this->user = $credenciais['user'];
         $this->pass = $credenciais['pass'];
         $this->produtoParceiro = $credenciais['produto'];
@@ -172,7 +172,7 @@ class SulAmericaController extends Controller
             );
         }
         $response = Http::withHeaders([
-            'Content-Type' => 'application/xml',//'text/xml; charset=utf-8',
+            'Content-Type' => 'text/xml',
             'SOAPAction' => '',
         ])->withBody($xml, 'text/xml')->post($this->url);
 
@@ -182,7 +182,6 @@ class SulAmericaController extends Controller
         // $ret['passwordDigest'] = $passwordDigest;
         $ret['body'] = $resposta;
         $ret = $this->xmlContrata_to_array($resposta,$config);
-        dd($xml,$ret,$response,$this->url);
         // Log de término da contratação (end)
         if($token_contrato){
             ContractEventLogger::logByToken(
@@ -282,7 +281,7 @@ class SulAmericaController extends Controller
         </soapenv:Envelope>
         ';
         $response = Http::withHeaders([
-            'Content-Type' => 'application/xml',//'text/xml; charset=utf-8',
+            'Content-Type' => 'text/xml',
             'SOAPAction' => '',
         ])->withBody($xml, 'text/xml')->post($this->url);
 
