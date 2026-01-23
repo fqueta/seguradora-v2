@@ -143,6 +143,41 @@ class SulAmericaController extends Controller
             </soapenv:Body>
         </soapenv:Envelope>
         ';
+        $xml_teste = ' <soapenv:Envelope
+            xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+            xmlns:urn="urn:br.com.sulamerica.canalvenda.ws"
+            xmlns:NS1="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+            <soapenv:Header>
+                <NS1:Security soapenv:mustUnderstand="1">
+                    <NS1:UsernameToken>
+                    <NS1:Username>yello1232user</NS1:Username>
+                    <NS1:Password>yello1232pass</NS1:Password>
+                    </NS1:UsernameToken>
+                </NS1:Security>
+            </soapenv:Header>
+            <soapenv:Body>
+                <urn:contratarSeguro>
+                <urn:produto>10124</urn:produto>
+                <urn:canalVenda>SITE</urn:canalVenda>
+                <urn:operacaoParceiro>69727d7df0c69</urn:operacaoParceiro>
+                <urn:parametros>
+                <![CDATA[
+                <parametros>
+                    <planoProduto>2</planoProduto>
+                    <premioSeguro>3.96</premioSeguro>
+                    <nomeSegurado>Raphael Retto Veiga</nomeSegurado>
+                    <dataNascimento>1977-05-18</dataNascimento>
+                    <sexo>M</sexo>
+                    <uf>MG</uf>
+                    <tipoDocumento>C</tipoDocumento>
+                    <documento>03334580601</documento>
+                    <inicioVigencia>2026-01-23</inicioVigencia>
+                    <fimVigencia>2027-01-23</fimVigencia>
+                </parametros>]]>
+                </urn:parametros>
+                </urn:contratarSeguro>
+            </soapenv:Body>
+        </soapenv:Envelope>';
         // Log de início da contratação (start)
         if($token_contrato){
             ContractEventLogger::logByToken(
@@ -167,7 +202,7 @@ class SulAmericaController extends Controller
                         ],
                     ],
                 ],
-                $xml,
+                $xml_teste,
                 auth()->id()
             );
         }
@@ -175,7 +210,7 @@ class SulAmericaController extends Controller
             'Content-Type' => 'application/xml',
             'Accept' => 'application/xml',
             'SOAPAction' => '',
-        ])->withBody($xml, 'application/xml')->post($this->url);
+        ])->withBody($xml_teste, 'application/xml')->post($this->url);
 
         $ret['url'] = $this->url;
         $resposta = $response->body();
