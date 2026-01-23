@@ -85,6 +85,7 @@ class SulAmericaController extends Controller
         // dd($produto);
         $canalVenda = isset($config['canalVenda']) ? $config['canalVenda'] : 'SITE'; //C para cpf;
         $operacaoParceiro = isset($config['operacaoParceiro']) ? $config['operacaoParceiro'] : '000004'; //Numero de controle do parceiro;
+        $operacaoParceiro = (string)$operacaoParceiro;
         $token_contrato = isset($config['token_contrato']) ? $config['token_contrato'] : ''; // Token do contrato para log
         $ret = ['exec'=>false];
         $uf = strtoupper($uf);
