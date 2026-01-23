@@ -22,6 +22,8 @@ class DatabaseSeeder extends Seeder
         // ]);
         if(Qlib::is_crm_aero()){
             $var_cal = [
+                    PermissionSeeder::class,
+                    OrganizationUserSeeder::class,
                     UserSeeder::class,
                     // escolaridadeSeeder::class,
                     // estadocivilSeeder::class,
@@ -33,7 +35,6 @@ class DatabaseSeeder extends Seeder
                     MenuPermissionSeederDiretor::class,
                     MenuPermissionSeederEscritorio::class,
                     MenuPermissionSeederVendedor::class,
-                    // PermissionSeeder::class,
                     // MenuPermissionSeeder::class,
                     DashboardMetricsSeeder::class,
                     CategorySeeder::class,
@@ -51,6 +52,8 @@ class DatabaseSeeder extends Seeder
 
         }else{
             $var_cal = [
+                    PermissionSeeder::class,
+                    OrganizationUserSeeder::class,
                     UserSeeder::class,
                     MenuSeeder::class, //cadastra menus permissõs e menu_permissions
                     MenuPermissionSeederAdmin::class,
@@ -71,10 +74,12 @@ class DatabaseSeeder extends Seeder
                     // AeronavesSeeder::class,
                     SupplierSeeder::class,
                     SulamericaProductSeeder::class,
-                    OrganizationUserSeeder::class,
-                    TenantSeeder::class,
             ];
 
+        }
+        // Executa TenantSeeder apenas no contexto central (fora do tenant)
+        if (!(function_exists('tenant') && tenant())) {
+            $var_cal[] = TenantSeeder::class;
         }
         $this->call($var_cal);
     }

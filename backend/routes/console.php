@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use App\Models\FileStorage;
+use App\Models\Tenant;
 
 /**
  * files:normalize-urls
@@ -144,3 +145,68 @@ Artisan::command('files:normalize-urls {--dry-run} {--chunk=200} {--limit=0}', f
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+/**
+ * tenant:create
+ * pt-BR: Cria um tenant com ID, nome e domínio informados; gera base MySQL.
+ * en-US: Create a tenant with given ID, name and domain; create MySQL database.
+ */
+Artisan::command('tenant:create {id} {--name=} {--domain=}', function () {
+    /**
+     * handle
+     * pt-BR: Fluxo: cria registro do tenant, cria base de dados e associa domínio.
+     * en-US: Flow: create tenant record, create database and attach domain.
+     */
+    $id = (string) $this->argument('id');
+    $name = (string) ($this->option('name') ?? $id);
+    $domain = (string) ($this->option('domain') ?? ($id . '.localhost'));
+
+    try {
+        // Cria o registro do tenant com slug em data
+        $tenant = Tenant::create([
+            'id' => $id,
+            'name' => $name,
+            'data' => ['slug' => $id],
+        ]);
+
+        // Cria a base MySQL do tenant (prefixo definido em tenancy.php)
+        $tenant->createDatabase();
+
+        // Adiciona o domínio
+        $tenant->domains()->create([
+            'domain' => $domain,
+        ]);
+
+        $this->info("Tenant '{$id}' criado com sucesso.");
+        $this->line("- Nome: {$name}");
+        $this->line("- Domínio: {$domain}");
+        $this->line("- Database: prefixo conforme config (ex.: yellow_{$id})");
+        return 0;
+    } catch (\Throwable $e) {
+        $this->error("Falha ao criar tenant '{$id}': " . $e->getMessage());
+        return 1;
+    }
+})->describe('Cria um tenant com base de dados e domínio.');
+
+/**
+ * tenant:attach-domain
+ * pt-BR: Anexa um domínio ao tenant informado (id existente).
+ * en-US: Attach a domain to the given tenant (existing id).
+ */
+Artisan::command('tenant:attach-domain {id} {domain}', function () {
+    /**
+     * handle
+     * pt-BR: Busca o tenant por ID e cria/garante o domínio associado.
+     * en-US: Find tenant by ID and create/ensure attached domain.
+     */
+    $id = (string) $this->argument('id');
+    $domain = (string) $this->argument('domain');
+    $tenant = Tenant::find($id);
+    if (!$tenant) {
+        $this->error("Tenant '{$id}' não encontrado.");
+        return 1;
+    }
+    $tenant->domains()->firstOrCreate(['domain' => $domain]);
+    $this->info("Domínio '{$domain}' anexado ao tenant '{$id}'.");
+    return 0;
+})->describe('Anexa um domínio a um tenant existente.');
