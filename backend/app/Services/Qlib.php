@@ -3032,7 +3032,7 @@ class Qlib
     static function getSupplier($id){
         $d = self::getSupplierByProductId($id);
         $ret = null;
-        // dd($d->config);
+        // dd($d);
         if(!is_null($d)){
             $conf = isset($d->config) ? $d->config : [];
             // Decode only if config is a JSON string; keep arrays/objects intact

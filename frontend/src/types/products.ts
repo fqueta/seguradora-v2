@@ -24,6 +24,8 @@ export interface Product {
   active?: boolean; // Adicionado para consistência
   stock: number;
   supplier_id?: string;
+  supplierData?: { name: string; [key: string]: any };
+  supplier_name?: string; // For listing display
 }
 
 /**

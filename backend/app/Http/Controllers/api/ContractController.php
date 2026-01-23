@@ -403,7 +403,7 @@ class ContractController extends Controller
             $product_id = $contract['product_id'] ?? null;
             // Verifica o fornecedor do produto
             $supplier = Qlib::getSupplier($product_id);
-
+            // dd($supplier);
             // Verifica se o fornecedor se identifica como SulAmérica
             if ($supplier && (stripos($supplier, 'SulAmerica') !== false)) {
                 $client = $contract->client; // Relationship

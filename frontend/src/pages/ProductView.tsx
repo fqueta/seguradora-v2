@@ -9,6 +9,7 @@ import { useProduct, useUpdateProduct } from '@/hooks/products';
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
+import { FormActionBar } from '@/components/common/FormActionBar';
 
 /**
  * Página de visualização detalhada de um produto específico
@@ -163,14 +164,6 @@ export default function ProductView() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleBack}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar
-          </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{product.name}</h1>
             <p className="text-muted-foreground">
@@ -425,6 +418,16 @@ export default function ProductView() {
           </CardContent>
         </Card>
       </div>
+
+      <FormActionBar
+        mode="create"
+        fixed={true}
+        onBack={handleBack}
+        onSaveContinue={() => navigate(`/admin/products/${id}/edit`)}
+        showSaveExit={false}
+        showView={false}
+        labels={{ saveContinue: 'Editar' }}
+      />
     </div>
   );
 }

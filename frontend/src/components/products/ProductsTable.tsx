@@ -29,7 +29,8 @@ import {
   Eye,
   Package,
   AlertTriangle,
-  Loader2
+  Loader2,
+  ArrowUpDown
 } from "lucide-react";
 import type { Product } from "@/types/products";
 import { useUpdateProduct } from "@/hooks/products";
@@ -56,6 +57,7 @@ export default function ProductsTable({
   onRefetch
 }: ProductsTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
   const navigate = useNavigate();
   const link_admin = '/admin';
 
@@ -65,7 +67,7 @@ export default function ProductsTable({
    * Determina se o usuário pode editar o estoque.
    * Rule: only users with permission_id <= 5.
    */
-  const canEditStock = (user?.permission_id ?? Infinity) <= 5;
+  const canEditStock = Number(user?.permission_id ?? Infinity) <= 5;
 
   /**
    * Estado para controlar edição inline do estoque na tabela.
@@ -130,6 +132,36 @@ export default function ProductsTable({
     (product.description || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    if (!sortConfig) return 0;
+
+    let aValue: any = (a as any)[sortConfig.key];
+    let bValue: any = (b as any)[sortConfig.key];
+
+    // Handle special cases
+    if (sortConfig.key === 'supplier') {
+        aValue = (a as any).supplierData?.name || (a as any).supplier?.name || a.supplier_name || '';
+        bValue = (b as any).supplierData?.name || (b as any).supplier?.name || b.supplier_name || '';
+    }
+
+    if (typeof aValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = (bValue || '').toString().toLowerCase();
+    }
+
+    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+    return 0;
+  });
+
   return (
     <Card>
       <CardHeader>
@@ -156,17 +188,44 @@ export default function ProductsTable({
             <TableHeader>
               <TableRow>
                 <TableHead>Imagem</TableHead>
-                <TableHead>Produto</TableHead>
-                <TableHead>Preço de Venda</TableHead>
+                <TableHead>
+                  <Button variant="ghost" onClick={() => handleSort('name')} className="-ml-4">
+                    Produto
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button variant="ghost" onClick={() => handleSort('salePrice')} className="-ml-4">
+                    Preço de Venda
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button variant="ghost" onClick={() => handleSort('supplier')} className="-ml-4">
+                    Fornecedor
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </TableHead>
+                <TableHead>
+                   <Button variant="ghost" onClick={() => handleSort('plan')} className="-ml-4">
+                    Plano
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </TableHead>
                 {/* <TableHead>Pontos</TableHead> */}
-                <TableHead>Status</TableHead>
+                <TableHead>
+                  <Button variant="ghost" onClick={() => handleSort('active')} className="-ml-4">
+                    Status
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     <div className="flex items-center justify-center space-x-2">
                       <Package className="h-4 w-4 animate-spin" />
                       <span>Carregando produtos...</span>
@@ -175,7 +234,7 @@ export default function ProductsTable({
                 </TableRow>
               ) : error ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     <div className="flex flex-col items-center space-y-2 text-destructive">
                       <AlertTriangle className="h-8 w-8" />
                       <div>
@@ -197,7 +256,7 @@ export default function ProductsTable({
                 </TableRow>
               ) : !products || products.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     <div className="flex flex-col items-center space-y-2 text-muted-foreground">
                       <Package className="h-8 w-8" />
                       <div>
@@ -217,7 +276,7 @@ export default function ProductsTable({
                 </TableRow>
               ) : filteredProducts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     <div className="flex flex-col items-center space-y-2 text-muted-foreground">
                       <Search className="h-8 w-8" />
                       <div>
@@ -228,7 +287,7 @@ export default function ProductsTable({
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredProducts.map((product) => (
+                sortedProducts.map((product) => (
                   <TableRow
                     key={product.id}
                     onDoubleClick={() => handleViewProduct(product)}
@@ -250,8 +309,8 @@ export default function ProductsTable({
                             alt={product.name}
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              e.currentTarget.nextElementSibling.style.display = 'flex';
+                              (e.currentTarget as HTMLElement).style.display = 'none';
+                              (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
                             }}
                           />
                         ) : null}
@@ -272,6 +331,16 @@ export default function ProductsTable({
                     <TableCell>
                       <div className="text-sm font-medium">
                         R$ {product.salePrice?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {product.supplierData?.name || (product as any).supplier?.name || product.supplier_name || '-'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {product.plan ? `Plano ${product.plan}` : '-'}
                       </div>
                     </TableCell>
                     {/* <TableCell>

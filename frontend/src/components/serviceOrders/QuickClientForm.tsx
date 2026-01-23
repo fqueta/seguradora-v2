@@ -129,7 +129,7 @@ export default function QuickClientForm({
           form.reset({
             name: client.name,
             email: client.email || "",
-            cpf: (client as any).cpf || "", // Load CPF
+            cpf: cpfApplyMask((client as any).cpf || ""), // Load CPF
             phone: client.config?.celular || (client as any).celular || "",
             birth_date: client.config?.nascimento || "",
             genero: client.genero || "ni",
