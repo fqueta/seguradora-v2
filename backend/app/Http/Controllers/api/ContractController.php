@@ -476,7 +476,7 @@ class ContractController extends Controller
                         'uf' => isset($contract->address['state']) ? $contract->address['state'] : ($clientConfig['uf'] ?? ($clientConfig['state'] ?? 'SP')),
                         //remover pontos e traços do cpf
                         'documento' => $documento,
-                        'planoProduto' => $product['plan'] ?? '1', //deve ser o plano do produto
+                        'planoProduto' => (string)$product['plan'] ?? '1', //deve ser o plano do produto
                         'operacaoParceiro' => $contract->token ?? null, //deve ser o plano do produto
                         'premioSeguro' => $product['costPrice'] ?? null,
                     ];
