@@ -22,6 +22,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton('qlib', function () {
             return new \App\Services\Qlib();
         });
+        $this->commands([
+            \App\Console\Commands\ImportSqliteBackup::class,
+        ]);
         // $this->app->singleton(StringHelper::class, function () {
         //     return new StringHelper();
         // });

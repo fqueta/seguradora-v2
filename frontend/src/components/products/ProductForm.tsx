@@ -44,7 +44,7 @@ const productSchema = z.object({
   availability: z.enum(["available", "limited", "unavailable"], {
     required_error: "Disponibilidade é obrigatória",
   }),
-  plan: z.enum(["1","2","3","4","5","6","7","8","9"]).optional(),
+  plan: z.enum(["1","2","3","4","5","6","7","8","9","10","11","12"]).optional(),
   terms: z.array(z.string()).optional(),
   validUntil: z.string().optional(),
   supplier_id: z.string().optional(),
