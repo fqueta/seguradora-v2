@@ -34,6 +34,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\EmailController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\TesteController;
+use App\Http\Controllers\api\SulAmericaController;
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
@@ -318,3 +319,4 @@ Route::post('/v1/teste-json-simple', function(\Illuminate\Http\Request $request)
         'encoding_fixed' => true
     ]);
 });
+Route::post('/v1/sulamerica/teste', [SulAmericaController::class,'testeConexao'])->name('sulamerica.teste');

@@ -465,6 +465,7 @@ class ContractController extends Controller
                         // dd($ret);
                         return $ret;
                     }
+                    // dd($product);
                     // Preparar config para API
                     $apiConfig = [
                         'token_contrato' => $contract->token,

@@ -22,9 +22,13 @@ class SulAmericaController extends Controller
         $this->user = $credenciais['user'];
         $this->pass = $credenciais['pass'];
         $this->produtoParceiro = $credenciais['produto'];
+        // dd($credenciais);
     }
     private function credentials(){
         $credencias = Qlib::qoption("credenciais_sulamerica") ? Qlib::qoption("credenciais_sulamerica") : [];
+        if(is_string($credencias)){
+            $credencias = json_decode($credencias,true);
+        }
         return [
             'url'=>$credencias['url'] ?? "https://canalvenda-internet-develop.executivoslab.com.br/services/canalvenda?wsdl",
             'user'=>$credencias['user'] ?? "yello1232user",
@@ -77,15 +81,14 @@ class SulAmericaController extends Controller
         $fimVigencia = isset($config['fimVigencia']) ? $config['fimVigencia'] : ''; //2026-03-23;
         $sexo = isset($config['sexo']) ? $config['sexo'] : false; //M;
         $uf = isset($config['uf']) ? $config['uf'] : false; //PI;
-        $planoProduto = isset($config['planoProduto']) ? $config['planoProduto'] : '1'; //1;
+        $planoProduto = isset($config['planoProduto']) ? $config['planoProduto'] : '2'; //1;
         $documento = isset($config['documento']) ? $config['documento'] : ''; //85528114306;
         $premioSeguro = isset($config['premioSeguro']) ? $config['premioSeguro'] : '3.96'; //3.96;
         $tipoDocumento = isset($config['tipoDocumento']) ? $config['tipoDocumento'] : 'C'; //C para cpf;
         $produto = $this->produtoParceiro; //Produto padrão;
-        // dd($produto);
+        // return $produto;
         $canalVenda = isset($config['canalVenda']) ? $config['canalVenda'] : 'SITE'; //C para cpf;
         $operacaoParceiro = isset($config['operacaoParceiro']) ? $config['operacaoParceiro'] : '000004'; //Numero de controle do parceiro;
-        $operacaoParceiro = (string)$operacaoParceiro;
         $token_contrato = isset($config['token_contrato']) ? $config['token_contrato'] : ''; // Token do contrato para log
         $ret = ['exec'=>false];
         $uf = strtoupper($uf);
@@ -106,6 +109,7 @@ class SulAmericaController extends Controller
             $ret['mens'] = 'Documento de fim é obrigatório';
             return $ret;
         }
+        // dd($config,$produto);
         $xml = '
         <soapenv:Envelope
             xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
@@ -143,6 +147,7 @@ class SulAmericaController extends Controller
             </soapenv:Body>
         </soapenv:Envelope>
         ';
+        // dd($xml);
         // Log de início da contratação (start)
         if($token_contrato){
             ContractEventLogger::logByToken(
@@ -177,12 +182,14 @@ class SulAmericaController extends Controller
             'SOAPAction' => '',
         ])->withBody($xml, 'application/xml')->post($this->url);
 
-        $ret['url'] = $this->url;
         $resposta = $response->body();
         // $ret['requsição'] = $xml;
         // $ret['passwordDigest'] = $passwordDigest;
         $ret['body'] = $resposta;
         $ret = $this->xmlContrata_to_array($resposta,$config);
+        $ret['url'] = $this->url;
+        $ret['produto'] = $this->produtoParceiro;
+        // dd($xml,$ret);
         // Log de término da contratação (end)
         if($token_contrato){
             ContractEventLogger::logByToken(
@@ -287,16 +294,14 @@ class SulAmericaController extends Controller
             'SOAPAction' => '',
         ])->withBody($xml, 'application/xml')->post($this->url);
 
-        $ret['url'] = $this->url;
         $resposta = $response->body();
         // $ret['requsição'] = $xml;
         // $ret['passwordDigest'] = $passwordDigest;
         $ret['body'] = $resposta;
         $ret = $this->xmlCancela_to_array($resposta,$config);
-        if(isset($ret['exec']) && !empty($token_contrato)){
-            //Atualizar o status do contrato
-            (new ContratoController)->status_update($token_contrato,'Cancelado',$ret);
-        }
+        $ret['url'] = $this->url;
+        // $ret['produto'] = $produto;
+        // dd($xml,$ret);
         // Log de término do processamento na integração
         if ($contract) {
             ContractEventLogger::log(
@@ -411,5 +416,103 @@ class SulAmericaController extends Controller
             $ret['mens'] = "Erro: O nó ns2:contratarSeguro não foi encontrado!";
         }
         return $ret;
+    }
+    public function testeConexao(Request $request){
+        $url = 'https://canalvenda-internet.paas.sulamerica.com.br/services/canalvenda?wsdl';
+        $produto = $request->input('produto', $this->produtoParceiro);
+        $canalVenda = $request->input('canalVenda', 'SITE');
+        $operacaoParceiro = $request->input('operacaoParceiro', '69727d7df0c69');
+        $planoProduto = $request->input('planoProduto', '2');
+        $premioSeguro = $request->input('premioSeguro', '3.96');
+        $nomeSegurado = $request->input('nomeSegurado', 'Raphael Retto Veiga');
+        $dataNascimento = $request->input('dataNascimento', '1977-05-18');
+        $sexo = $request->input('sexo', 'M');
+        $uf = strtoupper($request->input('uf', 'MG'));
+        $tipoDocumento = $request->input('tipoDocumento', 'C');
+        $documento = $request->input('documento', '03334580601');
+        $inicioVigencia = $request->input('inicioVigencia', '2026-01-23');
+        $fimVigencia = $request->input('fimVigencia', '2027-01-23');
+        $xml = '
+        <soapenv:Envelope
+            xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+            xmlns:urn="urn:br.com.sulamerica.canalvenda.ws"
+            xmlns:NS1="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+            <soapenv:Header>
+                <NS1:Security soapenv:mustUnderstand="1">
+                    <NS1:UsernameToken>
+                    <NS1:Username>'.$this->user.'</NS1:Username>
+                    <NS1:Password>'.$this->pass.'</NS1:Password>
+                    </NS1:UsernameToken>
+                </NS1:Security>
+            </soapenv:Header>
+            <soapenv:Body>
+                <urn:contratarSeguro>
+                <urn:produto>'.$produto.'</urn:produto>
+                <urn:canalVenda>'.$canalVenda.'</urn:canalVenda>
+                <urn:operacaoParceiro>'.$operacaoParceiro.'</urn:operacaoParceiro>
+                <urn:parametros>
+                <![CDATA[
+                <parametros>
+                    <planoProduto>'.$planoProduto.'</planoProduto>
+                    <premioSeguro>'.$premioSeguro.'</premioSeguro>
+                    <nomeSegurado>'.$nomeSegurado.'</nomeSegurado>
+                    <dataNascimento>'.$dataNascimento.'</dataNascimento>
+                    <sexo>'.$sexo.'</sexo>
+                    <uf>'.$uf.'</uf>
+                    <tipoDocumento>'.$tipoDocumento.'</tipoDocumento>
+                    <documento>'.$documento.'</documento>
+                    <inicioVigencia>'.$inicioVigencia.'</inicioVigencia>
+                    <fimVigencia>'.$fimVigencia.'</fimVigencia>
+                </parametros>]]>
+                </urn:parametros>
+                </urn:contratarSeguro>
+            </soapenv:Body>
+        </soapenv:Envelope>
+        ';
+        $raw = $request->getContent();
+        if (is_string($raw) && strlen(trim($raw))) {
+            $xml = $raw;
+        }
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/xml',
+            'Accept' => 'application/xml',
+            'SOAPAction' => '',
+        ])->withBody($xml, 'application/xml')->post($url);
+        $cred = [
+            'url' => $url,
+            'user' => $this->user,
+            'pass_masked' => strlen($this->pass) ? substr($this->pass,0,2).'****'.substr($this->pass,-2) : null,
+        ];
+        $mensgem = $response->body();
+        try{
+            $xmlObject = @simplexml_load_string($response->body(), 'SimpleXMLElement', LIBXML_NOCDATA);
+            if($xmlObject){
+                $xmlObject->registerXPathNamespace('soap', 'http://schemas.xmlsoap.org/soap/envelope/');
+                $xmlObject->registerXPathNamespace('ns2', 'urn:br.com.sulamerica.canalvenda.ws');
+                $contratarSeguroNode = $xmlObject->xpath('//soap:Body/ns2:contratarSeguroResponse/ns2:contratarSeguro');
+                if (!empty($contratarSeguroNode)) {
+                    $innerXmlString = (string) $contratarSeguroNode[0];
+                    $decodedXml = html_entity_decode($innerXmlString);
+                    $innerXmlObject = @simplexml_load_string($decodedXml, 'SimpleXMLElement', LIBXML_NOCDATA);
+                    if($innerXmlObject){
+                        $array = json_decode(json_encode($innerXmlObject), true);
+                        if(isset($array['retornoMsg'])){
+                            $mensgem = $array['retornoMsg'];
+                        }
+                    }
+                }
+            }
+        }catch(\Throwable $e){}
+        return response()->json([
+            'payload' => $xml,
+            'response' => [
+                'status' => $response->status(),
+                'body' => $response->body(),
+                'headers' => $response->headers(),
+                'url' => $url,
+            ],
+            'credentials' => $cred,
+            'mensgem' => $mensgem,
+        ], 200);
     }
 }
