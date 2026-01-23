@@ -189,6 +189,7 @@ class SulAmericaController extends Controller
         $ret = $this->xmlContrata_to_array($resposta,$config);
         $ret['url'] = $this->url;
         $ret['produto'] = $this->produtoParceiro;
+        $ret['plano'] = $planoProduto;
         // dd($xml,$ret);
         // Log de término da contratação (end)
         if($token_contrato){
