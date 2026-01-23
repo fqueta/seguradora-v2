@@ -196,6 +196,25 @@ export default function ContractForm() {
     };
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    /**
+     * Navega para a página de visualização do cadastro do titular selecionado.
+     * Mantém o contexto do admin e evita alterações no formulário atual.
+     */
+    const handleViewClient = (clientId?: string | null) => {
+        if (!clientId) return;
+        navigate(`/admin/clients/${clientId}/view`);
+    };
+    /**
+     * handleViewContract
+     * pt-BR: Navega para a página de visualização do contrato atual.
+     * en-US: Navigates to the contract view page.
+     */
+    const handleViewContract = () => {
+        if (!id) return;
+        const viewUrl = `/admin/contracts/${id}${clientIdParam ? `?client_id=${clientIdParam}` : ''}`;
+        navigate(viewUrl);
+    };
 
     const handleSaveContinue = () => {
         if (isSubmitting) return;
@@ -376,6 +395,16 @@ export default function ContractForm() {
                                                     title="Editar Titular"
                                                 >
                                                     <Pencil className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                            {field.value && (
+                                                <Button
+                                                    type="button"
+                                                    variant="secondary"
+                                                    onClick={() => handleViewClient(field.value)}
+                                                    title="Visualizar cadastro"
+                                                >
+                                                    Visualizar cadastro
                                                 </Button>
                                             )}
                                         </div>
@@ -609,6 +638,9 @@ export default function ContractForm() {
                         onBack={handleBack}
                         onSaveContinue={handleSaveContinue}
                         onSaveExit={handleSaveExit}
+                        onView={isEdit ? handleViewContract : undefined}
+                        showView={isEdit}
+                        labels={{ view: 'Visualizar contrato' }}
                         isLoading={createMutation.isPending || updateMutation.isPending || isSubmitting}
                     />
                 </form>

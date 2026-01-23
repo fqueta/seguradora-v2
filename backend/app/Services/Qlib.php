@@ -241,14 +241,21 @@ class Qlib
             }
             return (float)trim($preco_venda1);
     }
-    static function isJson($string) {
-		$ret=false;
-		if (is_object(json_decode($string)) || is_array(json_decode($string)))
-		{
-			$ret=true;
-		}
-		return $ret;
-	}
+    static function isJson($value) {
+        $ret = false;
+        // Accept arrays/objects directly without decoding
+        if (is_array($value) || is_object($value)) {
+            return true;
+        }
+        // Only attempt to decode when we actually have a string
+        if (is_string($value) && $value !== '') {
+            $decoded = json_decode($value);
+            if (is_object($decoded) || is_array($decoded)) {
+                $ret = true;
+            }
+        }
+        return $ret;
+    }
   static function Meses($val=false){
   		$mese = array('01'=>'JANEIRO','02'=>'FEVEREIRO','03'=>'MARÇO','04'=>'ABRIL','05'=>'MAIO','06'=>'JUNHO','07'=>'JULHO','08'=>'AGOSTO','09'=>'SETEMBRO','10'=>'OUTUBRO','11'=>'NOVEMBRO','12'=>'DEZEMBRO');
   		if($val){
@@ -3028,10 +3035,14 @@ class Qlib
         // dd($d->config);
         if(!is_null($d)){
             $conf = isset($d->config) ? $d->config : [];
-            if(self::isJson($conf)){
+            // Decode only if config is a JSON string; keep arrays/objects intact
+            if (is_string($conf) && self::isJson($conf)) {
                 $conf = json_decode($conf, true);
             }
-            $ret = $conf['tag'];
+            // Safely read tag when available
+            if (is_array($conf) && array_key_exists('tag', $conf)) {
+                $ret = $conf['tag'];
+            }
         }
         return $ret;
     }
@@ -3072,8 +3083,11 @@ class Qlib
         $supplier = User::find($supplier_id);
         if ($supplier) {
             $d = $supplier->toArray();
-            if(isset($d['config']) && self::isJson($d['config'])){
-                $d['config'] = json_decode($d['config'], true);
+            if (isset($d['config'])) {
+                // Decode only when config is a JSON string; keep arrays/objects as-is
+                if (is_string($d['config']) && self::isJson($d['config'])) {
+                    $d['config'] = json_decode($d['config'], true);
+                }
             }
             return $d;
         }

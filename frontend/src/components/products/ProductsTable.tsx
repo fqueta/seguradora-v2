@@ -159,7 +159,6 @@ export default function ProductsTable({
                 <TableHead>Produto</TableHead>
                 <TableHead>Preço de Venda</TableHead>
                 {/* <TableHead>Pontos</TableHead> */}
-                <TableHead>Estoque</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -167,7 +166,7 @@ export default function ProductsTable({
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     <div className="flex items-center justify-center space-x-2">
                       <Package className="h-4 w-4 animate-spin" />
                       <span>Carregando produtos...</span>
@@ -176,7 +175,7 @@ export default function ProductsTable({
                 </TableRow>
               ) : error ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     <div className="flex flex-col items-center space-y-2 text-destructive">
                       <AlertTriangle className="h-8 w-8" />
                       <div>
@@ -198,7 +197,7 @@ export default function ProductsTable({
                 </TableRow>
               ) : !products || products.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     <div className="flex flex-col items-center space-y-2 text-muted-foreground">
                       <Package className="h-8 w-8" />
                       <div>
@@ -218,7 +217,7 @@ export default function ProductsTable({
                 </TableRow>
               ) : filteredProducts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     <div className="flex flex-col items-center space-y-2 text-muted-foreground">
                       <Search className="h-8 w-8" />
                       <div>
@@ -280,38 +279,6 @@ export default function ProductsTable({
                         {product.points?.toLocaleString('pt-BR') || '0'}
                       </div>
                     </TableCell> */}
-                    <TableCell>
-                      {canEditStock ? (
-                        editingStockId === product.id ? (
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="number"
-                              min={0}
-                              value={stockDraft}
-                              onChange={(e) => handleChangeStock(Number(e.target.value))}
-                              className="w-20 h-8"
-                            />
-                            <Button variant="outline" size="sm" onClick={() => handleAdjustStock(-1)}>-</Button>
-                            <Button variant="outline" size="sm" onClick={() => handleAdjustStock(1)}>+</Button>
-                            <Button size="sm" onClick={() => handleSaveStock(product.id)} disabled={updateProductMutation.isPending}>
-                              {updateProductMutation.isPending && (<Loader2 className="mr-2 h-4 w-4 animate-spin" />)}
-                              Salvar
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <div className="text-sm font-medium">
-                              {product.stock?.toLocaleString('pt-BR') || '0'} {product.unit || ''}
-                            </div>
-                            <Button variant="outline" size="sm" onClick={() => handleStartEditStock(product)}>Editar</Button>
-                          </div>
-                        )
-                      ) : (
-                        <div className="text-sm font-medium">
-                          {product.stock?.toLocaleString('pt-BR') || '0'} {product.unit || ''}
-                        </div>
-                      )}
-                    </TableCell>
                     <TableCell>
                       <Badge variant={product.active ? "default" : "destructive"}>
                         {product.active ? "Ativo" : "Inativo"}

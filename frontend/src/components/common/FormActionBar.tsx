@@ -26,6 +26,8 @@ export function FormActionBar({
   labels,
   showSaveContinue = true,
   showSaveExit = true,
+  onView,
+  showView = false,
   showCancel = true,
   showSubmit = true,
 }: {
@@ -36,23 +38,27 @@ export function FormActionBar({
   onSaveExit?: () => void;
   onCancel?: () => void;
   onSaveEdit?: () => void;
+  onView?: () => void;
   isLoading?: boolean;
   className?: string;
   labels?: Partial<{
     back: string;
     saveContinue: string;
     saveExit: string;
+    view: string;
     cancel: string;
     saveEdit: string;
   }>;
   showSaveContinue?: boolean; // Oculta/mostra ação "Salvar e continuar" (create)
   showSaveExit?: boolean;     // Oculta/mostra ação "Salvar e sair" (create)
+  showView?: boolean;         // Oculta/mostra ação "Visualizar contrato" (create/edit)
   showCancel?: boolean;       // Oculta/mostra ação "Cancelar" (edit)
   showSubmit?: boolean;       // Oculta/mostra botão de submit (edit)
 }) {
   const backLabel = labels?.back ?? "Voltar";
   const saveContinueLabel = labels?.saveContinue ?? "Salvar e continuar";
   const saveExitLabel = labels?.saveExit ?? "Salvar e sair";
+  const viewLabel = labels?.view ?? "Visualizar contrato";
   const cancelLabel = labels?.cancel ?? "Cancelar";
   const saveEditLabel = labels?.saveEdit ?? "Salvar Alterações";
 
@@ -77,6 +83,17 @@ export function FormActionBar({
         <div className="flex items-center gap-2">
           {mode === "create" ? (
             <>
+              {showView && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onView}
+                  className="flex items-center gap-2"
+                  type="button"
+                >
+                  {viewLabel}
+                </Button>
+              )}
               {showSaveContinue && (
                 <Button
                   variant="default"
@@ -106,6 +123,16 @@ export function FormActionBar({
             </>
           ) : (
             <div className="flex items-center gap-2">
+              {showView && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onView}
+                  disabled={isLoading}
+                >
+                  {viewLabel}
+                </Button>
+              )}
               {showCancel && (
                 <Button
                   type="button"
@@ -158,6 +185,17 @@ export function FormActionBar({
             {backLabel}
           </Button>
           <div className="flex items-center gap-2">
+            {showView && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onView}
+                className="flex items-center gap-2"
+                type="button"
+              >
+                {viewLabel}
+              </Button>
+            )}
             {showSaveContinue && (
               <Button
                 variant="default"
@@ -188,6 +226,11 @@ export function FormActionBar({
         </div>
       ) : (
         <>
+          {showView && (
+            <Button type="button" variant="outline" onClick={onView} disabled={isLoading}>
+              {viewLabel}
+            </Button>
+          )}
           {showCancel && (
             <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
               <X className="mr-2 h-4 w-4" />

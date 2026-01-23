@@ -7,6 +7,7 @@ import { ArrowLeft, Edit, FileText, User, Calendar, DollarSign, Package, XCircle
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useMemo } from 'react';
+import EditFooterBar from '@/components/ui/edit-footer-bar';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +29,7 @@ export default function ContractView() {
     const { data: contract, isLoading, error } = useContract(id as string);
     const { mutate: cancelContract, isPending: isCancelling } = useCancelContract();
     const [expandedEvents, setExpandedEvents] = useState<number[]>([]);
+    const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
     const integrationData = useMemo(() => {
         const ci: any = (contract as any)?.contato_integrado;
         if (!ci) return null;
@@ -50,6 +52,32 @@ export default function ContractView() {
     };
 
     // ... (rest of the code)
+    /**
+     * handleBack
+     * pt-BR: Volta para a origem (cliente, se presente, ou lista de contratos).
+     * en-US: Navigates back to origin (client if present, or contracts list).
+     */
+    const handleBack = () => {
+        navigate(clientIdParam ? `/admin/clients/${clientIdParam}/view` : '/admin/contracts');
+    };
+    /**
+     * handleEdit
+     * pt-BR: Navega para a página de edição do contrato atual.
+     * en-US: Navigates to the edit page of the current contract.
+     */
+    const handleEdit = () => {
+        navigate(`/admin/contracts/${id}/edit`);
+    };
+    /**
+     * handleOpenCancel
+     * pt-BR: Abre o modal de confirmação de cancelamento.
+     * en-US: Opens the cancellation confirmation modal.
+     */
+    const handleOpenCancel = () => {
+        if (contract?.status === 'approved') {
+            setIsCancelDialogOpen(true);
+        }
+    };
 
     if (isLoading) {
         // ... (loading state)
@@ -140,7 +168,7 @@ export default function ContractView() {
             {/* Header */}
             <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <Button variant="outline" size="sm" onClick={() => navigate(clientIdParam ? `/admin/clients/${clientIdParam}/view` : '/admin/contracts')}>
+                    <Button variant="outline" size="sm" onClick={handleBack}>
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Voltar
                     </Button>
@@ -157,40 +185,6 @@ export default function ContractView() {
                     <Badge variant={getStatusVariant(contract.status)}>
                         {getStatusLabel(contract.status)}
                     </Badge>
-                    
-                    {contract.status === 'approved' && (
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="destructive">
-                                    <XCircle className="mr-2 h-4 w-4" />
-                                    Cancelar
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Cancelar Contrato?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Esta ação irá cancelar o contrato e notificar a integração (se disponível). 
-                                        Tem certeza que deseja continuar?
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Voltar</AlertDialogCancel>
-                                    <AlertDialogAction 
-                                        onClick={handleCancel}
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    >
-                                        Sim, Cancelar
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    )}
-
-                    <Button onClick={() => navigate(`/admin/contracts/${id}/edit`)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Editar
-                    </Button>
                 </div>
             </div>
 
@@ -522,6 +516,44 @@ export default function ContractView() {
                     </div>
                 )}
             </div>
+            
+            {/* Barra fixa no rodapé com ações: Voltar, Editar e Cancelar */}
+            <EditFooterBar
+                onBack={handleBack}
+                onContinue={handleEdit}
+                onFinish={handleOpenCancel}
+                finishVariant="destructive"
+                disabled={isCancelling}
+                backLabel="Voltar"
+                continueLabel="Editar"
+                finishLabel="Cancelar"
+                showContinue={true}
+                showFinish={contract.status === 'approved'}
+                fixed={true}
+            />
+            {/* Dialog de confirmação de cancelamento acionado pela barra de rodapé */}
+            {contract.status === 'approved' && (
+                <AlertDialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Cancelar Contrato?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Esta ação irá cancelar o contrato e notificar a integração (se disponível). 
+                                Tem certeza que deseja continuar?
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Voltar</AlertDialogCancel>
+                            <AlertDialogAction 
+                                onClick={handleCancel}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                                Sim, Cancelar
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            )}
         </div>
     );
 }

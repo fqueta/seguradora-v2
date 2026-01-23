@@ -46,6 +46,18 @@ export interface EditFooterBarProps {
    */
   finishLabel?: string;
   /**
+   * continueVariant
+   * pt-BR: Variante visual do botão de continuar.
+   * en-US: Visual variant for the continue button.
+   */
+  continueVariant?: "default" | "secondary" | "outline" | "destructive" | "ghost" | "link";
+  /**
+   * finishVariant
+   * pt-BR: Variante visual do botão de finalizar.
+   * en-US: Visual variant for the finish button.
+   */
+  finishVariant?: "default" | "secondary" | "outline" | "destructive" | "ghost" | "link";
+  /**
    * showContinue
    * pt-BR: Controla a exibição do botão "Salvar e Continuar".
    * en-US: Controls visibility of the "Save and Continue" button.
@@ -86,6 +98,8 @@ export function EditFooterBar({
   backLabel = 'Voltar',
   continueLabel = 'Salvar e Continuar',
   finishLabel = 'Salvar e Finalizar',
+  continueVariant = 'default',
+  finishVariant = 'default',
   showContinue = true,
   showFinish = true,
   fixed = true,
@@ -103,12 +117,12 @@ export function EditFooterBar({
         </Button>
         <div className="ml-auto flex items-center gap-2">
           {showContinue && (
-            <Button type="button" onClick={onContinue} disabled={disabled}>
+            <Button type="button" variant={continueVariant} onClick={onContinue} disabled={disabled}>
               <Save className="h-4 w-4 mr-2" /> {continueLabel}
             </Button>
           )}
           {showFinish && (
-            <Button type="button" onClick={onFinish} disabled={disabled}>
+            <Button type="button" variant={finishVariant} onClick={onFinish} disabled={disabled}>
               <CheckCircle className="h-4 w-4 mr-2" /> {finishLabel}
             </Button>
           )}
