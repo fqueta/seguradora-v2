@@ -18,7 +18,7 @@ class SulAmericaController extends Controller
     public function __construct()
     {
         $credenciais = $this->credentials();
-        $this->url = strtok($credenciais['url'], '?');
+        $this->url = $credenciais['url'];
         $this->user = $credenciais['user'];
         $this->pass = $credenciais['pass'];
         $this->produtoParceiro = $credenciais['produto'];
@@ -172,9 +172,10 @@ class SulAmericaController extends Controller
             );
         }
         $response = Http::withHeaders([
-            'Content-Type' => 'text/xml',
+            'Content-Type' => 'application/xml',
+            'Accept' => 'application/xml',
             'SOAPAction' => '',
-        ])->withBody($xml, 'text/xml')->post($this->url);
+        ])->withBody($xml, 'application/xml')->post($this->url);
 
         $ret['url'] = $this->url;
         $resposta = $response->body();
@@ -281,9 +282,10 @@ class SulAmericaController extends Controller
         </soapenv:Envelope>
         ';
         $response = Http::withHeaders([
-            'Content-Type' => 'text/xml',
+            'Content-Type' => 'application/xml',
+            'Accept' => 'application/xml',
             'SOAPAction' => '',
-        ])->withBody($xml, 'text/xml')->post($this->url);
+        ])->withBody($xml, 'application/xml')->post($this->url);
 
         $ret['url'] = $this->url;
         $resposta = $response->body();
