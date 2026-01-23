@@ -254,6 +254,13 @@ class ContractController extends Controller
 
         // Se o contrato não estiver aprovado, tenta processar a integração
         // ... (rest of the code)
+        //se o contrato estiver cancelado envia uma mensagem de sucesso se o update foi bem succedo e avisa ao usuario que para reaprovar um novo contrato é necessário criar um novo contrato
+        if ($contract->status === 'cancelled') {
+            return response()->json([
+                'exec' => true,
+                'mens' => 'Contrato cancelado com sucesso. Para aprovar um novo contrato é necessário criar um novo contrato.'
+            ]);
+        }
         if ($contract->status !== 'approved') {
            $ret = $this->processSulamericaIntegration($contract);
            return response()->json($ret);

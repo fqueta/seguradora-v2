@@ -112,7 +112,10 @@ export default function ContractForm() {
         
         // 1. Super-admins podem ver todos os produtos ( permission_id < 3 )
         if (isSuperAdmin) {
-            return allProducts.map(p => ({ value: String(p.id), label: p.name }));
+            return allProducts.map(p => ({ 
+                value: String(p.id), 
+                label: p.plan ? `${p.name} - Plano ${p.plan}` : p.name 
+            }));
         }
 
         // 2. Se for um usuário comum ( permission_id >= 3 ) e não tiver organização vinculada, não vê nada
@@ -133,7 +136,10 @@ export default function ContractForm() {
         }
 
         const filtered = allProducts.filter(p => allowedProductIds.map(String).includes(String(p.id)));
-        return filtered.map(p => ({ value: String(p.id), label: p.name }));
+        return filtered.map(p => ({ 
+            value: String(p.id), 
+            label: p.plan ? `${p.name} - Plano ${p.plan}` : p.name 
+        }));
     }, [products?.data, currentUser]);
 
     const form = useForm<ContractFormData>({
@@ -325,7 +331,7 @@ export default function ContractForm() {
     };
 
     return (
-        <div className="container mx-auto py-6 space-y-6">
+        <div className="container mx-auto py-6 space-y-6 pb-24">
             <div className="flex items-center gap-4">
                 <Button variant="ghost" onClick={handleBack}>
                     <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
