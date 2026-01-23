@@ -175,7 +175,6 @@ class SulAmericaController extends Controller
             'Content-Type' => 'application/xml',//'text/xml; charset=utf-8',
             'SOAPAction' => '',
         ])->withBody($xml, 'text/xml')->post($this->url);
-        dd($xml,$response,$this->url);
 
         $ret['url'] = $this->url;
         $resposta = $response->body();
@@ -183,6 +182,7 @@ class SulAmericaController extends Controller
         // $ret['passwordDigest'] = $passwordDigest;
         $ret['body'] = $resposta;
         $ret = $this->xmlContrata_to_array($resposta,$config);
+        dd($xml,$ret,$response,$this->url);
         // Log de término da contratação (end)
         if($token_contrato){
             ContractEventLogger::logByToken(
