@@ -30,10 +30,11 @@ export function AddressAccordion({ form }: AddressAccordionProps) {
   }, [form.watch("config.cep")]); // Executa sempre que o CEP mudar
 
   return (
-    <div className="col-span-1 md:col-span-2">
-      <Accordion type="single" collapsible>
-        <AccordionItem value="endereco">
-          <AccordionTrigger>Endereço</AccordionTrigger>
+      <Accordion type="single" collapsible className="w-full">
+        <AccordionItem value="endereco" className="bg-gray-50 rounded-lg border px-6">
+          <AccordionTrigger className="text-lg font-semibold text-gray-900 hover:no-underline">
+            Endereço
+          </AccordionTrigger>
           <AccordionContent>
             {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
@@ -132,6 +133,6 @@ export function AddressAccordion({ form }: AddressAccordionProps) {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-    </div>
+
   );
 }

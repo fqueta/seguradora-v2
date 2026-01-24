@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use App\Models\Organization;
 use App\Models\Contract;
+use App\Models\Permission;
 
 class ClientController extends Controller
 {
@@ -29,7 +30,15 @@ class ClientController extends Controller
     protected int $responsavel_permission_id = 8;
     public function __construct()
     {
-        $this->cliente_permission_id = Qlib::qoption('permission_client_id');
+        $optionId = Qlib::qoption('permission_client_id');
+        $permId = null;
+        try {
+            $permId = Permission::whereIn('name', ['Cliente', 'Clientes'])->value('id');
+        } catch (\Throwable $e) {
+            $permId = null;
+        }
+        $this->cliente_permission_id = $permId ?: ($optionId ?: 10);
+
         $this->routeName = request()->route()->getName();
         $this->permissionService = new PermissionService();
         $this->sec = request()->segment(3);
@@ -610,6 +619,14 @@ class ClientController extends Controller
 
         $client = Client::findOrFail($id);
 
+        // Mover contratos relacionados para lixeira
+        $contracts = Contract::where('client_id', $client->id)->get();
+        if($contracts){
+            foreach ($contracts as $contract) {
+                $contract->delete();
+            }
+        }
+        
         // Mover para lixeira em vez de excluir permanentemente
         $client->update([
             'ativo' => 'n',
@@ -786,6 +803,7 @@ class ClientController extends Controller
      */
     public function restore(Request $request, string $id)
     {
+        \Illuminate\Support\Facades\Log::error("RESTORE METHOD HIT for ID: $id");
         $user = $request->user();
         if (!$user) {
             return response()->json(['error' => 'Acesso negado'], 403);
@@ -794,27 +812,66 @@ class ClientController extends Controller
             return response()->json(['error' => 'Acesso negado'], 403);
         }
 
-        $client = Client::withoutGlobalScope('client')
-            ->where('id', $id)
+        // 1. Attempt standard restore (Client scoped)
+        // Global scope 'client' is applied automatically by Client::where
+        $client = Client::where('id', $id)
             ->where(function ($query) {
                 $query->where('deletado', 's')
                       ->orWhere('excluido', 's');
             })
-            ->where('permission_id', $this->cliente_permission_id)
-            ->firstOrFail();
+            ->first();
 
-        $client->update([
-            'deletado' => 'n',
-            'excluido' => 'n',
-            'ativo' => 's',
-            'status' => 'actived',
-            'reg_deletado' => null
-        ]);
+        if ($client) {
+            $client->update([
+                'deletado' => 'n',
+                'excluido' => 'n',
+                'ativo' => 's',
+                'status' => 'actived',
+                'reg_deletado' => null
+            ]);
+            return response()->json([
+                'message' => 'Cliente restaurado com sucesso',
+                'status' => 200
+            ]);
+        }
 
-        return response()->json([
-            'message' => 'Cliente restaurado com sucesso',
-            'status' => 200
-        ]);
+        // 2. Diagnostics - why did it fail?
+        $debug = Client::withoutGlobalScope('client')->find($id);
+
+        if (!$debug) {
+             return response()->json(['message' => 'Erro: Cadastro não encontrado na base de dados.'], 404);
+        }
+
+        // Check if it's actually deleted
+        $isTrash = ($debug->deletado === 's' || $debug->excluido === 's');
+        if (!$isTrash) {
+             return response()->json(['message' => 'Este cadastro existe mas não está marcado como excluído. Verifique se ele já está ativo ou apenas com status inativo.'], 400);
+        }
+
+        // Check Permission Matches
+        // This confirms if the record belongs to the "Client" scope
+        $configId = $this->cliente_permission_id;
+        $hasPermission = false;
+        
+        if ($debug->permission_id == $configId) {
+            $hasPermission = true;
+        } elseif (is_array($debug->client_permission) && in_array($configId, $debug->client_permission)) {
+            $hasPermission = true;
+        } elseif (is_string($debug->client_permission) && str_contains($debug->client_permission, (string)$configId)) {
+            $hasPermission = true;
+        }
+
+        if (!$hasPermission) {
+             return response()->json([
+                 'message' => 'Permissão negada. Este registro não está associado ao perfil de clientes atual.',
+                 'details' => [
+                     'current_config_id' => $configId,
+                     'record_permission_id' => $debug->permission_id,
+                 ]
+             ], 403);
+        }
+
+        return response()->json(['message' => 'Erro desconhecido ao tentar restaurar.'], 500);
     }
 
     /**
@@ -830,10 +887,7 @@ class ClientController extends Controller
             return response()->json(['error' => 'Acesso negado'], 403);
         }
 
-        $client = Client::withoutGlobalScope('client')
-            ->where('id', $id)
-            ->where('permission_id', $this->cliente_permission_id)
-            ->firstOrFail();
+        $client = Client::where('id', $id)->firstOrFail();
 
         $client->delete();
 

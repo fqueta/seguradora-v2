@@ -106,6 +106,19 @@ export default function UserEdit() {
 
   useEffect(() => {
     if (user) {
+      let configFn: any = {};
+      
+      // Parse config if it is a JSON string
+      if (user.config && typeof user.config === 'string') {
+        try {
+          configFn = JSON.parse(user.config);
+        } catch (e) {
+          console.error("Error parsing user config JSON", e);
+        }
+      } else if (typeof user.config === 'object' && user.config !== null) {
+        configFn = user.config;
+      }
+
       form.reset({
         tipo_pessoa: user.tipo_pessoa || 'pf',
         permission_id: String(user.permission_id),
@@ -119,22 +132,22 @@ export default function UserEdit() {
         cnpj: user.cnpj || '',
         razao: user.razao || '',
         config: {
-          celular: user.config?.celular || '',
-          telefone_comercial: user.config?.telefone_comercial || '',
-          nascimento: user.config?.nascimento || '',
-          cep: user.config?.cep || '',
-          endereco: user.config?.endereco || '',
-          numero: user.config?.numero || '',
-          complemento: user.config?.complemento || '',
-          bairro: user.config?.bairro || '',
-          cidade: user.config?.cidade || '',
-          uf: user.config?.uf || '',
+          celular: configFn?.celular || '',
+          telefone_comercial: configFn?.telefone_comercial || '',
+          nascimento: configFn?.nascimento || '',
+          cep: configFn?.cep || '',
+          endereco: configFn?.endereco || '',
+          numero: configFn?.numero || '',
+          complemento: configFn?.complemento || '',
+          bairro: configFn?.bairro || '',
+          cidade: configFn?.cidade || '',
+          uf: configFn?.uf || '',
         },
       });
     }
   }, [user, form]);
 
-  const onSubmit = async (data: UserEditFormData) => {
+  const internalSubmit = async (data: UserEditFormData, mode: 'continue' | 'exit') => {
     const payload: UpdateUserInput = {
       tipo_pessoa: data.tipo_pessoa as any,
       permission_id: data.permission_id,
@@ -164,11 +177,35 @@ export default function UserEdit() {
 
     try {
       await updateMutation.mutateAsync({ id: id!, data: payload });
-      // Redireciona para a visualização ou lista
-      navigate(`/admin/settings/users/${id}/view`);
+      toast({ title: 'Usuário atualizado', description: 'Dados salvos com sucesso.' });
+      
+      if (mode === 'exit') {
+        navigate('/admin/settings/users');
+      }
+      // If continue, stay on page (already toasted)
     } catch (err: any) {
-      // Erro tratado pelo hook
+      toast({ 
+        title: "Erro ao atualizar", 
+        description: err?.message || "Erro desconhecido", 
+        variant: "destructive" 
+      });
     }
+  };
+
+  const handleSaveContinue = () => {
+    form.handleSubmit((data) => internalSubmit(data, 'continue'))();
+  };
+
+  const handleSaveExit = () => {
+    form.handleSubmit((data) => internalSubmit(data, 'exit'))();
+  };
+
+  const onSubmit = async (data: UserEditFormData) => {
+    await internalSubmit(data, 'continue');
+  };
+
+  const handleView = () => {
+      navigate(`/admin/settings/users/${id}/view`);
   };
 
   const onCancel = () => navigate(-1);
@@ -182,7 +219,7 @@ export default function UserEdit() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto py-6 space-y-8 pb-24">
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
@@ -208,6 +245,11 @@ export default function UserEdit() {
             organizations={organizations}
             isLoadingPermissions={isLoadingPermissions}
             ativoAsSwitch={true}
+            useFixedFooter={true}
+            onSaveContinue={handleSaveContinue}
+            onSaveExit={handleSaveExit}
+            onView={handleView}
+            onBack={() => navigate('/admin/settings/users')}
           />
         </CardContent>
       </Card>

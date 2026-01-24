@@ -986,7 +986,11 @@ export default function Clients() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o cliente {clientToDelete?.name}? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir o cliente {clientToDelete?.name}?
+              <br />
+              <span className="font-bold text-red-600 block mt-2">
+                Atenção: O histórico de contratos e eventos relacionados também serão excluídos/movidos para lixeira.
+              </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

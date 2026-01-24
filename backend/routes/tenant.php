@@ -378,48 +378,48 @@ Route::name('api.')->prefix('api/v1')->middleware([
         Route::get('financial/accounts-payable', function(Request $request) {
             $request->merge(['type' => 'payable']);
             return app(FinancialAccountController::class)->index($request);
-        })->name('api.financial.accounts-payable.index');
+        })->name('financial.accounts-payable.index');
         Route::post('financial/accounts-payable', function(Request $request) {
             $request->merge(['type' => 'payable']);
             return app(FinancialAccountController::class)->store($request);
-        })->name('api.financial.accounts-payable.store');
+        })->name('financial.accounts-payable.store');
         Route::get('financial/accounts-payable/{id}', function(Request $request, $id) {
             return app(FinancialAccountController::class)->show($request, $id);
-        })->name('api.financial.accounts-payable.show');
+        })->name('financial.accounts-payable.show');
         Route::put('financial/accounts-payable/{id}', function(Request $request, $id) {
             return app(FinancialAccountController::class)->update($request, $id);
-        })->name('api.financial.accounts-payable.update');
+        })->name('financial.accounts-payable.update');
         Route::delete('financial/accounts-payable/{id}', function(Request $request, $id) {
             return app(FinancialAccountController::class)->destroy($request, $id);
-        })->name('api.financial.accounts-payable.destroy');
+        })->name('financial.accounts-payable.destroy');
         Route::patch('financial/accounts-payable/{id}/pay', function(Request $request, $id) {
             return app(FinancialAccountController::class)->pay($request, $id);
-        })->name('api.financial.accounts-payable.pay');
+        })->name('financial.accounts-payable.pay');
 
         // Rotas de compatibilidade para accounts-receivable (contas a receber)
         Route::get('financial/accounts-receivable', function(Request $request) {
             $request->merge(['type' => 'receivable']);
             return app(FinancialAccountController::class)->index($request);
-        })->name('api.financial.accounts-receivable.index');
+        })->name('financial.accounts-receivable.index');
         Route::post('financial/accounts-receivable', function(Request $request) {
             $request->merge(['type' => 'receivable']);
             return app(FinancialAccountController::class)->store($request);
-        })->name('api.financial.accounts-receivable.store');
+        })->name('financial.accounts-receivable.store');
         Route::get('financial/accounts-receivable/{id}', function(Request $request, $id) {
             return app(FinancialAccountController::class)->show($request, $id);
-        })->name('api.financial.accounts-receivable.show');
+        })->name('financial.accounts-receivable.show');
         Route::put('financial/accounts-receivable/{id}', function(Request $request, $id) {
             return app(FinancialAccountController::class)->update($request, $id);
-        })->name('api.financial.accounts-receivable.update');
+        })->name('financial.accounts-receivable.update');
         Route::delete('financial/accounts-receivable/{id}', function(Request $request, $id) {
             return app(FinancialAccountController::class)->destroy($request, $id);
-        })->name('api.financial.accounts-receivable.destroy');
+        })->name('financial.accounts-receivable.destroy');
         Route::patch('financial/accounts-receivable/{id}/receive', function(Request $request, $id) {
             return app(FinancialAccountController::class)->receive($request, $id);
-        })->name('api.financial.accounts-receivable.receive');
+        })->name('financial.accounts-receivable.receive');
         Route::patch('financial/accounts-receivable/{id}/cancel', function(Request $request, $id) {
             return app(FinancialAccountController::class)->cancel($request, $id);
-        })->name('api.financial.accounts-receivable.cancel');
+        })->name('financial.accounts-receivable.cancel');
 
         // Resumo financeiro (dados mocados)
         Route::get('financial/overview', [FinancialOverviewController::class, 'index'])->name('financial.overview');

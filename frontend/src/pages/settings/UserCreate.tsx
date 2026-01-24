@@ -106,7 +106,11 @@ export default function UserCreate() {
    * pt-BR: Cria o usuário e redireciona para a lista de usuários em caso de sucesso.
    * en-US: Creates the user and navigates back to the users list on success.
    */
-  const onSubmit = async (data: UserCreateFormData) => {
+  /**
+   * internalSubmit
+   * Handles the actual mutation logic
+   */
+  const internalSubmit = async (data: UserCreateFormData, mode: 'continue' | 'exit') => {
     const payload: CreateUserInput = {
       tipo_pessoa: 'pf',
       permission_id: data.permission_id,
@@ -115,13 +119,13 @@ export default function UserCreate() {
       email: data.email,
       password: data.password,
       name: data.name,
-      genero: 'ni', // não exibido no formulário, usa padrão
+      genero: 'ni',
       ativo: data.ativo,
       token: '',
       config: {
         nome_fantasia: '',
         celular: data.config.celular || '',
-        telefone_residencial: '', // removido do formulário
+        telefone_residencial: '',
         telefone_comercial: data.config.telefone_comercial || '',
         rg: '',
         nascimento: data.config.nascimento || '',
@@ -139,12 +143,36 @@ export default function UserCreate() {
     };
 
     try {
-      await createMutation.mutateAsync(payload);
+      const resp = await createMutation.mutateAsync(payload);
       toast({ title: 'Usuário criado', description: 'Cadastro realizado com sucesso.' });
-      navigate('/admin/settings/users');
+      
+      if (mode === 'exit') {
+        navigate('/admin/settings/users');
+      } else {
+         // Redirect to edit mode for the created user
+         if (resp && resp.id) {
+             navigate(`/admin/settings/users/${resp.id}/edit`);
+         } else {
+             // Fallback if ID is not returned (though it should be)
+             navigate('/admin/settings/users');
+         }
+      }
     } catch (err: any) {
       toast({ title: 'Erro ao criar usuário', description: err?.message || 'Tente novamente.', variant: 'destructive' });
     }
+  };
+
+  const handleSaveContinue = () => {
+      form.handleSubmit((data) => internalSubmit(data, 'continue'))();
+  };
+
+  const handleSaveExit = () => {
+      form.handleSubmit((data) => internalSubmit(data, 'exit'))();
+  };
+
+  // Keep onSubmit for compatibility if needed, though we use the handlers above
+  const onSubmit = async (data: UserCreateFormData) => {
+     await internalSubmit(data, 'exit');
   };
 
   /**
@@ -155,7 +183,7 @@ export default function UserCreate() {
   const onCancel = () => navigate('/admin/settings/users');
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto py-6 space-y-8 pb-24">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Novo Usuário</h1>
@@ -184,6 +212,9 @@ export default function UserCreate() {
             showPhones={false}
             ativoAsSwitch={true}
             showBirthDate={false}
+            useFixedFooter={true}
+            onSaveContinue={handleSaveContinue}
+            onSaveExit={handleSaveExit}
           />
         </CardContent>
       </Card>

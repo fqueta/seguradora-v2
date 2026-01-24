@@ -105,13 +105,13 @@ Route::name('api.')->prefix('v1')->middleware([
         Route::apiResource('users', UserController::class,['parameters' => [
             'users' => 'id'
         ]]);
+        Route::put('clients/{id}/restore', [ClientController::class, 'restore'])->name('clients.restore');
+        Route::delete('clients/{id}/force', [ClientController::class, 'forceDelete'])->name('clients.forceDelete');
         Route::apiResource('clients', ClientController::class,['parameters' => [
             'clients' => 'id'
         ]]);
         Route::get('clients/trash', [ClientController::class, 'trash'])->name('clients.trash');
         Route::get('clients/consult-cpf/{cpf}', [ClientController::class, 'consultCpf'])->name('clients.consult-cpf');
-        Route::put('clients/{id}/restore', [ClientController::class, 'restore'])->name('clients.restore');
-        Route::delete('clients/{id}/force', [ClientController::class, 'forceDelete'])->name('clients.forceDelete');
 
 
 

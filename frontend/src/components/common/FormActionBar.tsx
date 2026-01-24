@@ -65,8 +65,8 @@ export function FormActionBar({
   const fixedWrapper = (
     <div className={`fixed bottom-0 left-0 right-0 z-50 border-t bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 ${className ?? ""}`}>
       <div className="container mx-auto py-3 flex items-center justify-between gap-2">
-        {/* Left side (Back) for create mode */}
-        {mode === "create" && (
+        {/* Left side (Back) for create/edit mode */}
+        {(mode === "create" || !!onBack) && (
           <Button
             variant="outline"
             size="sm"

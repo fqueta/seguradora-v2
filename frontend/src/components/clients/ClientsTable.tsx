@@ -220,7 +220,7 @@ export function ClientsTable({ clients, onEdit, onDelete, onForceDelete, isLoadi
               </Select>
             </div>
             <div className="text-xs text-muted-foreground">
-              Esta ação é permitida apenas para usuários com permissão administrativa (permission_id ≤ 2).
+              Esta ação é permitida apenas para usuários com permissão administrativa.
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setTransferOpen(false)}>Cancelar</Button>

@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/select';
 import { MaskedInputField } from '@/components/lib/MaskedInputField';
 import { cepApplyMask, cepRemoveMask } from '@/lib/masks/cep-apply-mask';
-import { Controller } from 'react-hook-form';
 import { InputMask, format } from "@react-input/mask";
 import { useCep } from '@/hooks/useCep';
 
@@ -72,7 +71,7 @@ export function AddressInputs({form, showCep = true}: AddressInputsProps){
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pb-6">
       {/* Campo CEP com máscara e busca automática (config.cep) */}
       {showCep && (
         <FormField
@@ -82,24 +81,18 @@ export function AddressInputs({form, showCep = true}: AddressInputsProps){
             <FormItem>
               <FormLabel>CEP {isLoadingCep && "(Buscando...)"}</FormLabel>
               <FormControl>
-                <Controller
-                  name="config.cep"
-                  control={form.control}
-                  render={({ field }) => (
-                    <InputMask
-                      mask="ddddd-ddd"
-                      replacement={{ d: /\d/ }}
-                      value={field.value && typeof field.value === 'string' && field.value.trim() !== '' ? format(field.value, { mask: "ddddd-ddd", replacement: { d: /\d/ } }) : ""}
-                      onChange={(e) => {
-                          field.onChange(e.target.value);
-                          handleCepChange(e.target.value);
-                      }}
-                      disabled={isLoadingCep}
-                      placeholder="00000-000"
-                      ref={field.ref}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                  )}
+                <InputMask
+                  mask="ddddd-ddd"
+                  replacement={{ d: /\d/ }}
+                  value={field.value && typeof field.value === 'string' && field.value.trim() !== '' ? format(field.value, { mask: "ddddd-ddd", replacement: { d: /\d/ } }) : ""}
+                  onChange={(e) => {
+                      field.onChange(e.target.value);
+                      handleCepChange(e.target.value);
+                  }}
+                  disabled={isLoadingCep}
+                  placeholder="00000-000"
+                  ref={field.ref}
+                  className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </FormControl>
               <FormMessage />
@@ -115,7 +108,7 @@ export function AddressInputs({form, showCep = true}: AddressInputsProps){
           <FormItem>
             <FormLabel>Endereço</FormLabel>
             <FormControl>
-              <Input placeholder="Endereço" {...field} value={field.value || ''} />
+              <Input placeholder="Endereço" {...field} value={field.value || ''} className="h-11" />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -134,6 +127,7 @@ export function AddressInputs({form, showCep = true}: AddressInputsProps){
                 {...field} 
                 value={field.value || ''}
                 ref={numeroInputRef}
+                className="h-11"
               />
             </FormControl>
             <FormMessage />
@@ -148,7 +142,7 @@ export function AddressInputs({form, showCep = true}: AddressInputsProps){
           <FormItem>
             <FormLabel>Complemento</FormLabel>
             <FormControl>
-              <Input placeholder="Complemento" {...field} value={field.value || ''} />
+              <Input placeholder="Complemento" {...field} value={field.value || ''} className="h-11" />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -162,7 +156,7 @@ export function AddressInputs({form, showCep = true}: AddressInputsProps){
           <FormItem>
             <FormLabel>Bairro</FormLabel>
             <FormControl>
-              <Input placeholder="Bairro" {...field} value={field.value || ''} />
+              <Input placeholder="Bairro" {...field} value={field.value || ''} className="h-11" />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -176,7 +170,7 @@ export function AddressInputs({form, showCep = true}: AddressInputsProps){
           <FormItem>
             <FormLabel>Cidade</FormLabel>
             <FormControl>
-              <Input placeholder="Cidade" {...field} value={field.value || ''} />
+              <Input placeholder="Cidade" {...field} value={field.value || ''} className="h-11" />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -194,7 +188,7 @@ export function AddressInputs({form, showCep = true}: AddressInputsProps){
               value={field.value || ''}
             >
               <FormControl>
-                <SelectTrigger>
+                <SelectTrigger className="h-11">
                   <SelectValue placeholder="UF" />
                 </SelectTrigger>
               </FormControl>

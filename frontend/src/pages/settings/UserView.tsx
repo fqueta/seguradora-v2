@@ -1,3 +1,4 @@
+import { useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, Mail, User, Building, FileText, Plus, Eye, Pencil, Shield, 
@@ -12,6 +13,7 @@ import { useContractsList } from '@/hooks/contracts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { cpfApplyMask } from '@/lib/masks/cpf-apply-mask';
+import { FormActionBar } from '@/components/common/FormActionBar';
 
 export default function UserView() {
   const { id } = useParams<{ id: string }>();
@@ -20,7 +22,25 @@ export default function UserView() {
 
   const { data: userResponse, isLoading: isLoadingUser, error: userError } = useUser(id!);
 
-  const user = (userResponse as any);
+  // Parse config if it is a JSON string
+  const user = useMemo(() => {
+    const rawUser = userResponse as any;
+    if (!rawUser) return null;
+    
+    let configFn: any = {};
+    
+    if (rawUser.config && typeof rawUser.config === 'string') {
+      try {
+        configFn = JSON.parse(rawUser.config);
+      } catch (e) {
+        console.error("Error parsing user config JSON", e);
+      }
+    } else if (typeof rawUser.config === 'object' && rawUser.config !== null) {
+      configFn = rawUser.config;
+    }
+    
+    return { ...rawUser, config: configFn };
+  }, [userResponse]);
 
   const { data: contractsData, isLoading: isContractsLoading, error: contractsError } = useContractsList({ 
     owner_id: id,
@@ -98,14 +118,10 @@ export default function UserView() {
   const isPJ = user.tipo_pessoa === 'pj';
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto py-6 space-y-6 pb-24">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center space-x-4">
-          <Button onClick={handleBack} variant="outline" size="sm">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar
-          </Button>
           <div>
             <h1 className="text-2xl font-bold">{user.name}</h1>
             <p className="text-muted-foreground flex items-center gap-2">
@@ -114,10 +130,6 @@ export default function UserView() {
           </div>
         </div>
         <div className="flex items-center space-x-3">
-          <Button onClick={() => navigate(`/admin/settings/users/${id}/edit`)} variant="outline" size="sm">
-            <Pencil className="mr-2 h-4 w-4" />
-            Editar
-          </Button>
           <Badge variant={user.ativo === 's' ? 'default' : 'destructive'} className="text-sm px-3 py-1">
             {user.ativo === 's' ? 'Ativo' : 'Inativo'}
           </Badge>
@@ -530,6 +542,19 @@ export default function UserView() {
 
         </div>
       </div>
+      
+      <FormActionBar
+        mode="edit"
+        fixed={true}
+        onBack={handleBack}
+        onSaveEdit={() => navigate(`/admin/settings/users/${id}/edit`)}
+        labels={{
+          back: 'Voltar',
+          saveEdit: 'Editar'
+        }}
+        showCancel={false}
+        showSubmit={true}
+      />
     </div>
   );
 }
