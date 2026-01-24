@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Pencil, Trash2, Check, X } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Check, X, RotateCcw } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -51,6 +51,8 @@ import {
   useCreatePermission, 
   useUpdatePermission,
   useDeletePermission,
+  useRestorePermission,
+  useForceDeletePermission,
   useMenuPermissions,
   useUpdateMenuPermissions
 } from '@/hooks/permissions';
@@ -71,18 +73,27 @@ export default function Permissions() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPermission, setEditingPermission] = useState<PermissionRecord | null>(null);
   const [deletingPermission, setDeletingPermission] = useState<PermissionRecord | null>(null);
+  const [forceDeletingPermission, setForceDeletingPermission] = useState<PermissionRecord | null>(null);
   const [selectedPermissionId, setSelectedPermissionId] = useState<string>('');
   const [accessFlags, setAccessFlags] = useState<Record<string, any>>({});
+  const [showTrash, setShowTrash] = useState(false);
 
   const { menu: apiMenu } = useAuth();
   
   // Get menu from auth context (which loads from localStorage)
   const menuItems = apiMenu || [];
 
-  const { data: permissionsData, isLoading, error } = usePermissionsList({ 
+  const { data: permissionsData, isLoading, error, refetch } = usePermissionsList({ 
     page, 
-    per_page: 10 
+    per_page: 10,
+    excluido: showTrash ? 's' : undefined
   });
+
+  // Refetch when showTrash changes
+  useEffect(() => {
+    setPage(1);
+    refetch();
+  }, [showTrash, refetch]);
 
   const { data: menuPermissions } = useMenuPermissions(selectedPermissionId);
   const updateMenuPermissionsMutation = useUpdateMenuPermissions();
@@ -90,6 +101,8 @@ export default function Permissions() {
   const createMutation = useCreatePermission();
   const updateMutation = useUpdatePermission();
   const deleteMutation = useDeletePermission();
+  const restoreMutation = useRestorePermission();
+  const forceDeleteMutation = useForceDeletePermission();
 
   const form = useForm<PermissionFormData>({
     resolver: zodResolver(permissionSchema),
@@ -234,6 +247,25 @@ export default function Permissions() {
     }
   };
 
+  const handleRestore = async (permission: PermissionRecord) => {
+    try {
+      await restoreMutation.mutateAsync(permission.id);
+    } catch (error) {
+      // Error is handled by the mutation hook
+    }
+  };
+
+  const handleForceDelete = async () => {
+    if (forceDeletingPermission) {
+      try {
+        await forceDeleteMutation.mutateAsync(forceDeletingPermission.id);
+        setForceDeletingPermission(null);
+      } catch (error) {
+        // Error is handled by the mutation hook
+      }
+    }
+  };
+
   // Get aggregated state for parent nodes (true if all children true, false if all false, indeterminate if mixed)
   const getAggregatedState = (nodeKey: string, flag: AccessFlagKey): { checked: boolean; indeterminate?: boolean } => {
     const node = nodesByKey[nodeKey];
@@ -334,6 +366,7 @@ export default function Permissions() {
   };
 
   if (isLoading) {
+    // ... existing loading state
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
@@ -341,12 +374,13 @@ export default function Permissions() {
     );
   }
 
+  // ... (existing error state)
   if (error) {
-    const isLaravelTenancyError = (error as Error).message.includes('erro404_site') || 
-                                 (error as Error).message.includes('View') || 
-                                 (error as Error).message.includes('not found');
-    
-    return (
+     // ...
+     const isLaravelTenancyError = (error as Error).message.includes('erro404_site') || 
+                                  (error as Error).message.includes('View') || 
+                                  (error as Error).message.includes('not found');
+     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center p-6 max-w-md">
           <h2 className="text-2xl font-semibold text-destructive mb-2">Erro de Configuração</h2>
@@ -378,16 +412,33 @@ export default function Permissions() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Permissões</h1>
-          <p className="text-muted-foreground">
-            Gerencie as permissões do sistema
-          </p>
+        <div className="flex items-center gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold">Permissões</h1>
+              {showTrash && <Badge variant="destructive">LIXEIRA</Badge>}
+            </div>
+            <p className="text-muted-foreground">
+              Gerencie as permissões do sistema
+            </p>
+          </div>
         </div>
-        <Button onClick={() => handleOpenModal()}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Permissão
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant={showTrash ? "default" : "outline"}
+            onClick={() => setShowTrash(!showTrash)}
+            title={showTrash ? "Ver Ativos" : "Ver Lixeira"}
+          >
+            {showTrash ? <RotateCcw className="mr-2 h-4 w-4" /> : <Trash2 className="mr-2 h-4 w-4" />}
+            {showTrash ? "Ver Ativos" : "Lixeira"}
+          </Button>
+          {!showTrash && (
+            <Button onClick={() => handleOpenModal()}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Permissão
+            </Button>
+          )}
+        </div>
       </div>
 
       <Tabs defaultValue="dados" className="w-full">
@@ -427,14 +478,16 @@ export default function Permissions() {
                   ) : (
                     <>
                       <p className="text-muted-foreground">Nenhuma permissão encontrada.</p>
-                      <Button 
-                        onClick={() => handleOpenModal()} 
-                        className="mt-4"
-                        variant="outline"
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Criar primeira permissão
-                      </Button>
+                      {!showTrash && (
+                        <Button 
+                          onClick={() => handleOpenModal()} 
+                          className="mt-4"
+                          variant="outline"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Criar primeira permissão
+                        </Button>
+                      )}
                     </>
                   )}
                 </div>
@@ -461,20 +514,46 @@ export default function Permissions() {
                            </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end space-x-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleOpenModal(permission)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setDeletingPermission(permission)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              {showTrash ? (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleRestore(permission)}
+                                    title="Restaurar"
+                                  >
+                                    <RotateCcw className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-red-600 hover:text-red-600 hover:bg-red-50"
+                                    onClick={() => setForceDeletingPermission(permission)}
+                                    title="Excluir Permanentemente"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleOpenModal(permission)}
+                                    title="Editar"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setDeletingPermission(permission)}
+                                    title="Excluir"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -755,6 +834,33 @@ export default function Permissions() {
               disabled={deleteMutation.isPending}
             >
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Force Delete Confirmation */}
+      <AlertDialog 
+        open={!!forceDeletingPermission} 
+        onOpenChange={() => setForceDeletingPermission(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Permanentemente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir permanentemente a permissão "{forceDeletingPermission?.name}"?
+              <br/><br/>
+              <span className="font-bold text-red-600">ATENÇÃO: Esta ação é irreversível e removerá todos os dados associados.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleForceDelete}
+              disabled={forceDeleteMutation.isPending}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Excluir Permanentemente
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

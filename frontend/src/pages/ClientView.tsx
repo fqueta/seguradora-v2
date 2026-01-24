@@ -179,6 +179,13 @@ export default function ClientView() {
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Não informado';
     try {
+      // Se a data estiver no formato YYYY-MM-DD, fazemos o parse manual
+      // para evitar problemas de timezone (que podem subtrair 1 dia)
+      if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString.trim())) {
+        const [year, month, day] = dateString.trim().split('-');
+        return `${day}/${month}/${year}`;
+      }
+
       const date = new Date(dateString);
       return date.toLocaleDateString('pt-BR');
     } catch {

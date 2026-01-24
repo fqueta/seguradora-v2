@@ -20,6 +20,7 @@ export interface PermissionsListParams {
   search?: string;
   page?: number;
   per_page?: number;
+  excluido?: 's' | 'n';
 }
 
 export interface AccessFlags {

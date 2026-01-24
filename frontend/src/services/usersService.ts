@@ -20,6 +20,7 @@ class UsersService extends BaseApiService {
     if (params?.per_page) queryParams.per_page = params.per_page;
     if (params?.consultores) queryParams.consultores = 'true';
     if (params?.sort) queryParams.sort = params.sort;
+    if (params?.excluido) queryParams.excluido = params.excluido;
 
     const response = await this.get<any>('/users', queryParams);
     return this.normalizePaginatedResponse<UserRecord>(response);
@@ -39,6 +40,14 @@ class UsersService extends BaseApiService {
 
   async deleteUser(id: string): Promise<void> {
     return this.delete<void>(`/users/${id}`);
+  }
+
+  async restoreUser(id: string): Promise<void> {
+    return this.put<void>(`/users/${id}/restore`);
+  }
+
+  async forceDeleteUser(id: string): Promise<void> {
+    return this.delete<void>(`/users/${id}/force`);
   }
 
   /**

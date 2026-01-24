@@ -21,6 +21,7 @@ class PermissionsService extends BaseApiService {
     if (params?.search) queryParams.search = params.search;
     if (params?.page) queryParams.page = params.page;
     if (params?.per_page) queryParams.per_page = params.per_page;
+    if (params?.excluido) queryParams.excluido = params.excluido;
 
     const response = await this.get<any>('/permissions', queryParams);
     return this.normalizePaginatedResponse<PermissionRecord>(response);
@@ -40,6 +41,14 @@ class PermissionsService extends BaseApiService {
 
   async deletePermission(id: string): Promise<void> {
     return this.delete<void>(`/permissions/${id}`);
+  }
+
+  async restorePermission(id: string): Promise<void> {
+    return this.put<void>(`/permissions/${id}/restore`);
+  }
+
+  async forceDeletePermission(id: string): Promise<void> {
+    return this.delete<void>(`/permissions/${id}/force`);
   }
 
   /**

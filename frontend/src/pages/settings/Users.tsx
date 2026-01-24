@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, CalendarIcon, Eye } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, CalendarIcon, Eye, RotateCcw } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -67,7 +67,9 @@ import {
   useUsersList, 
   useCreateUser, 
   useUpdateUser,
-  useDeleteUser
+  useDeleteUser,
+  useRestoreUser,
+  useForceDeleteUser
 } from '@/hooks/users';
 import { usePermissionsList } from '@/hooks/permissions';
 import { useOrganizationsList } from '@/hooks/organizations';
@@ -118,11 +120,20 @@ export default function Users() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
   const [deletingUser, setDeletingUser] = useState<UserRecord | null>(null);
+  const [forceDeletingUser, setForceDeletingUser] = useState<UserRecord | null>(null);
+  const [showTrash, setShowTrash] = useState(false);
 
-  const { data: usersData, isLoading, error } = useUsersList({ 
+  const { data: usersData, isLoading, error, refetch } = useUsersList({ 
     page, 
-    per_page: 10 
+    per_page: 10,
+    excluido: showTrash ? 's' : undefined
   });
+
+  // Refetch when showTrash changes
+  useEffect(() => {
+    setPage(1);
+    refetch();
+  }, [showTrash, refetch]);
 
   const { data: permissionsData, isLoading: isLoadingPermissions } = usePermissionsList();
   const permissions = permissionsData?.data || [];
@@ -133,6 +144,8 @@ export default function Users() {
   const createMutation = useCreateUser();
   const updateMutation = useUpdateUser();
   const deleteMutation = useDeleteUser();
+  const restoreMutation = useRestoreUser();
+  const forceDeleteMutation = useForceDeleteUser();
 
   const form = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
@@ -195,8 +208,6 @@ export default function Users() {
 
   const handleOpenModal = (user?: UserRecord) => {
     if (user) {
-      // console.log(user);
-      
       setEditingUser(user);
       form.reset({
         tipo_pessoa: user.tipo_pessoa,
@@ -206,7 +217,6 @@ export default function Users() {
         name: user.name,
         cpf: user.cpf || '',
         cnpj: user.cnpj || '',
-        // status: user.status,
         razao: user.razao || '',
         genero: user.genero,
         ativo: user.ativo,
@@ -305,9 +315,6 @@ export default function Users() {
             // fallback ignore
           }
         });
-        // Deixa o toast para o hook de criação tratar a mensagem
-      } else {
-        // Sem erros de campo estruturados; o hook exibirá um toast genérico
       }
     }
   };
@@ -323,14 +330,22 @@ export default function Users() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'actived':
-        return <Badge className="bg-success text-success-foreground">Ativo</Badge>;
-      case 'disabled':
-        return <Badge variant="secondary">Desabilitado</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+  const handleRestore = async (user: UserRecord) => {
+    try {
+      await restoreMutation.mutateAsync(user.id);
+    } catch (error) {
+      // Error is handled by the mutation hook
+    }
+  };
+
+  const handleForceDelete = async () => {
+    if (forceDeletingUser) {
+      try {
+        await forceDeleteMutation.mutateAsync(forceDeletingUser.id);
+        setForceDeletingUser(null);
+      } catch (error) {
+        // Error is handled by the mutation hook
+      }
     }
   };
 
@@ -339,6 +354,11 @@ export default function Users() {
       <Badge className="bg-success text-success-foreground">Sim</Badge> : 
       <Badge variant="secondary">Não</Badge>;
   };
+
+  const handleOnclick = ()=>{
+    const rowData = form.getValues();
+    console.log('Dados do Formulario',rowData);
+  }
 
   if (isLoading) {
     return (
@@ -377,25 +397,37 @@ export default function Users() {
       </div>
     );
   }
-  const handleOnclick = ()=>{
-    const rowData = form.getValues();
-    console.log('Dados do Formulario',rowData);
-    
-  }
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Usuários</h1>
-          <p className="text-muted-foreground">
-            Gerencie os usuários do sistema
-          </p>
+        <div className="flex items-center gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold">Usuários</h1>
+              {showTrash && <Badge variant="destructive">LIXEIRA</Badge>}
+            </div>
+            <p className="text-muted-foreground">
+              Gerencie os usuários do sistema
+            </p>
+          </div>
         </div>
-        {/* Navega para a página dedicada de criação de usuário */}
-        <Button onClick={() => navigate('/admin/settings/users/create')}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Usuário
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant={showTrash ? "default" : "outline"}
+            onClick={() => setShowTrash(!showTrash)}
+            title={showTrash ? "Ver Ativos" : "Ver Lixeira"}
+          >
+            {showTrash ? <RotateCcw className="mr-2 h-4 w-4" /> : <Trash2 className="mr-2 h-4 w-4" />}
+            {showTrash ? "Ver Ativos" : "Lixeira"}
+          </Button>
+          {!showTrash && (
+            <Button onClick={() => navigate('/admin/settings/users/create')}>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Usuário
+            </Button>
+          )}
+        </div>
       </div>
 
       <Card>
@@ -426,14 +458,16 @@ export default function Users() {
               ) : (
                 <>
                   <p className="text-muted-foreground">Nenhum usuário encontrado.</p>
-                  <Button 
-                    onClick={() => handleOpenModal()} 
-                    className="mt-4"
-                    variant="outline"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Criar primeiro usuário
-                  </Button>
+                  {!showTrash && (
+                    <Button 
+                      onClick={() => handleOpenModal()} 
+                      className="mt-4"
+                      variant="outline"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Criar primeiro usuário
+                    </Button>
+                  )}
                 </>
               )}
             </div>
@@ -446,7 +480,6 @@ export default function Users() {
                     <TableHead>CPF</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Permissão</TableHead>
-                    {/* <TableHead>Status</TableHead> */}
                     <TableHead>Ativo</TableHead>
                     <TableHead>Organização</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
@@ -456,16 +489,16 @@ export default function Users() {
                   {filteredUsers.map((user) => (
                     <TableRow
                       key={user.id}
-                      onDoubleClick={() => navigate(`/admin/settings/users/${user.id}/view`)}
+                      onDoubleClick={() => !showTrash && navigate(`/admin/settings/users/${user.id}/view`)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
+                        if ((e.key === 'Enter' || e.key === ' ') && !showTrash) {
                           e.preventDefault();
                           navigate(`/admin/settings/users/${user.id}/view`);
                         }
                       }}
                       tabIndex={0}
                       role="button"
-                      className="cursor-pointer hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring"
+                      className={`cursor-pointer hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring ${showTrash ? 'opacity-80' : ''}`}
                     >
                       <TableCell className="font-medium">
                         {user.name}
@@ -479,9 +512,6 @@ export default function Users() {
                       <TableCell>
                         {permissions.find(p => String(p.id) === String(user.permission_id))?.name || user.permission_id}
                       </TableCell>
-                      {/* <TableCell>
-                        {getStatusBadge(user.status)}
-                      </TableCell> */}
                       <TableCell>
                         {getAtivoBadge(user.ativo)}
                       </TableCell>
@@ -490,27 +520,66 @@ export default function Users() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/admin/settings/users/${user.id}/view`)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/admin/settings/users/${user.id}/edit`)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeletingUser(user)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {showTrash ? (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRestore(user);
+                                }}
+                                title="Restaurar"
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-600 hover:text-red-600 hover:bg-red-50"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setForceDeletingUser(user);
+                                }}
+                                title="Excluir Permanentemente"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/admin/settings/users/${user.id}/view`);
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/admin/settings/users/${user.id}/edit`);
+                                }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeletingUser(user);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -548,7 +617,6 @@ export default function Users() {
         </CardContent>
       </Card>
       
-      {/* Create/Edit Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -579,20 +647,45 @@ export default function Users() {
           </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deletingUser} onOpenChange={() => setDeletingUser(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza de que deseja excluir o usuário "{deletingUser?.name}"? 
-              Esta ação não pode ser desfeita.
+              Esta ação moverá o usuário para a lixeira.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} disabled={deleteMutation.isPending}>
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog 
+        open={!!forceDeletingUser} 
+        onOpenChange={() => setForceDeletingUser(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Permanentemente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir permanentemente o usuário "{forceDeletingUser?.name}"?
+              <br/><br/>
+              <span className="font-bold text-red-600">ATENÇÃO: Esta ação é irreversível e removerá todos os dados associados.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleForceDelete}
+              disabled={forceDeleteMutation.isPending}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Excluir Permanentemente
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -97,6 +97,52 @@ export function useDeletePermission() {
   });
 }
 
+export function useRestorePermission() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: (id: string) => permissionsService.restorePermission(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['permissions'] });
+      toast({
+        title: "Sucesso",
+        description: "Permissão restaurada com sucesso",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao restaurar permissão",
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useForceDeletePermission() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: (id: string) => permissionsService.forceDeletePermission(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['permissions'] });
+      toast({
+        title: "Sucesso",
+        description: "Permissão excluída permanentemente com sucesso",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao excluir permanentemente permissão",
+        variant: "destructive",
+      });
+    },
+  });
+}
+
 export function useMenuPermissions(permissionId: string) {
   return useQuery({
     queryKey: ['permissions', 'menu', permissionId],

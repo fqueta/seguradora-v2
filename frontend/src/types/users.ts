@@ -90,6 +90,7 @@ export interface UsersListParams {
    * en-US: Backend sort field (e.g., 'name').
    */
   sort?: string;
+  excluido?: 's' | 'n';
 }
 
 export interface Paginated<T> {
