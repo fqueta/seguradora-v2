@@ -262,6 +262,28 @@ export default function Clients() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const debouncedSearchTerm = useDebounce(searchTerm, 400);
+  // Sorting state with persistence
+  const [sortState, setSortState] = useState<{ orderBy: string; order: 'asc' | 'desc' }>(() => {
+    try {
+      const saved = localStorage.getItem('clients_sort_preferences');
+      return saved ? JSON.parse(saved) : { orderBy: 'created_at', order: 'desc' };
+    } catch {
+      return { orderBy: 'created_at', order: 'desc' };
+    }
+  });
+
+  const handleSort = useCallback((field: string) => {
+    setSortState(prev => {
+      const isAsc = prev.orderBy === field && prev.order === 'asc';
+      const newState = { 
+        orderBy: field, 
+        order: (isAsc ? 'desc' : 'asc') as 'asc' | 'desc' 
+      };
+      localStorage.setItem('clients_sort_preferences', JSON.stringify(newState));
+      return newState;
+    });
+  }, []);
+
   // React Query: fetch clients with pagination and debounced search
   /**
    * Força refetch ao alternar lixeira e evita dados frescos impedirem nova chamada.
@@ -275,6 +297,9 @@ export default function Clients() {
       per_page: pageSize,
       search: debouncedSearchTerm,
       excluido: showTrash ? 's' : undefined,
+      // Se a ordenação for frontend, não enviamos para a API (ou enviamos padrão)
+      order_by: ['organization', 'autor'].includes(sortState.orderBy) ? 'created_at' : sortState.orderBy,
+      order: ['organization', 'autor'].includes(sortState.orderBy) ? 'desc' : sortState.order,
     },
     {
       staleTime: 0,
@@ -736,7 +761,9 @@ export default function Clients() {
   // Filter clients based on search term and status - memoized for performance
   const filteredClients = useMemo(() => {
     const searchTermLower = searchTerm.toLowerCase();
-    return effectiveClients.filter((client) => {
+    
+    // 1. Filtragem
+    let result = effectiveClients.filter((client) => {
       const document = client.tipo_pessoa === 'pf' ? client.cpf : client.cnpj;
       
       // Filter by search term
@@ -751,7 +778,32 @@ export default function Clients() {
       
       return matchesSearch && matchesStatus;
     });
-  }, [effectiveClients, searchTerm, statusFilter]);
+
+    // 2. Ordenação Frontend (apenas para colunas que não são suportadas pela API)
+    // As colunas 'organization' e 'autor' são ordenadas apenas no frontend (pagina atual)
+    if (['organization', 'autor'].includes(sortState.orderBy)) {
+      result = result.sort((a, b) => {
+        let valA = '';
+        let valB = '';
+
+        if (sortState.orderBy === 'organization') {
+          valA = a.organization?.name || '';
+          valB = b.organization?.name || '';
+        } else if (sortState.orderBy === 'autor') {
+          valA = a.autor_name || '';
+          valB = b.autor_name || '';
+        }
+
+        if (valA < valB) return sortState.order === 'asc' ? -1 : 1;
+        if (valA > valB) return sortState.order === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [effectiveClients, searchTerm, statusFilter, sortState]);
+
+
 
   return (
     <div className="p-0 space-y-4">
@@ -936,6 +988,9 @@ export default function Clients() {
               onForceDelete={handleForceDeleteClient}
               isLoading={useMock ? false : clientsQuery.isLoading}
               trashEnabled={showTrash}
+              orderBy={sortState.orderBy}
+              order={sortState.order}
+              onSort={handleSort}
             />
           )}
           {/* Pagination */}

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Pencil, Trash2, Eye, RotateCcw } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Eye, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ClientRecord } from '@/types/clients';
 import { useUsersList } from '@/hooks/users';
@@ -27,6 +27,9 @@ interface ClientsTableProps {
    * When true, shows a visual banner warning the list is filtering deleted records.
    */
   trashEnabled?: boolean;
+  orderBy?: string;
+  order?: 'asc' | 'desc';
+  onSort?: (field: string) => void;
 }
 
 /**
@@ -34,7 +37,17 @@ interface ClientsTableProps {
  * Renders client rows with owner and status. When `trashEnabled` is true,
  * shows a purple banner at the top, hides the Delete action, e exibe "Restaurar".
  */
-export function ClientsTable({ clients, onEdit, onDelete, onForceDelete, isLoading, trashEnabled }: ClientsTableProps) {
+export function ClientsTable({ 
+  clients, 
+  onEdit, 
+  onDelete, 
+  onForceDelete, 
+  isLoading, 
+  trashEnabled,
+  orderBy,
+  order,
+  onSort
+}: ClientsTableProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
@@ -79,6 +92,27 @@ export function ClientsTable({ clients, onEdit, onDelete, onForceDelete, isLoadi
       </Badge>
     );
   };
+
+  const renderSortableHeader = (label: string, field: string) => {
+    if (!onSort) return <TableHead>{label}</TableHead>;
+
+    const isSorted = orderBy === field;
+    const Icon = isSorted 
+      ? (order === 'asc' ? ArrowUp : ArrowDown) 
+      : ArrowUpDown;
+
+    return (
+      <TableHead 
+        className="cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={() => onSort(field)}
+      >
+        <div className="flex items-center gap-2">
+          {label}
+          <Icon className={`h-4 w-4 ${isSorted ? "text-primary" : "text-muted-foreground"}`} />
+        </div>
+      </TableHead>
+    );
+  };
   
   if (isLoading) {
     return <div className="text-center py-4">Carregando clientes...</div>;
@@ -98,12 +132,12 @@ export function ClientsTable({ clients, onEdit, onDelete, onForceDelete, isLoadi
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>CPF</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Organização</TableHead>
-            <TableHead>Proprietário</TableHead>
-            <TableHead>Status</TableHead>
+            {renderSortableHeader("Nome", "name")}
+            {renderSortableHeader("CPF", "cpf")}
+            {renderSortableHeader("Email", "email")}
+            {renderSortableHeader("Organização", "organization")}
+            {renderSortableHeader("Proprietário", "autor")}
+            {renderSortableHeader("Status", "status")}
             <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
