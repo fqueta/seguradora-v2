@@ -92,13 +92,20 @@ class UserController extends Controller
             }
         }
 
-        // Não exibir registros marcados como deletados ou excluídos
-        $query->where(function($q) {
-            $q->whereNull('deletado')->orWhere('deletado', '!=', 's');
-        });
-        $query->where(function($q) {
-            $q->whereNull('excluido')->orWhere('excluido', '!=', 's');
-        });
+        // Filtro de Lixeira
+        if ($request->input('excluido') == 's') {
+            $query->where(function($q) {
+                $q->where('deletado', 's')->orWhere('excluido', 's');
+            });
+        } else {
+            // Não exibir registros marcados como deletados ou excluídos
+            $query->where(function($q) {
+                $q->whereNull('deletado')->orWhere('deletado', '!=', 's');
+            });
+            $query->where(function($q) {
+                $q->whereNull('excluido')->orWhere('excluido', '!=', 's');
+            });
+        }
 
         if ($request->filled('email')) {
             $query->where('email', 'like', '%' . $request->input('email') . '%');
@@ -632,5 +639,79 @@ class UserController extends Controller
         return response()->json([
             'message' => 'Usuário marcado como deletado com sucesso'
         ], 200);
+    }
+
+    /**
+     * Restaurar usuário da lixeira.
+     */
+    public function restore($id)
+    {
+        $user = request()->user();
+        if (!$user) {
+            return response()->json(['error' => 'Acesso negado'], 403);
+        }
+        if (!$this->permissionService->isHasPermission('delete')) { // Usando permissão de delete para restaurar
+            return response()->json(['error' => 'Acesso negado'], 403);
+        }
+
+        // Procura inclusive nos deletados (SoftDeletes) ou na nossa implementação manual
+        // Como o sistema usa campos manuais 'excluido'/'deletado', o find deve funcionar se o global scope não ocultar
+        // Se houver global scope ocultando, precisaríamos de algo como withoutGlobalScope.
+        // Assumindo find direto por enquanto, pois o index() filtra manualmente.
+        $userToRestore = User::find($id);
+
+        if (!$userToRestore) {
+             return response()->json(['error' => 'Usuário não encontrado'], 404);
+        }
+        
+        // Security checks
+        if ($user->permission_id && $userToRestore->permission_id < $user->permission_id) {
+             return response()->json(['error' => 'Acesso negado. Nível de permissão insuficiente.'], 403);
+        }
+
+        $userToRestore->update([
+            'excluido' => 'n',
+            'deletado' => 'n',
+        ]);
+
+        return response()->json(['message' => 'Usuário restaurado com sucesso']);
+    }
+
+    /**
+     * Excluir permanentemente o usuário.
+     */
+    public function forceDelete($id)
+    {
+        $user = request()->user();
+        if (!$user) {
+            return response()->json(['error' => 'Acesso negado'], 403);
+        }
+        
+        if (!$this->permissionService->isHasPermission('delete')) {
+            return response()->json(['error' => 'Acesso negado'], 403);
+        }
+
+        $userToDelete = User::find($id);
+        if (!$userToDelete) {
+            return response()->json(['error' => 'Usuário não encontrado'], 404);
+        }
+
+        // Security checks
+        if ($user->permission_id && $userToDelete->permission_id < $user->permission_id) {
+             return response()->json(['error' => 'Acesso negado. Nível de permissão insuficiente.'], 403);
+        }
+
+        try {
+            // Verifica se o model usa SoftDeletes para forçar
+            if (in_array('Illuminate\Database\Eloquent\SoftDeletes', class_uses($userToDelete))) {
+                $userToDelete->forceDelete();
+            } else {
+                $userToDelete->delete();
+            }
+        } catch (\Exception $e) {
+             return response()->json(['error' => 'Não é possível excluir este usuário pois ele possui registros vinculados.'], 422);
+        }
+
+        return response()->json(['message' => 'Usuário excluído permanentemente']);
     }
 }

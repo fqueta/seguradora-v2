@@ -624,6 +624,8 @@ Route::name('api.')->prefix('api/v1')->middleware([
         //     'clients' => 'id'
         // ]]);
         Route::get('users/trash', [UserController::class, 'trash'])->name('users.trash');
+        Route::put('users/{id}/restore', [UserController::class, 'restore'])->name('users.restore');
+        Route::delete('users/{id}/force', [UserController::class, 'forceDelete'])->name('users.forceDelete');
         Route::get('metrics/filter', [MetricasController::class, 'filter']);
         Route::apiResource('metrics', MetricasController::class,['parameters' => [
             'metrics' => 'id'
