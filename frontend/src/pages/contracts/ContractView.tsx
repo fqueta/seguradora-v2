@@ -130,6 +130,11 @@ export default function ContractView() {
     const formatDate = (dateString?: string) => {
         if (!dateString) return '-';
         try {
+            // Se a data estiver no formato YYYY-MM-DD, fazemos o parse manual
+            if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString.trim())) {
+                const [year, month, day] = dateString.trim().split('-');
+                return `${day}/${month}/${year}`;
+            }
             return new Date(dateString).toLocaleDateString('pt-BR');
         } catch {
             return dateString;

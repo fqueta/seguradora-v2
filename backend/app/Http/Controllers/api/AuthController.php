@@ -273,15 +273,17 @@ class AuthController extends Controller
      */
     private function verifyCaptcha(Request $request, string $expectedAction = 'login'): bool
     {
-        $token = (string) $request->input('captcha_token', '');
-        $action = (string) $request->input('captcha_action', $expectedAction);
-        $secret = config('services.recaptcha.secret');
-        $verifyUrl = config('services.recaptcha.verify_url');
-        $minScore = (float) config('services.recaptcha.min_score', 0.5);
+        // Bypass if disabled via config (e.g. for production quick-fix or tests)
+        if (config('services.recaptcha.enabled') === false) {
+            return true;
+        }
 
+        // Bypass in local dev environments
         if (app()->environment('local', 'testing')) {
             return true;
         }
+
+        $token = (string) $request->input('captcha_token', '');
 
         if (!$secret || !$token) {
             return false;
