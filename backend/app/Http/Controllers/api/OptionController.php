@@ -57,7 +57,18 @@ class OptionController extends Controller
             'app_institution_url',
         ];
 
-        // Fetch options for allowed keys only (with fallback when tenant DB is unavailable/malformed)
+        // Default values from env/config
+        $defaults = [
+            'app_logo_url' => env('APP_LOGO_URL', ''),
+            'app_favicon_url' => env('APP_FAVICON_URL', ''),
+            'app_social_image_url' => env('APP_SOCIAL_IMAGE_URL', ''),
+            'app_institution_name' => env('APP_NAME', config('app.name')),
+            'app_institution_slogan' => env('APP_SLOGAN', ''),
+            'app_institution_description' => env('APP_DESCRIPTION', ''),
+            'app_institution_url' => env('APP_INSTITUTION_URL', config('app.frontend_url')),
+        ];
+
+        // Fetch options for allowed keys only
         try {
             $options = Option::query()
                 ->whereIn('url', $allowedKeys)
@@ -69,15 +80,7 @@ class OptionController extends Controller
                 })
                 ->get(['url', 'value']);
         } catch (\Throwable $e) {
-            $defaults = [
-                'app_logo_url' => env('APP_LOGO_URL', ''),
-                'app_favicon_url' => env('APP_FAVICON_URL', ''),
-                'app_social_image_url' => env('APP_SOCIAL_IMAGE_URL', ''),
-                'app_institution_name' => env('APP_NAME', config('app.name')),
-                'app_institution_slogan' => env('APP_SLOGAN', ''),
-                'app_institution_description' => env('APP_DESCRIPTION', ''),
-                'app_institution_url' => env('APP_INSTITUTION_URL', config('app.frontend_url')),
-            ];
+            // If DB fail, return defaults
             $data = [];
             foreach ($allowedKeys as $key) {
                 $data[$key] = $defaults[$key] ?? '';
@@ -86,6 +89,7 @@ class OptionController extends Controller
         }
 
         $data = [];
+        // Populate from DB results
         foreach ($options as $opt) {
             // Ensure string values, decode arrays if stored as JSON
             $val = $opt->value;
@@ -97,9 +101,13 @@ class OptionController extends Controller
             $data[$opt->url] = $val;
         }
 
-        // Minimal fallbacks: app name for institution if missing
-        if (!array_key_exists('app_institution_name', $data) || empty($data['app_institution_name'])) {
-            $data['app_institution_name'] = config('app.name');
+        // Fill missing keys with defaults
+        foreach ($allowedKeys as $key) {
+            if (!array_key_exists($key, $data) || empty($data[$key])) {
+                if (!empty($defaults[$key])) {
+                    $data[$key] = $defaults[$key];
+                }
+            }
         }
 
         return response()->json(['data' => $data]);

@@ -1,5 +1,6 @@
 import React from 'react';
 import { getBrandLogoUrl } from '@/lib/branding';
+import { useBranding } from '@/hooks/useBranding';
 
 export type BrandLogoProps = {
   /**
@@ -42,7 +43,9 @@ export type BrandLogoProps = {
  *        via `getBrandLogoUrl`, supporting a fallback.
  */
 export function BrandLogo({ alt = 'Logo', fallbackSrc = '/logo.png', className, width, height }: BrandLogoProps) {
-  const src = getBrandLogoUrl(fallbackSrc);
+  const { logoUrl } = useBranding();
+  const src = logoUrl || fallbackSrc;
+
   const style: React.CSSProperties = {
     ...(width !== undefined ? { width } : {}),
     ...(height !== undefined ? { height } : {}),

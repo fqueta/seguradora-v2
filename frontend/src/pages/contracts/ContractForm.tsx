@@ -435,7 +435,14 @@ export default function ContractForm() {
                                             const formatCPF = (v: string) => v ? v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : 'Não informado';
                                             const formatDate = (v: string) => {
                                                 if (!v) return 'Não informado';
-                                                try { return new Date(v).toLocaleDateString('pt-BR'); } catch { return v; }
+                                                try {
+                                                    // Se a data estiver no formato YYYY-MM-DD, fazemos o parse manual
+                                                    if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v.trim())) {
+                                                        const [year, month, day] = v.trim().split('-');
+                                                        return `${day}/${month}/${year}`;
+                                                    }
+                                                    return new Date(v).toLocaleDateString('pt-BR');
+                                                } catch { return v; }
                                             };
                                             const generoLabel = genero === 'm' ? 'Masculino' : genero === 'f' ? 'Feminino' : 'Não informado';
                                             const missing = (val: string) => !val || String(val).trim() === '';
