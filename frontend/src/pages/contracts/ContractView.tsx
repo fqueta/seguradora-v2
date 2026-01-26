@@ -203,18 +203,7 @@ export default function ContractView() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground">Número do Contrato</label>
-                                <p className="font-medium">{contract.contract_number || '-'}</p>
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground">Número C.</label>
-                                <p className="font-medium">{contract.c_number || '-'}</p>
-                            </div>
-                        </div>
-                        
-                        <div className="pt-4 border-t">
+                        <div>
                             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
                                 <User className="h-4 w-4" />
                                 Dados do Cliente

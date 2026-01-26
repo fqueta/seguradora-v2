@@ -94,8 +94,6 @@ export default function RelatorioGeral() {
   };
 
   const headerColumns = [
-    "Data de Início",
-    "Data de Fim",
     "Organização",
     "Cliente",
     "Autor",
@@ -153,7 +151,7 @@ export default function RelatorioGeral() {
 
   const exportExcel = () => {
     try {
-      const wsData = [headerColumns, ...rowsForExport.map((r) => [r.inicio, r.fim, r.organizacao, r.cliente, r.autor, r.valor, r.status])];
+      const wsData = [headerColumns, ...rowsForExport.map((r) => [r.organizacao, r.cliente, r.autor, r.valor, r.status])];
       const ws = XLSX.utils.aoa_to_sheet(wsData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Relatório");
@@ -179,7 +177,7 @@ export default function RelatorioGeral() {
       doc.text("Relatórios: Usuários com Contratos", 14, 16);
       autoTable(doc, {
         head: [headerColumns],
-        body: rowsForExport.map((r) => [r.inicio, r.fim, r.organizacao, r.cliente, r.autor, r.valor, r.status]),
+        body: rowsForExport.map((r) => [r.organizacao, r.cliente, r.autor, r.valor, r.status]),
         startY: 20,
         styles: { fontSize: 8 },
         headStyles: { fillColor: [22, 101, 216] },
