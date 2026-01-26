@@ -284,10 +284,10 @@ class AuthController extends Controller
         }
 
         $token = (string) $request->input('captcha_token', '');
-
+        
         $secret = config('services.recaptcha.secret');
-        $verifyUrl = config('services.recaptcha.verify_url');
-        $minScore = config('services.recaptcha.min_score');
+        $verifyUrl = config('services.recaptcha.verify_url', 'https://www.google.com/recaptcha/api/siteverify');
+        $minScore = (float) config('services.recaptcha.min_score', 0.5);
 
         if (!$secret || !$token) {
             return false;
@@ -298,15 +298,19 @@ class AuthController extends Controller
             'response' => $token,
             'remoteip' => $request->ip(),
         ]);
+
         if (!$resp->ok()) {
             return false;
         }
+
         $data = $resp->json();
         $success = (bool) ($data['success'] ?? false);
         $score = (float) ($data['score'] ?? 0.0);
         $actionResp = (string) ($data['action'] ?? '');
+
         if (!$success) return false;
         if ($actionResp && $actionResp !== $expectedAction) return false;
+
         return $score >= $minScore;
     }
 }
