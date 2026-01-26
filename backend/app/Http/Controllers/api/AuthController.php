@@ -285,6 +285,10 @@ class AuthController extends Controller
 
         $token = (string) $request->input('captcha_token', '');
 
+        $secret = config('services.recaptcha.secret');
+        $verifyUrl = config('services.recaptcha.verify_url');
+        $minScore = config('services.recaptcha.min_score');
+
         if (!$secret || !$token) {
             return false;
         }
