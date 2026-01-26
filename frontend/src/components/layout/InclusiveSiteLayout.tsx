@@ -16,7 +16,8 @@ import {
 import { User, LogOut, ChevronDown, Monitor, ExternalLink, Moon, Sun, Menu, Home, BookOpen, Receipt, ShoppingCart, GraduationCap, UserCircle } from "lucide-react";
 import { BrandLogo } from "@/components/branding/BrandLogo";
 import { useEffect as useEffectReact } from "react";
-import { applyBrandingFavicon, hydrateBrandingFromPublicApi, getInstitutionName, getInstitutionSlogan } from "@/lib/branding";
+import { applyBrandingFavicon, getInstitutionSlogan } from "@/lib/branding";
+import { useBranding } from "@/hooks/useBranding";
 
 type InclusiveSiteLayoutProps = {
   children: ReactNode;
@@ -36,40 +37,23 @@ export function InclusiveSiteLayout({ children }: InclusiveSiteLayoutProps) {
   const { toast } = useToast();
   const [isDark, setIsDark] = useState<boolean>(false);
   const [mobileNavOpen, setMobileNavOpen] = useState<boolean>(false);
-  const [institutionName, setInstitutionName] = useState<string>(() => getInstitutionName("Incluir & Educar"));
+  
+  // Use centralized hook for branding
+  const { institutionName: brandingName, isResolving } = useBranding();
+  
+  // Local state for slogan (could also be moved to hook later, but keeping scope minimal)
   const [institutionSlogan, setInstitutionSlogan] = useState<string>(() => getInstitutionSlogan("Tecnologia que Inclui. Educação que Transforma."));
 
-  /**
-   * BrandLogo usage
-   * pt-BR: Substitui lógica manual por componente BrandLogo para resolver a URL
-   *        automaticamente a partir de localStorage/window/env com fallback.
-   * en-US: Replaces manual logic with BrandLogo component that resolves URL
-   *        automatically from localStorage/window/env with fallback.
-  */
+  // Fallback name if branding is resolved but empty (though hook usually handles default)
+  const displayName = brandingName || "Clube Yellow";
 
   /**
    * applyBrandingFaviconOnMount
-   * pt-BR: Na montagem do layout público, hidrata branding via endpoint
-   *         público e aplica o favicon da marca.
-   * en-US: On public layout mount, hydrate branding via public endpoint
-   *         and apply brand favicon.
+   * pt-BR: Na montagem do layout público, aplica o favicon da marca.
+   * en-US: On public layout mount, apply brand favicon.
    */
   useEffectReact(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const { name } = await hydrateBrandingFromPublicApi({ persist: true });
-        if (!cancelled) {
-          applyBrandingFavicon('/favicon.ico');
-          if (name) setInstitutionName(name);
-          const slogan = getInstitutionSlogan();
-          if (slogan) setInstitutionSlogan(slogan);
-        }
-      } catch {
-        if (!cancelled) applyBrandingFavicon('/favicon.ico');
-      }
-    })();
-    return () => { cancelled = true; };
+    applyBrandingFavicon('/favicon.ico');
   }, []);
   /**
    * handleLogout
@@ -141,11 +125,13 @@ export function InclusiveSiteLayout({ children }: InclusiveSiteLayoutProps) {
           <div className="flex items-center space-x-3">
             <BrandLogo
               alt="Marca"
-              fallbackSrc="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop,q=95/AQExkVPy2aUDzpqL/sem-nome-250-x-125-px-4-AzGMXn77KQTvDXrP.png"
+              fallbackSrc="http://api-yellow.localhost:8003/tenancy/assets/file-storage/4vAVoY9ELEvto2waS0lqevXToi5EIQePm0fEKvZa.jpg"
               className="h-10 rounded-md ring-1 ring-violet-200/40 dark:ring-violet-700/40 p-1 drop-shadow-sm"
             />
             <div className="hidden md:block">
-              <h1 className="text-xl font-bold text-violet-800 dark:text-violet-100">{institutionName}</h1>
+              <h1 className="text-xl font-bold text-violet-800 dark:text-violet-100">
+                {isResolving ? null : displayName}
+              </h1>
             </div>
           </div>
           {/* Mobile actions: theme toggle + menu */}
@@ -327,13 +313,13 @@ export function InclusiveSiteLayout({ children }: InclusiveSiteLayoutProps) {
                   className="h-8"
                 />
                 <div>
-                  <h3 className="font-bold">{institutionName}</h3>
+                  <h3 className="font-bold">{isResolving ? '' : displayName}</h3>
                 </div>
               </div>
             </div>
           </div>
           <div className="border-t border-violet-800 mt-8 pt-8 text-center text-sm text-violet-200">
-            <p>&copy; {new Date().getFullYear()} {institutionName}. Todos os direitos reservados.</p>
+            <p>&copy; {new Date().getFullYear()} {isResolving ? '' : displayName}. Todos os direitos reservados.</p>
           </div>
         </div>
       </footer>

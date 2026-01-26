@@ -153,7 +153,7 @@ export function getInstitutionUrl(defaultUrl: string = ''): string {
  * pt-BR: Busca branding apenas do endpoint público `/public/options/branding` e persiste.
  * en-US: Fetches branding only from the public endpoint `/public/options/branding` and persists.
  */
-export async function hydrateBrandingFromPublicApi({ persist = true }: { persist?: boolean } = {}): Promise<{ name?: string; logoUrl?: string }> {
+export async function hydrateBrandingFromPublicApi({ persist = true }: { persist?: boolean } = {}): Promise<{ name?: string; logoUrl?: string; slogan?: string }> {
   const base = getTenantApiUrl() + getVersionApi();
   const publicUrl = `${base}/public/options/branding`;
   try {
@@ -164,17 +164,18 @@ export async function hydrateBrandingFromPublicApi({ persist = true }: { persist
     const json = await res.json();
     let logoUrl: string | undefined;
     let name: string | undefined;
+    let slogan: string | undefined;
 
     const dataObj = json?.data as Record<string, any> | undefined;
     if (dataObj && typeof dataObj === 'object') {
       logoUrl = String(dataObj['app_logo_url'] || '').trim() || undefined;
       name = String(dataObj['app_institution_name'] || dataObj['site_name'] || dataObj['app_name'] || '').trim() || undefined;
+      slogan = String(dataObj['app_institution_slogan'] || '').trim() || undefined;
 
       // Optional fields
       const anyWin = window as any;
       const favicon = String(dataObj['app_favicon_url'] || '').trim();
       const social = String(dataObj['app_social_image_url'] || '').trim();
-      const slogan = String(dataObj['app_institution_slogan'] || '').trim();
       const description = String(dataObj['app_institution_description'] || '').trim();
       const urlInst = String(dataObj['app_institution_url'] || '').trim();
       if (persist) {
@@ -196,7 +197,7 @@ export async function hydrateBrandingFromPublicApi({ persist = true }: { persist
         anyWin.__APP_APP_NAME__ = anyWin.__APP_APP_NAME__ || name;
       }
     }
-    return { name, logoUrl };
+    return { name, logoUrl, slogan };
   } catch {
     return {};
   }

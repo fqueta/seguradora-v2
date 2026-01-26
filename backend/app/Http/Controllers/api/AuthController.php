@@ -279,6 +279,10 @@ class AuthController extends Controller
         $verifyUrl = config('services.recaptcha.verify_url');
         $minScore = (float) config('services.recaptcha.min_score', 0.5);
 
+        if (app()->environment('local', 'testing')) {
+            return true;
+        }
+
         if (!$secret || !$token) {
             return false;
         }

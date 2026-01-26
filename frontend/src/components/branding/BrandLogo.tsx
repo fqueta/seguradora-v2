@@ -42,8 +42,12 @@ export type BrandLogoProps = {
  * en-US: Logo component that resolves URL from localStorage/window/env
  *        via `getBrandLogoUrl`, supporting a fallback.
  */
-export function BrandLogo({ alt = 'Logo', fallbackSrc = '/logo.svg', className, width, height }: BrandLogoProps) {
-  const { logoUrl } = useBranding();
+export function BrandLogo({ alt = 'Logo', fallbackSrc = '/logo.png', className, width, height }: BrandLogoProps) {
+  const { logoUrl, isResolving } = useBranding();
+
+  // "enquanto aguarda a resposta do banco de dados não exiba logo nenhuma"
+  if (isResolving) return null;
+
   const src = logoUrl || fallbackSrc;
 
   const style: React.CSSProperties = {
