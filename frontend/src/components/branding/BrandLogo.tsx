@@ -42,7 +42,7 @@ export type BrandLogoProps = {
  * en-US: Logo component that resolves URL from localStorage/window/env
  *        via `getBrandLogoUrl`, supporting a fallback.
  */
-export function BrandLogo({ alt = 'Logo', fallbackSrc = '/logo.png', className, width, height }: BrandLogoProps) {
+export function BrandLogo({ alt = 'Logo', fallbackSrc = '/logo.svg', className, width, height }: BrandLogoProps) {
   const { logoUrl } = useBranding();
   const src = logoUrl || fallbackSrc;
 
