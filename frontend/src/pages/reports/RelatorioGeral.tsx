@@ -96,8 +96,9 @@ export default function RelatorioGeral() {
   const headerColumns = [
     "Data de Início",
     "Organização",
-    "Cliente",
-    "Autor",
+    "Vendedor",
+    "CPF",
+    "Nome do Cliente",
     "Valor",
     "Status",
   ];
@@ -129,6 +130,13 @@ export default function RelatorioGeral() {
     }
   };
 
+  const formatCPF = (cpf?: string) => {
+    if (!cpf) return "";
+    const cleaned = cpf.replace(/\D/g, "");
+    if (cleaned.length !== 11) return cpf;
+    return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+  };
+
   const organizationOf = (c: ContractRecord) => {
     const orgFromEntities =
       c.client?.organization?.name ||
@@ -142,17 +150,17 @@ export default function RelatorioGeral() {
 
   const rowsForExport = items.map((c) => ({
     inicio: formatBRDate(c.start_date),
-    fim: formatBRDate(c.end_date),
     organizacao: organizationOf(c),
+    vendedor: c.owner?.name || c.owner?.full_name || "",
+    cpf: formatCPF(c.client?.cpf),
     cliente: c.client?.name || c.client?.full_name || "",
-    autor: c.owner?.name || c.owner?.full_name || "",
     valor: formatCurrencyBR(c.value),
     status: translateStatus(c.status),
   }));
 
   const exportExcel = () => {
     try {
-      const wsData = [headerColumns, ...rowsForExport.map((r) => [r.inicio, r.organizacao, r.cliente, r.autor, r.valor, r.status])];
+      const wsData = [headerColumns, ...rowsForExport.map((r) => [r.inicio, r.organizacao, r.vendedor, r.cpf, r.cliente, r.valor, r.status])];
       const ws = XLSX.utils.aoa_to_sheet(wsData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Relatório");
@@ -178,7 +186,7 @@ export default function RelatorioGeral() {
       doc.text("Relatórios: Usuários com Contratos", 14, 16);
       autoTable(doc, {
         head: [headerColumns],
-        body: rowsForExport.map((r) => [r.inicio, r.organizacao, r.cliente, r.autor, r.valor, r.status]),
+        body: rowsForExport.map((r) => [r.inicio, r.organizacao, r.vendedor, r.cpf, r.cliente, r.valor, r.status]),
         startY: 20,
         styles: { fontSize: 8 },
         headStyles: { fillColor: [22, 101, 216] },
@@ -281,10 +289,10 @@ export default function RelatorioGeral() {
             <TableHeader>
               <TableRow>
                 <TableHead>Data de início</TableHead>
-                <TableHead>Data de fim</TableHead>
                 <TableHead>Organização</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Autor</TableHead>
+                <TableHead>Vendedor</TableHead>
+                <TableHead>CPF</TableHead>
+                <TableHead>Nome do Cliente</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
@@ -309,10 +317,10 @@ export default function RelatorioGeral() {
                 items.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell>{formatBRDate(c.start_date) || "-"}</TableCell>
-                    <TableCell>{formatBRDate(c.end_date) || "-"}</TableCell>
                     <TableCell>{organizationOf(c) || "-"}</TableCell>
-                    <TableCell>{c.client?.name || c.client?.full_name || "-"}</TableCell>
                     <TableCell>{c.owner?.name || c.owner?.full_name || "-"}</TableCell>
+                    <TableCell>{formatCPF(c.client?.cpf) || "-"}</TableCell>
+                    <TableCell>{c.client?.name || c.client?.full_name || "-"}</TableCell>
                     <TableCell>{formatCurrencyBR(c.value) || "-"}</TableCell>
                     <TableCell>
                       <Badge variant={c.status === "approved" ? "default" : c.status === "cancelled" ? "destructive" : "secondary"}>
