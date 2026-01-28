@@ -37,6 +37,17 @@ class FornecedorController extends Controller
     }
 
     /**
+     * Normaliza uma string opcional (retorna null se vazia)
+     */
+    protected function normalizeOptionalString($value)
+    {
+        if (is_string($value)) {
+            $value = trim($value);
+        }
+        return $value === '' ? null : $value;
+    }
+
+    /**
      * Listar fornecedores (permission_id = 6)
      */
     public function index(Request $request)

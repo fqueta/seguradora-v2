@@ -5,6 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { SupplierRecord } from '@/types/suppliers';
 import { Mail, Phone } from 'lucide-react';
 
+import { cpfApplyMask } from '@/lib/masks/cpf-apply-mask';
+import { cnpjApplyMask } from '@/lib/masks/cnpj-apply-mask';
+
 interface SuppliersTableProps {
   suppliers: SupplierRecord[];
   onEdit: (supplier: SupplierRecord) => void;
@@ -50,7 +53,7 @@ export function SuppliersTable({ suppliers, onEdit, onDelete, onView, isLoading 
               {supplier.config?.telefone_comercial && <div className="flex items-center gap-1"><Phone className="h-3 w-3" /> {supplier.config.telefone_comercial}</div>}
             </TableCell>
             <TableCell>
-              {supplier.tipo_pessoa === 'pf' ? (supplier.cpf ? cpfApplyMask(supplier.cpf) : 'Não informado') : (supplier.cnpj || 'Não informado')}
+              {supplier.tipo_pessoa === 'pf' ? (supplier.cpf ? cpfApplyMask(supplier.cpf) : 'Não informado') : (supplier.cnpj ? cnpjApplyMask(supplier.cnpj) : 'Não informado')}
             </TableCell>
             <TableCell>
               {supplier.config?.cidade && `${supplier.config.cidade}/${supplier.config.uf}`}

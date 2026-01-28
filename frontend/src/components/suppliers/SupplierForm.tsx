@@ -57,7 +57,7 @@ export function SupplierForm({ form, isLoading = false }: SupplierFormProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Tipo de Pessoa */}
       <Card>
         <CardHeader>
@@ -86,8 +86,8 @@ export function SupplierForm({ form, isLoading = false }: SupplierFormProps) {
         <CardHeader>
           <CardTitle>Dados Básicos</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <Label htmlFor="name">Nome *</Label>
               <Input
@@ -149,7 +149,7 @@ export function SupplierForm({ form, isLoading = false }: SupplierFormProps) {
           </div>
 
           {tipoPessoa === 'pf' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <Label htmlFor="cpf">CPF</Label>
                 <Input
@@ -183,7 +183,7 @@ export function SupplierForm({ form, isLoading = false }: SupplierFormProps) {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <Label htmlFor="cnpj">CNPJ</Label>
                 <Input
@@ -237,8 +237,8 @@ export function SupplierForm({ form, isLoading = false }: SupplierFormProps) {
         <CardHeader>
           <CardTitle>Informações Complementares</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <Label htmlFor="config.nome_fantasia">Nome Fantasia</Label>
               <Input
@@ -264,7 +264,7 @@ export function SupplierForm({ form, isLoading = false }: SupplierFormProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <Label htmlFor="config.telefone_residencial">Telefone Residencial</Label>
               <Input
@@ -296,7 +296,7 @@ export function SupplierForm({ form, isLoading = false }: SupplierFormProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <Label htmlFor="config.rg">RG</Label>
               <Input
@@ -326,7 +326,7 @@ export function SupplierForm({ form, isLoading = false }: SupplierFormProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <Label htmlFor="config.profissao">Profissão</Label>
               <Input
@@ -363,8 +363,8 @@ export function SupplierForm({ form, isLoading = false }: SupplierFormProps) {
         <CardHeader>
           <CardTitle>Endereço</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <Label htmlFor="config.cep">CEP</Label>
               <div className="relative">
@@ -394,7 +394,7 @@ export function SupplierForm({ form, isLoading = false }: SupplierFormProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <Label htmlFor="config.numero">Número</Label>
               <Input
@@ -423,7 +423,7 @@ export function SupplierForm({ form, isLoading = false }: SupplierFormProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <Label htmlFor="config.cidade">Cidade</Label>
               <Input

@@ -40,7 +40,7 @@ import { SuppliersTable } from '@/components/suppliers/SuppliersTable';
  */
 const supplierSchema = z.object({
   tipo_pessoa: z.enum(["pf", "pj"]),
-  email: z.string().optional().refine((val) => {
+  email: z.string().nullable().optional().refine((val) => {
     if (!val || val === '') return true;
     return z.string().email().safeParse(val).success;
   }, { message: 'Email inválido' }),
@@ -49,7 +49,7 @@ const supplierSchema = z.object({
     if (!val || val === '') return true; // Permite vazio
     return val.length >= 6; // Se preenchido, deve ter pelo menos 6 caracteres
   }, {
-    message: 'Password deve ter pelo menos 6 caracteres'
+    message: 'A senha deve ter pelo menos 6 caracteres'
   }),
   cpf: z.string().optional(),
   cnpj: z.string().optional(),
@@ -271,10 +271,19 @@ export default function Suppliers() {
             setEditingSupplier(null);
             form.reset();
           },
-          onError: (error) => {
+          onError: (error: any) => {
+            console.error(error);
+            let errorMessage = error.message;
+            
+            if (error.response?.data?.errors) {
+              errorMessage = Object.values(error.response.data.errors).flat().join('\n');
+            } else if (error.response?.data?.message) {
+              errorMessage = error.response.data.message;
+            }
+
             toast({
               title: "Erro ao atualizar fornecedor",
-              description: `Ocorreu um erro: ${error.message}`,
+              description: errorMessage,
               variant: "destructive",
             });
           },
@@ -292,10 +301,19 @@ export default function Suppliers() {
             setIsDialogOpen(false);
             form.reset();
           },
-          onError: (error) => {
+          onError: (error: any) => {
+            console.error(error);
+            let errorMessage = error.message;
+            
+            if (error.response?.data?.errors) {
+              errorMessage = Object.values(error.response.data.errors).flat().join('\n');
+            } else if (error.response?.data?.message) {
+              errorMessage = error.response.data.message;
+            }
+
             toast({
               title: "Erro ao criar fornecedor",
-              description: `Ocorreu um erro: ${error.message}`,
+              description: errorMessage,
               variant: "destructive",
             });
           },
@@ -430,8 +448,8 @@ export default function Suppliers() {
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-6 py-4 border-b">
             <DialogTitle>{editingSupplier ? "Editar Fornecedor" : "Novo Fornecedor"}</DialogTitle>
             <DialogDescription>
               {editingSupplier
@@ -439,17 +457,21 @@ export default function Suppliers() {
                 : "Preencha as informações do novo fornecedor."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <SupplierForm form={form as any} isLoading={createSupplierMutation.isPending || updateSupplierMutation.isPending} />
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={onCancel}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={createSupplierMutation.isPending || updateSupplierMutation.isPending}>
-                {editingSupplier ? "Atualizar" : "Criar"} Fornecedor
-              </Button>
-            </div>
-          </form>
+          
+          <div className="flex-1 overflow-y-auto p-6">
+            <form id="supplier-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <SupplierForm form={form as any} isLoading={createSupplierMutation.isPending || updateSupplierMutation.isPending} />
+            </form>
+          </div>
+
+          <div className="p-4 border-t flex justify-end space-x-2 bg-white rounded-b-lg">
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancelar
+            </Button>
+            <Button type="submit" form="supplier-form" disabled={createSupplierMutation.isPending || updateSupplierMutation.isPending}>
+              {editingSupplier ? "Atualizar" : "Criar"} Fornecedor
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

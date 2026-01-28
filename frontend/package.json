@@ -48,6 +48,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
+    "i18next": "^25.8.0",
     "input-otp": "^1.4.2",
     "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.7",
@@ -67,7 +68,8 @@
     "use-debounce": "^10.0.5",
     "vaul": "^0.9.9",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.2/xlsx-0.20.2.tgz",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "zod-i18n-map": "^2.27.0"
   },
   "overrides": {
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.2/xlsx-0.20.2.tgz"
