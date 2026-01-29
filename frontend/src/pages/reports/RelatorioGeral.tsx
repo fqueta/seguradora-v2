@@ -17,6 +17,7 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { dataParaBR } from "@/lib/qlib";
+import { PerPageSelector } from "@/components/common/PerPageSelector";
 
 type PeriodField = "inicio" | "fim";
 
@@ -28,7 +29,7 @@ export default function RelatorioGeral() {
   const [ownerId, setOwnerId] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [page, setPage] = useState<number>(1);
-  const [perPage, setPerPage] = useState<number>(25);
+  const [perPage, setPerPage] = useState<number>(50);
   const [total, setTotal] = useState<number>(0);
   const [items, setItems] = useState<ContractRecord[]>([]);
   const [owners, setOwners] = useState<UserRecord[]>([]);
@@ -160,7 +161,15 @@ export default function RelatorioGeral() {
 
   const exportExcel = () => {
     try {
-      const wsData = [headerColumns, ...rowsForExport.map((r) => [r.inicio, r.organizacao, r.vendedor, r.cpf, r.cliente, r.valor, r.status])];
+      const excelHeaders = [
+        "Data de Início",
+        "Organização",
+        "Vendedor",
+        "CPF",
+        "Nome do Cliente",
+        "Status",
+      ];
+      const wsData = [excelHeaders, ...rowsForExport.map((r) => [r.inicio, r.organizacao, r.vendedor, r.cpf, r.cliente, r.status])];
       const ws = XLSX.utils.aoa_to_sheet(wsData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Relatório");
@@ -333,8 +342,11 @@ export default function RelatorioGeral() {
           </Table>
         </div>
         <div className="flex items-center justify-between p-3">
-          <div className="text-sm text-muted-foreground">
-            Registros: {items.length} de {total} (Página {page} de {totalPages})
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-muted-foreground">
+              Total: {total}
+            </span>
+            <PerPageSelector value={perPage} onValueChange={setPerPage} />
           </div>
           <div className="flex items-center gap-2">
             <Button

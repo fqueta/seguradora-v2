@@ -32,6 +32,7 @@ import { useUsersList } from '@/hooks/users';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from "@/components/ui/badge";
 import { SummaryCards } from '@/components/common/SummaryCards';
+import { PerPageSelector } from '@/components/common/PerPageSelector';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -59,6 +60,7 @@ export default function ContractList() {
     const [orgId, setOrgId] = useState<string>('all');
     const [ownerId, setOwnerId] = useState<string>('all');
     const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(50);
     const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
     const { data: orgs } = useOrganizationsList({ per_page: 100 });
@@ -69,6 +71,7 @@ export default function ContractList() {
 
     const queryParams = { 
         page, 
+        per_page: perPage,
         search: debouncedSearch,
         status: status !== 'all' ? status : undefined,
         product_id: productId !== 'all' ? productId : undefined,
@@ -84,6 +87,7 @@ export default function ContractList() {
     const data = isTrashMode ? trashData : regularData;
     const isLoading = isTrashMode ? trashLoading : regularLoading;
     const totalContracts = data?.total || 0;
+    const totalPages = Math.max(1, Math.ceil(totalContracts / perPage));
 
     const summaryItems = useMemo(() => {
         const contracts = data?.data || [];
@@ -165,6 +169,10 @@ export default function ContractList() {
         setPage(1);
     };
 
+    useMemo(() => {
+        setPage(1);
+    }, [perPage]);
+
     return (
         <div className="p-0 space-y-4">
             <div className="flex justify-between items-center px-4 pt-4">
@@ -238,16 +246,19 @@ export default function ContractList() {
                             </Select>
                         </div>
 
-                        <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-                            className="flex items-center gap-2 w-full lg:w-auto"
-                        >
-                            <Filter className="h-4 w-4" />
-                            {isFiltersOpen ? "Menos Filtros" : "Mais Filtros"}
-                            {isFiltersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                        </Button>
+                        <div className="flex items-center gap-2 w-full lg:w-auto">
+                            <PerPageSelector value={perPage} onValueChange={setPerPage} />
+                            <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+                                className="flex items-center gap-2"
+                            >
+                                <Filter className="h-4 w-4" />
+                                {isFiltersOpen ? "Menos Filtros" : "Mais Filtros"}
+                                {isFiltersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            </Button>
+                        </div>
                     </div>
 
                     {isFiltersOpen && (
@@ -412,6 +423,30 @@ export default function ContractList() {
                             )}
                         </TableBody>
                     </Table>
+                    
+                    {totalContracts > 0 && (
+                        <div className="flex items-center justify-between mt-4">
+                            <p className="text-sm text-muted-foreground">Página {page} de {totalPages}</p>
+                            <div className="flex gap-2">
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => setPage(Math.max(1, page - 1))} 
+                                    disabled={page <= 1 || isLoading}
+                                >
+                                    Anterior
+                                </Button>
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => setPage(Math.min(totalPages, page + 1))} 
+                                    disabled={page >= totalPages || isLoading}
+                                >
+                                    Próxima
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 

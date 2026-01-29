@@ -74,6 +74,7 @@ import { ClientsTable } from '@/components/clients/ClientsTable';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Switch } from "@/components/ui/switch";
 import { SummaryCards } from '@/components/common/SummaryCards';
+import { PerPageSelector } from '@/components/common/PerPageSelector';
 interface ApiDeleteResponse {
   exec: boolean;
   message: string;
@@ -254,7 +255,7 @@ export default function Clients() {
   const [clientToForceDelete, setClientToForceDelete] = useState<ClientRecord | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isConsulting, setIsConsulting] = useState(false);
-  const [pageSize] = useState(100);
+  const [pageSize, setPageSize] = useState(50);
   // Filtro de lixeira (excluido=s)
   const [showTrash, setShowTrash] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
@@ -341,7 +342,7 @@ export default function Clients() {
   // Reset to first page when search or status filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearchTerm, statusFilter, showTrash]);
+  }, [debouncedSearchTerm, statusFilter, showTrash, pageSize]);
 
   const summaryItems = useMemo(() => {
     const total = useMock ? effectiveClients.length : (clientsQuery.data?.total || 0);
@@ -865,7 +866,8 @@ export default function Clients() {
               </div>
             </div>
 
-            <div className="flex gap-2 w-full lg:w-auto">
+            <div className="flex gap-2 w-full lg:w-auto items-center">
+              <PerPageSelector value={pageSize} onValueChange={setPageSize} />
               <Button 
                 variant="outline" 
                 size="sm"

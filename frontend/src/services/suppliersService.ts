@@ -74,6 +74,10 @@ class SuppliersService extends BaseApiService {
   async delete(id: string): Promise<any> {
     return this.deleteSupplier(id);
   }
+
+  async deleteById(id: string): Promise<any> {
+    return this.deleteSupplier(id);
+  }
 }
 
 export const suppliersService = new SuppliersService();
