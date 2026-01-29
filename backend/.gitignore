@@ -23,3 +23,8 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Test Factories and Seeders
+/database/factories/ClientFactory.php
+/database/factories/ContractFactory.php
+/database/seeders/PaginationTestSeeder.php
