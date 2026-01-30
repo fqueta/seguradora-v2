@@ -35,8 +35,8 @@ class PermissionController extends Controller
         if(!$user){
             return response()->json(['error' => 'Acesso negado'], 403);
         }
-        $order_by = request()->input('order_by', 'created_at');
-        $order = request()->input('order', 'desc');
+        $order_by = request()->input('order_by', 'id');
+        $order = request()->input('order', 'asc');
         $permission_id = $user->permission_id ?? null;
         if($permission_id < 2){
             if (!$this->isHasPermission('view')) {
