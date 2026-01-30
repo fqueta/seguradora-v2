@@ -22,7 +22,13 @@ class ContractController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('contract_number', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhereHas('client', function ($qc) use ($search) {
+                      $qc->where('name', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('owner', function ($qo) use ($search) {
+                      $qo->where('name', 'like', "%{$search}%");
+                  });
             });
         }
 
@@ -284,7 +290,13 @@ class ContractController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('contract_number', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhereHas('client', function ($qc) use ($search) {
+                      $qc->where('name', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('owner', function ($qo) use ($search) {
+                      $qo->where('name', 'like', "%{$search}%");
+                  });
             });
         }
 
