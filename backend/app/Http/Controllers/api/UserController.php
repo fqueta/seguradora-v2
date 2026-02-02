@@ -77,9 +77,12 @@ class UserController extends Controller
         $permission_id = $user->permission_id;
         $supplier_permission_id = Qlib::qoption('permission_supplier_id') ?: 6;
         $query = User::with('organization')
-            ->where('permission_id','!=',$this->cliente_permission_id)
-            ->where('permission_id','!=',$supplier_permission_id)
             ->orderBy($order_by,$order);
+
+        if (!$request->input('skip_exclusions')) {
+            $query->where('permission_id', '!=', $this->cliente_permission_id)
+                  ->where('permission_id', '!=', $supplier_permission_id);
+        }
 
         if ($permission_id >= 5) {
             $query->where('id', $user->id);
@@ -300,6 +303,12 @@ class UserController extends Controller
         // Security: visualiza apenas dados de permission_id >= ao seu
         if ($currentUser->permission_id && $user->permission_id < $currentUser->permission_id) {
              return response()->json(['error' => 'Acesso negado. Nível de permissão insuficiente.'], 403);
+        }
+
+        // Add autor_name manually
+        if ($user->autor) {
+            $author = User::find($user->autor);
+            $user->autor_name = $author ? $author->name : null;
         }
 
         return response()->json($user, 200);
@@ -608,6 +617,67 @@ class UserController extends Controller
             'data' => $userToUpdate,
             'message' => 'Usuário atualizado com sucesso',
             'status' => 200,
+        ]);
+    }
+
+    /**
+     * changeOwner
+     * pt-BR: Altera o proprietário/autor do usuário.
+     *        Permitido somente para permission_id <= 2.
+     *        O novo proprietário deve pertencer à mesma organização do usuário modificado.
+     */
+    public function changeOwner(Request $request, string $id)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['error' => 'Acesso negado'], 403);
+        }
+        if (intval($user->permission_id) > 2) {
+            return response()->json(['error' => 'Permissão insuficiente'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'owner_id' => ['required', 'string', 'exists:users,id'],
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'exec' => false,
+                'message' => 'Erro de validação',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $userToUpdate = User::find($id);
+        if (!$userToUpdate) {
+            return response()->json(['error' => 'Usuário não encontrado'], 404);
+        }
+
+        // Verifica se o usuário tem organização
+        if (empty($userToUpdate->organization_id)) {
+            return response()->json([
+                'exec' => false,
+                'message' => 'Este usuário não possui uma organização definida. Por favor, defina a organização primeiro.',
+            ], 400);
+        }
+
+        $newOwnerId = $validator->validated()['owner_id'];
+        $newOwner = User::find($newOwnerId);
+
+        // Verifica se o novo proprietário pertence à mesma organização
+        if ($newOwner->organization_id != $userToUpdate->organization_id) {
+            return response()->json([
+                'exec' => false,
+                'message' => 'O novo proprietário deve pertencer à mesma organização do usuário.',
+            ], 400);
+        }
+
+        $userToUpdate->autor = $newOwnerId;
+        $userToUpdate->save();
+
+        return response()->json([
+            'exec' => true,
+            'message' => 'Proprietário alterado com sucesso.',
+            'data' => $userToUpdate,
         ]);
     }
 

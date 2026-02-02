@@ -204,6 +204,25 @@ export default function ContractView() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div>
+                             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                                <User className="h-4 w-4" />
+                                Responsável
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-4">
+                                <div>
+                                    <label className="text-xs text-muted-foreground">Proprietário</label>
+                                    <p className="font-medium">{contract.owner?.name || 'Não identificado'}</p>
+                                </div>
+                                {contract.organization?.name && (
+                                    <div>
+                                        <label className="text-xs text-muted-foreground">Organização</label>
+                                        <p className="font-medium">{contract.organization.name}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="pt-4 border-t">
                             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
                                 <User className="h-4 w-4" />
                                 Dados do Cliente

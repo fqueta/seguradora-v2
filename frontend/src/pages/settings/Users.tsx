@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, CalendarIcon, Eye, RotateCcw } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, CalendarIcon, Eye, RotateCcw, MoreHorizontal } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -19,6 +19,12 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -75,6 +81,7 @@ import { usePermissionsList } from '@/hooks/permissions';
 import { useOrganizationsList } from '@/hooks/organizations';
 import { UserRecord, CreateUserInput } from '@/types/users';
 import { toast } from '@/hooks/use-toast';
+import { usersService } from '@/services/usersService';
 
 const userSchema = z.object({
   tipo_pessoa: z.enum(["pf", "pj"]).optional(),
@@ -140,6 +147,15 @@ export default function Users() {
 
   const { data: organizationsData } = useOrganizationsList({ per_page: 100, active: true });
   const organizations = organizationsData?.data || [];
+
+  // Fetch users for owner selection
+  const { data: ownersData } = useUsersList({ per_page: 9999, consultores: false });
+  const ownersList = ownersData?.data || [];
+  
+  // Change Owner State
+  const [changeOwnerOpen, setChangeOwnerOpen] = useState(false);
+  const [selectedUserOwner, setSelectedUserOwner] = useState<UserRecord | null>(null);
+  const [newOwnerId, setNewOwnerId] = useState<string>('');
 
   const createMutation = useCreateUser();
   const updateMutation = useUpdateUser();
@@ -521,7 +537,7 @@ export default function Users() {
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
                           {showTrash ? (
-                            <>
+                             <div className="flex justify-end space-x-2">
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -545,40 +561,39 @@ export default function Users() {
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
-                            </>
+                            </div>
                           ) : (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/admin/settings/users/${user.id}/view`);
-                                }}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/admin/settings/users/${user.id}/edit`);
-                                }}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeletingUser(user);
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => navigate(`/admin/settings/users/${user.id}/view`)}>
+                                  <Eye className="mr-2 h-4 w-4" /> Visualizar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => navigate(`/admin/settings/users/${user.id}/edit`)}>
+                                  <Pencil className="mr-2 h-4 w-4" /> Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => {
+                                  setSelectedUserOwner(user);
+                                  if (!user.organization_id) {
+                                     toast({ title: 'Atenção', description: 'Selecione uma organização para este usuário antes de alterar o proprietário.', variant: 'destructive' });
+                                     // Optionally open edit modal
+                                     handleOpenModal(user);
+                                  } else {
+                                    setNewOwnerId(user.autor ? String(user.autor) : '');
+                                    setChangeOwnerOpen(true);
+                                  }
+                                }}>
+                                  <Pencil className="mr-2 h-4 w-4" /> Alterar Proprietário
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setDeletingUser(user)} className="text-red-600">
+                                  <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           )}
                         </div>
                       </TableCell>
@@ -645,6 +660,59 @@ export default function Users() {
             showBirthDate={false}
           />
           </DialogContent>
+      </Dialog>
+      
+      {/* Change Owner Modal */}
+      <Dialog open={changeOwnerOpen} onOpenChange={setChangeOwnerOpen}>
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>Alterar Proprietário do Usuário</DialogTitle>
+            <DialogDescription>
+              Selecione o novo proprietário para este usuário. Apenas usuários da mesma organização são listados.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="text-sm">
+              Usuário: <span className="font-medium">{selectedUserOwner?.name}</span>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              <label className="text-sm font-medium">Novo Proprietário</label>
+              <Select value={newOwnerId} onValueChange={(v) => setNewOwnerId(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o proprietário" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ownersList
+                    .filter(u => u.organization_id === selectedUserOwner?.organization_id)
+                    .map((u) => (
+                    <SelectItem key={String(u.id)} value={String(u.id)}>
+                      {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setChangeOwnerOpen(false)}>Cancelar</Button>
+              <Button
+                onClick={async () => {
+                  if (!selectedUserOwner || !newOwnerId) return;
+                  try {
+                    await usersService.changeOwner(String(selectedUserOwner.id), newOwnerId);
+                    toast({ title: 'Sucesso', description: 'Proprietário alterado com sucesso.' });
+                    setChangeOwnerOpen(false);
+                    refetch();
+                  } catch (e: any) {
+                    const msg = e?.body?.message || e?.message || 'Falha ao alterar proprietário';
+                    toast({ title: 'Erro', description: msg, variant: 'destructive' });
+                  }
+                }}
+              >
+                Confirmar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
       </Dialog>
 
       <AlertDialog open={!!deletingUser} onOpenChange={() => setDeletingUser(null)}>

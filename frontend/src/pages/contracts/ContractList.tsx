@@ -44,11 +44,15 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { contractsService } from '@/services/contractsService';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function ContractList() {
     const navigate = useNavigate();
     const { user } = useAuth();
     const { toast } = useToast();
+    const queryClient = useQueryClient();
     const canFilterAdmin = user && (Number(user.permission_id) < 3);
 
     const [search, setSearch] = useState('');
@@ -63,8 +67,13 @@ export default function ContractList() {
     const [perPage, setPerPage] = useState(50);
     const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
+    // State for Change Owner
+    const [changeOwnerOpen, setChangeOwnerOpen] = useState(false);
+    const [selectedContract, setSelectedContract] = useState<any | null>(null);
+    const [newOwnerId, setNewOwnerId] = useState<string>('');
+
     const { data: orgs } = useOrganizationsList({ per_page: 100 });
-    const { data: users } = useUsersList({ per_page: 100 });
+    const { data: users } = useUsersList({ per_page: 9999 });
     const { data: products } = useProductsList({ per_page: 100 });
 
     const [isTrashMode, setIsTrashMode] = useState(false);
@@ -409,6 +418,17 @@ export default function ContractList() {
                                                                 <DropdownMenuItem onClick={() => navigate(`/admin/contracts/${contract.id}/edit`)}>
                                                                     <Pencil className="mr-2 h-4 w-4" /> Editar
                                                                 </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => {
+                                                                    setSelectedContract(contract);
+                                                                    if (!contract.organization_id) {
+                                                                        toast({ title: 'Atenção', description: 'Selecione uma organização para este contrato antes de alterar o proprietário.', variant: 'warning' as any });
+                                                                    } else {
+                                                                        setNewOwnerId(contract.owner_id ? String(contract.owner_id) : '');
+                                                                        setChangeOwnerOpen(true);
+                                                                    }
+                                                                }}>
+                                                                    <Pencil className="mr-2 h-4 w-4" /> Alterar Proprietário
+                                                                </DropdownMenuItem>
                                                                 <DropdownMenuItem onClick={() => setDeleteId(contract.id)}>
                                                                     <Trash className="mr-2 h-4 w-4 text-red-500" /> Excluir
                                                                 </DropdownMenuItem>
@@ -479,6 +499,59 @@ export default function ContractList() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Change Owner Modal */}
+            <Dialog open={changeOwnerOpen} onOpenChange={setChangeOwnerOpen}>
+                <DialogContent className="sm:max-w-[560px]">
+                    <DialogHeader>
+                        <DialogTitle>Alterar Proprietário do Contrato</DialogTitle>
+                        <DialogDescription>
+                            Selecione o novo proprietário para este contrato. Apenas usuários da mesma organização ({selectedContract?.organization?.name}) são listados.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="text-sm">
+                            Contrato: <span className="font-medium">{selectedContract?.contract_number || selectedContract?.id}</span>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Novo Proprietário</label>
+                            <Select value={newOwnerId} onValueChange={setNewOwnerId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione o proprietário" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {users?.data
+                                        ?.filter((u: any) => String(u.organization_id) === String(selectedContract?.organization_id))
+                                        .map((u: any) => (
+                                        <SelectItem key={String(u.id)} value={String(u.id)}>
+                                            {u.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2">
+                            <Button variant="outline" onClick={() => setChangeOwnerOpen(false)}>Cancelar</Button>
+                            <Button
+                                onClick={async () => {
+                                    if (!selectedContract || !newOwnerId) return;
+                                    try {
+                                        await contractsService.changeOwner(String(selectedContract.id), newOwnerId);
+                                        toast({ title: 'Sucesso', description: 'Proprietário alterado com sucesso.' });
+                                        setChangeOwnerOpen(false);
+                                        queryClient.invalidateQueries({ queryKey: ['contracts'] });
+                                    } catch (e: any) {
+                                        const msg = e?.body?.message || e?.message || 'Falha ao alterar proprietário';
+                                        toast({ title: 'Erro', description: msg, variant: 'destructive' });
+                                    }
+                                }}
+                            >
+                                Confirmar
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
             </div>
         </div>
     );

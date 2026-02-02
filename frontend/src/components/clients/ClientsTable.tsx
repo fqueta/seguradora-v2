@@ -14,7 +14,9 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { clientsService } from '@/services/clientsService';
+import { usersService } from '@/services/usersService';
 import { cpfApplyMask } from '@/lib/masks/cpf-apply-mask';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 
 interface ClientsTableProps {
   clients: ClientRecord[];
@@ -51,6 +53,7 @@ export function ClientsTable({
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   // Garantir que clients seja sempre um array válido
   const clientsList = Array.isArray(clients) ? clients : [];
   // Hook de restauração
@@ -68,6 +71,22 @@ export function ClientsTable({
   const [targetOrgId, setTargetOrgId] = useState<string>('');
   const [convertOpen, setConvertOpen] = useState(false);
   const [convertClient, setConvertClient] = useState<ClientRecord | null>(null);
+  
+  // Estado do modal de alteração de proprietário
+  const [changeOwnerOpen, setChangeOwnerOpen] = useState(false);
+  const [newOwnerId, setNewOwnerId] = useState<string>('');
+  
+  // Query secundária para listar usuários APENAS da organização do cliente selecionado no modal
+  const { data: potentialOwnersData, isLoading: isLoadingPotentialOwners } = useQuery({
+    queryKey: ['users', 'list', 'organization-modal', selectedClient?.organization?.id],
+    queryFn: () => usersService.listUsers({ 
+        organization_id: selectedClient?.organization?.id,
+        per_page: 999,
+        skip_exclusions: true
+    }),
+    enabled: !!(changeOwnerOpen && selectedClient?.organization?.id)
+  });
+  const potentialOwners = potentialOwnersData?.data || [];
   
   // Função para obter o nome do proprietário pelo ID do autor
   const getOwnerName = (autorId: string) => {
@@ -195,6 +214,28 @@ export function ClientsTable({
                         <Pencil className="mr-2 h-4 w-4" /> Transferir organização
                       </DropdownMenuItem>
                     )}
+                    {Number(user?.permission_id || 99) <= 2 && (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedClient(client);
+                  // Verifica se tem organização
+                  if (!client.organization?.id) {
+                     toast({
+                      title: "Atenção",
+                      description: "Este cliente não possui organização definida. Por favor, defina a organização antes de alterar o proprietário.",
+                      variant: "destructive"
+                     });
+                     // Opcional: redirecionar para tela de transferência
+                     // setTransferCheckOpen(true); 
+                  } else {
+                    setNewOwnerId(client.autor ? String(client.autor) : '');
+                    setChangeOwnerOpen(true);
+                  }
+                }}
+                      >
+                        <Pencil className="mr-2 h-4 w-4" /> Alterar Proprietário
+                      </DropdownMenuItem>
+                    )}
                     {trashEnabled && (
                       <>
                         <DropdownMenuItem 
@@ -303,6 +344,61 @@ export function ClientsTable({
                     navigate('/admin/settings/users');
                   } catch (e: any) {
                     const msg = e?.body?.message || e?.message || 'Falha ao converter para usuário';
+                    toast({ title: 'Erro', description: msg, variant: 'destructive' as any });
+                  }
+                }}
+              >
+                Confirmar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Modal de alteração de proprietário */}
+      <Dialog open={changeOwnerOpen} onOpenChange={setChangeOwnerOpen}>
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>Alterar Proprietário do Cliente</DialogTitle>
+            <DialogDescription>
+              Selecione o novo proprietário para este cliente. Apenas usuários da mesma organização ({selectedClient?.organization?.name}) são listados.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="text-sm">
+              Cliente: <span className="font-medium">{selectedClient?.name}</span>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              <label className="text-sm font-medium">Novo Proprietário</label>
+              <Select value={newOwnerId} onValueChange={(v) => setNewOwnerId(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o proprietário" />
+                </SelectTrigger>
+                <SelectContent>
+                  {isLoadingPotentialOwners && (
+                    <SelectItem value="loading" disabled>Carregando usuários...</SelectItem>
+                  )}
+                  {potentialOwners.map((u) => (
+                    <SelectItem key={String(u.id)} value={String(u.id)}>
+                      {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setChangeOwnerOpen(false)}>Cancelar</Button>
+              <Button
+                onClick={async () => {
+                  if (!selectedClient || !newOwnerId) return;
+                  try {
+                    await clientsService.changeOwner(String(selectedClient.id), newOwnerId);
+                    toast({ title: 'Sucesso', description: 'Proprietário alterado com sucesso.' });
+                    setChangeOwnerOpen(false);
+                    // Invalidar query para atualizar a lista sem reload
+                    queryClient.invalidateQueries({ queryKey: ['clients'] });          
+                  } catch (e: any) {
+                    const msg = e?.body?.message || e?.message || 'Falha ao alterar proprietário';
                     toast({ title: 'Erro', description: msg, variant: 'destructive' as any });
                   }
                 }}

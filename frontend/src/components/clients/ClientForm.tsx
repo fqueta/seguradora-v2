@@ -36,6 +36,7 @@ import { ImageUpload } from '@/components/lib/ImageUpload';
 import { useUsersList } from '@/hooks/users';
 import { useFunnelsList, useStagesList } from '@/hooks/funnels';
 import { phoneApplyMask } from '@/lib/masks/phone-apply-mask';
+import { useAuth } from '@/contexts/AuthContext';
 /**
  * ClientFormProps
  * Props do formulário de cliente. Suporta `renderActions` para permitir que páginas
@@ -72,12 +73,29 @@ export function ClientForm({
   editingClient,
   renderActions,
 }: ClientFormProps) {
+  const { user } = useAuth();
+  const canChangeOwner = Number(user?.permission_id) <= 3;
   const tipoPessoa = form.watch('tipo_pessoa');
   const { fetchCep, loading: cepLoading } = useCep();
   // pt-BR: Carrega consultores com paginação maior e ordenados por nome.
   // en-US: Load consultants with larger page size and sorted by name.
   const { data: usersData, isLoading: isLoadingUsers } = useUsersList({ consultores: true, per_page: 100, sort: 'name' });
   const usersList = usersData?.data || [];
+  // Garante que o autor atual apareça no Select mesmo se não for “consultor”
+  const mergedUsersList = useMemo(() => {
+    const currentAutorId = editingClient?.autor;
+    if (!currentAutorId) return usersList;
+    const exists = usersList.some((u: any) => u.id === currentAutorId);
+    if (exists) return usersList;
+    const label = editingClient?.autor_name || 'Usuário atual';
+    return [{ id: currentAutorId, name: label }, ...usersList];
+  }, [usersList, editingClient]);
+  // Filtra por organização do cliente; mantém o autor atual como opção (desabilitada) se estiver fora
+  const orgId = editingClient?.organization_id;
+  const allowedUsersList = useMemo(() => {
+    if (!orgId) return mergedUsersList;
+    return mergedUsersList.filter((u: any) => Number(u.organization_id) === Number(orgId));
+  }, [mergedUsersList, orgId]);
   
   // Watch para validação em tempo real
   const emailWatch = form.watch("email");
@@ -340,47 +358,58 @@ export function ClientForm({
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-            <FormField
-              control={form.control}
-              name="autor"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">Consultor</FormLabel>
-                  <Select
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                    }}
-                    value={field.value}
-                    disabled={isLoadingUsers}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Selecione o consultor" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {isLoadingUsers ? (
-                        <SelectItem value="__loading__" disabled>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Carregando...
-                        </SelectItem>
-                      ) : usersList.length === 0 ? (
-                        <SelectItem value="__no_users__" disabled>
-                          Nenhum usuário cadastrado
-                        </SelectItem>
-                      ) : (
-                        usersList.map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.name}
+            {canChangeOwner && (
+              <FormField
+                control={form.control}
+                name="autor"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium text-gray-700">Proprietário</FormLabel>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                      }}
+                      value={field.value}
+                      disabled={isLoadingUsers}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-11">
+                          <SelectValue placeholder="Selecione o proprietário" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {isLoadingUsers ? (
+                          <SelectItem value="__loading__" disabled>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Carregando...
                           </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                        ) : mergedUsersList.length === 0 ? (
+                          <SelectItem value="__no_users__" disabled>
+                            Nenhum usuário cadastrado
+                          </SelectItem>
+                        ) : (
+                          <>
+                            {editingClient?.autor &&
+                             orgId &&
+                             mergedUsersList.some((u: any) => u.id === editingClient.autor && Number(u.organization_id) !== Number(orgId)) && (
+                               <SelectItem value={editingClient.autor} disabled>
+                                 {(editingClient?.autor_name || 'Usuário atual') + ' (fora da organização)'}
+                               </SelectItem>
+                             )}
+                            {allowedUsersList.map((u: any) => (
+                              <SelectItem key={u.id} value={u.id}>
+                                {u.name}
+                              </SelectItem>
+                            ))}
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="password"

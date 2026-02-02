@@ -11,9 +11,15 @@ export interface ContractRecord {
   id: number;
   uuid: string;
   contract_number?: string;
+  nome?: string; // Adding missing field
+  slug?: string; // Adding missing field
+  ativo?: string; // Adding missing field (alias to status?)
+  id_curso?: string | number; // Adding missing field
   client_id?: string | number;
   owner_id?: string | number;
   product_id?: string | number;
+  organization_id?: number | null;
+  organization?: any;
   status: string; // ContractStatus
   start_date?: string;
   end_date?: string;
@@ -78,6 +84,7 @@ export interface ContractsListParams {
   per_page?: number;
   search?: string;
   status?: string;
+  ativo?: string; // Adding missing field
   client_id?: string | number;
   organization_id?: string | number;
   owner_id?: string | number;

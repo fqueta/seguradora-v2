@@ -279,6 +279,68 @@ class ContractController extends Controller
         }
 
     }
+
+    /**
+     * changeOwner
+     * pt-BR: Altera o proprietário/autor do contrato.
+     *        Permitido somente para permission_id <= 2.
+     *        O novo proprietário deve pertencer à mesma organização do contrato.
+     */
+    public function changeOwner(Request $request, $id): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['error' => 'Acesso negado'], 403);
+        }
+        if (intval($user->permission_id) > 2) {
+            return response()->json(['error' => 'Permissão insuficiente'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'owner_id' => ['required', 'string', 'exists:users,id'],
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'exec' => false,
+                'message' => 'Erro de validação',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $contract = Contract::find($id);
+        if (!$contract) {
+            return response()->json(['message' => 'Contrato não encontrado'], 404);
+        }
+
+        // Verifica se o contrato tem organização
+        if (empty($contract->organization_id)) {
+            return response()->json([
+                'exec' => false,
+                'message' => 'Este contrato não possui uma organização definida. Por favor, defina a organização primeiro.',
+            ], 400);
+        }
+
+        $newOwnerId = $validator->validated()['owner_id'];
+        $newOwner = \App\Models\User::find($newOwnerId);
+
+        // Verifica se o novo proprietário pertence à mesma organização
+        if ($newOwner->organization_id != $contract->organization_id) {
+            return response()->json([
+                'exec' => false,
+                'message' => 'O novo proprietário deve pertencer à mesma organização do contrato.',
+            ], 400);
+        }
+
+        $contract->owner_id = $newOwnerId;
+        $contract->save();
+
+        return response()->json([
+            'exec' => true,
+            'mens' => 'Proprietário alterado com sucesso.',
+            'data' => $contract,
+        ]);
+    }
+
     /**
      * List trashed contracts
      */

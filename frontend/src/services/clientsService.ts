@@ -144,6 +144,15 @@ class ClientsService extends BaseApiService {
   async consultCpf(cpf: string): Promise<any> {
     return this.get<any>(`/clients/consult-cpf/${cpf}`);
   }
+
+  /**
+   * changeOwner
+   * pt-BR: Altera o proprietário/autor do cliente.
+   * en-US: Changes the owner/author of the client.
+   */
+  async changeOwner(clientId: string, ownerId: string | number): Promise<any> {
+    return this.put<any>(`/clients/${clientId}/change-owner`, { owner_id: ownerId });
+  }
 }
 
 export const clientsService = new ClientsService();

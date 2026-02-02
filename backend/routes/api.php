@@ -241,6 +241,11 @@ Route::name('api.')->prefix('v1')->middleware([
             'metrics' => 'id'
         ]]);
 
+        // Change Owner Routes
+        Route::put('clients/{id}/change-owner', [ClientController::class, 'changeOwner'])->name('clients.change-owner');
+        Route::put('contracts/{id}/change-owner', [\App\Http\Controllers\api\ContractController::class, 'changeOwner'])->name('contracts.change-owner');
+        Route::put('users/{id}/change-owner', [UserController::class, 'changeOwner'])->name('users.change-owner');
+
         // Rotas para tracking events
         Route::apiResource('tracking', TrackingEventController::class,['parameters' => [
             'tracking' => 'id'

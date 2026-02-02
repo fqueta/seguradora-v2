@@ -21,6 +21,8 @@ class UsersService extends BaseApiService {
     if (params?.consultores) queryParams.consultores = 'true';
     if (params?.sort) queryParams.sort = params.sort;
     if (params?.excluido) queryParams.excluido = params.excluido;
+    if (params?.organization_id) queryParams.organization_id = params.organization_id;
+    if (params?.skip_exclusions) queryParams.skip_exclusions = 'true';
 
     const response = await this.get<any>('/users', queryParams);
     return this.normalizePaginatedResponse<UserRecord>(response);
@@ -67,6 +69,15 @@ class UsersService extends BaseApiService {
       return this.postFormData<UserRecord>('/user/profile', data);
     }
     return this.put<UserRecord>('/user/profile', data);
+  }
+
+  /**
+   * changeOwner
+   * pt-BR: Altera o proprietário/autor do usuário.
+   * en-US: Changes the owner/author of the user.
+   */
+  async changeOwner(id: string, ownerId: string | number): Promise<any> {
+    return this.put<any>(`/users/${id}/change-owner`, { owner_id: ownerId });
   }
 }
 

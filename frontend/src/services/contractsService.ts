@@ -112,6 +112,15 @@ class ContractsService extends BaseApiService {
   async deleteById(id: string | number): Promise<void> {
     return this.deleteContract(id);
   }
+
+  /**
+   * changeOwner
+   * pt-BR: Altera o proprietário/autor do contrato.
+   * en-US: Changes the owner/author of the contract.
+   */
+  async changeOwner(id: string | number, ownerId: string | number): Promise<any> {
+    return this.put<any>(`${this.endpoint}/${id}/change-owner`, { owner_id: ownerId });
+  }
 }
 
 export const contractsService = new ContractsService();

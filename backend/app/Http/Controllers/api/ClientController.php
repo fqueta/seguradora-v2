@@ -389,6 +389,7 @@ class ClientController extends Controller
             'celular'         => 'nullable|celular|unique:users,celular',
             'password'      => 'nullable|string|min:6',
             'genero'        => ['required', Rule::in(['ni','m','f'])],
+            'autor'         => ['nullable','string','exists:users,id'],
             'config'        => 'array',
         ]);
 
@@ -428,7 +429,22 @@ class ClientController extends Controller
             $validated['config'] = json_encode($validated['config']);
         }
         $validated['organization_id'] = $user->organization_id;
-        $validated['autor'] = $user->id; // Populate author
+        // Autor: usar o valor enviado, se existir; caso contrário, padrão para usuário logado
+        $validated['autor'] = $validated['autor'] ?? $user->id;
+        // Restrição: usuários com permission_id >= 4 não podem definir outro proprietário
+        if (intval($user->permission_id) >= 4) {
+            $validated['autor'] = $user->id;
+        }
+        // Validar se o autor pertence à mesma organização
+        if (isset($validated['autor'])) {
+            $autorUser = User::find($validated['autor']);
+            if (!$autorUser || intval($autorUser->organization_id) !== intval($validated['organization_id'])) {
+                return response()->json([
+                    'message' => 'Erro de validação',
+                    'errors'  => ['autor' => ['O consultor selecionado deve pertencer à mesma organização do cliente.']],
+                ], 422);
+            }
+        }
         // dd($validated);
         $client = Client::create($validated);
         // converter o client->config para array (decodificando JSON quando necessário)
@@ -466,6 +482,12 @@ class ClientController extends Controller
             $client->config = is_array($decoded) ? $decoded : [];
         } elseif (!is_array($client->config)) {
             $client->config = [];
+        }
+
+        // Add autor_name manually
+        if ($client->autor) {
+            $author = User::find($client->autor);
+            $client->autor_name = $author ? $author->name : null;
         }
 
         return response()->json($client);
@@ -522,6 +544,7 @@ class ClientController extends Controller
             'password'      => 'nullable|string|min:6',
             'genero'        => ['sometimes', Rule::in(['ni','m','f'])],
             'verificado'    => ['sometimes', Rule::in(['n','s'])],
+            'autor'         => ['sometimes','string','exists:users,id'],
             'config'        => 'array'
         ]);
 
@@ -586,6 +609,32 @@ class ClientController extends Controller
             }
         }
 
+        // Restrição: usuários com permission_id >= 4 não podem alterar proprietário
+        if (intval($user->permission_id) >= 4 && isset($validated['autor'])) {
+            if ($validated['autor'] !== $clientToUpdate->autor) {
+                return response()->json([
+                    'exec'=>false,
+                    'message' => 'Permissão insuficiente para alterar o proprietário deste cliente.',
+                    'errors'  => ['autor' => ['Ação não permitida para seu perfil']],
+                ], 403);
+            }
+        }
+
+        // Validar se o autor (quando enviado) pertence à organização alvo
+        if (isset($validated['autor'])) {
+            $targetOrgId = isset($validated['organization_id'])
+                ? intval($validated['organization_id'])
+                : intval($clientToUpdate->organization_id ?? $user->organization_id);
+            $autorUser = User::find($validated['autor']);
+            if (!$autorUser || intval($autorUser->organization_id) !== $targetOrgId) {
+                return response()->json([
+                    'exec'=>false,
+                    'message' => 'Erro de validação',
+                    'errors'  => ['autor' => ['O consultor selecionado deve pertencer à mesma organização do cliente.']],
+                ], 422);
+            }
+        }
+
         // dd($validated);
         $clientToUpdate->update($validated);
 
@@ -626,7 +675,7 @@ class ClientController extends Controller
                 $contract->delete();
             }
         }
-        
+
         // Mover para lixeira em vez de excluir permanentemente
         $client->update([
             'ativo' => 'n',
@@ -700,6 +749,75 @@ class ClientController extends Controller
                 'from_organization_id' => $fromOrgId,
                 'to_organization_id' => $targetOrgId,
             ],
+        ]);
+    }
+
+    /**
+     * changeOwner
+     * pt-BR: Altera o proprietário/autor do cliente.
+     *        Permitido somente para permission_id <= 2.
+     *        O novo proprietário deve pertencer à mesma organização do cliente.
+     */
+    public function changeOwner(Request $request, string $id)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['error' => 'Acesso negado'], 403);
+        }
+        if (intval($user->permission_id) > 2) {
+            return response()->json(['error' => 'Permissão insuficiente'], 403);
+        }
+
+        \Log::info('ChangeOwner Request', ['all' => $request->all(), 'content' => $request->getContent()]);
+
+        $data = $request->all();
+        if (empty($data)) {
+            $data = $request->json()->all();
+        }
+
+        $validator = Validator::make($data, [
+            'owner_id' => ['required', 'string', 'exists:users,id'],
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'exec' => false,
+                'message' => 'Erro de validação',
+                'errors' => $validator->errors(),
+                'received' => $data, // Debug info
+            ], 422);
+        }
+
+        $client = Client::find($id);
+        if (!$client) {
+            return response()->json(['message' => 'Cliente não encontrado'], 404);
+        }
+
+        // Verifica se o cliente tem organização
+        if (empty($client->organization_id)) {
+            return response()->json([
+                'exec' => false,
+                'message' => 'Este cliente não possui uma organização definida. Por favor, defina a organização primeiro.',
+            ], 400);
+        }
+
+        $newOwnerId = $validator->validated()['owner_id'];
+        $newOwner = User::find($newOwnerId);
+
+        // Verifica se o novo proprietário pertence à mesma organização
+        if ($newOwner->organization_id != $client->organization_id) {
+            return response()->json([
+                'exec' => false,
+                'message' => 'O novo proprietário deve pertencer à mesma organização do cliente.',
+            ], 400);
+        }
+
+        $client->autor = $newOwnerId;
+        $client->save();
+
+        return response()->json([
+            'exec' => true,
+            'mens' => 'Proprietário alterado com sucesso.',
+            'data' => $client,
         ]);
     }
 
@@ -852,7 +970,7 @@ class ClientController extends Controller
         // This confirms if the record belongs to the "Client" scope
         $configId = $this->cliente_permission_id;
         $hasPermission = false;
-        
+
         if ($debug->permission_id == $configId) {
             $hasPermission = true;
         } elseif (is_array($debug->client_permission) && in_array($configId, $debug->client_permission)) {

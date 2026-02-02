@@ -367,6 +367,14 @@ export default function UserView() {
                 </div>
               )}
 
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase">Proprietário</label>
+                <div className="flex items-center gap-2">
+                   <UserCircle className="h-4 w-4 text-muted-foreground" />
+                   <span className="text-sm font-medium">{user.autor_name || (user.owner && user.owner.name) || 'Não identificado'}</span>
+                </div>
+              </div>
+
               <Separator />
 
               <div className="space-y-1">

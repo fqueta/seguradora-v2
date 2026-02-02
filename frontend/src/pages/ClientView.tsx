@@ -413,14 +413,11 @@ export default function ClientView() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto pt-6 pb-24 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button onClick={handleBack} variant="outline" size="sm">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar
-          </Button>
+
           <div>
             <h1 className="text-2xl font-bold">{client.name}</h1>
             <p className="text-muted-foreground">
@@ -429,10 +426,7 @@ export default function ClientView() {
           </div>
         </div>
         <div className="flex items-center space-x-3">
-          <Button onClick={handleEdit} variant="default" size="sm">
-            <Edit className="mr-2 h-4 w-4" />
-            Editar
-          </Button>
+
           <Badge variant={
             client.status === 'actived' ? 'default' : 
             client.status === 'inactived' ? 'destructive' : 
@@ -458,6 +452,11 @@ export default function ClientView() {
             <div>
               <label className="text-sm font-medium text-muted-foreground">Nome</label>
               <p className="text-sm">{client.name || 'Não informado'}</p>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Proprietário</label>
+              <p className="text-sm">{client.autor_name || client.autor || 'Não informado'}</p>
             </div>
             
             {client.tipo_pessoa === 'pj' && (
@@ -962,6 +961,29 @@ export default function ClientView() {
           </div>
         </CardContent>
       </Card>
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+        <div className="container mx-auto py-3 flex items-center justify-between gap-2">
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBack}
+                className="flex items-center gap-2"
+            >
+                <ArrowLeft className="h-4 w-4" />
+                Voltar
+            </Button>
+
+            <Button
+                variant="default"
+                size="sm"
+                onClick={handleEdit}
+                className="flex items-center gap-2"
+            >
+                <Edit className="h-4 w-4" />
+                Editar
+            </Button>
+        </div>
+      </div>
     </div>
   );
 }

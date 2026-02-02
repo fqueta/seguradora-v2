@@ -91,6 +91,8 @@ export interface UsersListParams {
    */
   sort?: string;
   excluido?: 's' | 'n';
+  organization_id?: number | string;
+  skip_exclusions?: boolean;
 }
 
 export interface Paginated<T> {
