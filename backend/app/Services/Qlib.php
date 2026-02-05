@@ -1318,7 +1318,8 @@ class Qlib
         // $meta_value = isset($config['meta_value'])?$config['meta_value']:false;
         $ret = false;
         $tab = 'postmeta';
-        if($post_id&&$meta_key&&$meta_value){
+        if($post_id && $meta_key){
+            $meta_value = is_null($meta_value) ? '' : $meta_value;
             $verf = self::totalReg($tab,"WHERE post_id='$post_id' AND meta_key='$meta_key'");
             if($verf){
                 $ret=DB::table($tab)->where('post_id',$post_id)->where('meta_key',$meta_key)->update([

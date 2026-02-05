@@ -54,6 +54,9 @@ import UserProfiles from "./pages/settings/UserProfiles";
 import SystemSettings from "./pages/settings/SystemSettings";
 import Stages from "./pages/settings/Stages";
 import TableInstallment from "./pages/settings/TableInstallment";
+import ApiCredentials from "./pages/settings/ApiCredentials";
+import ApiCredentialCreate from "./pages/settings/ApiCredentialCreate";
+import ApiCredentialEdit from "./pages/settings/ApiCredentialEdit";
 import Login from "./pages/auth/Login";
 import Metrics from "./pages/settings/Metrics";
 import AircraftsSettings from "./pages/settings/AircraftsSettings";
@@ -618,6 +621,45 @@ const App = () => {
                       requireRemote={false}
                     >
                       <SystemSettings />
+                    </PermissionGuard>
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/settings/integration" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <PermissionGuard 
+                      required="settings.system.view" 
+                      menuPath="/admin/settings/integration"
+                      requireRemote={false}
+                    >
+                      <ApiCredentials />
+                    </PermissionGuard>
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/settings/integration/create" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <PermissionGuard 
+                      required="settings.system.view" 
+                      menuPath="/admin/settings/integration"
+                      requireRemote={false}
+                    >
+                      <ApiCredentialCreate />
+                    </PermissionGuard>
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/settings/integration/:id/edit" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <PermissionGuard 
+                      required="settings.system.view" 
+                      menuPath="/admin/settings/integration"
+                      requireRemote={false}
+                    >
+                      <ApiCredentialEdit />
                     </PermissionGuard>
                   </AppLayout>
                 </AdminProtectedRoute>

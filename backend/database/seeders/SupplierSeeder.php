@@ -14,12 +14,14 @@ class SupplierSeeder extends Seeder
      */
     public function run(): void
     {
+        $permissionId = \Illuminate\Support\Facades\DB::table('permissions')->where('name', 'Fornecedores')->value('id') ?? 6;
+
         $suppliers = [
             [
                 'name' => 'IZA Seguradora S.A.',
                 'email' => 'contato@iza.com.br', // Mock email
                 'password' => Hash::make('password'),
-                'permission_id' => 6, // Supplier role
+                'permission_id' => $permissionId, // Supplier role
                 'ativo' => 's',
                 'status' => 'actived',
                 'cnpj' => '40.004.544/0001-46',
@@ -45,7 +47,7 @@ class SupplierSeeder extends Seeder
                 'name' => 'Sul América Seguros de Pessoas e Previdência S.A.',
                 'email' => 'contato@sulamerica.com.br', // Mock email
                 'password' => Hash::make('password'),
-                'permission_id' => 6, // Supplier role
+                'permission_id' => $permissionId, // Supplier role
                 'ativo' => 's',
                 'status' => 'actived',
                 'cnpj' => '01.704.513/0001-46',
@@ -61,17 +63,37 @@ class SupplierSeeder extends Seeder
                     'whatsapp' => '(11) 3004-9723',
                     'tag' => 'SulAmerica'
                 ]),
+            ],
+            [
+                'name' => 'LSX MEDICAL',
+                'razao' => 'LSX Participações LTDA',
+                'email' => 'contato@lsxmedical.com',
+                'password' => Hash::make('password'),
+                'permission_id' => $permissionId,
+                'ativo' => 's',
+                'status' => 'actived',
+                'cnpj' => '43.716.546/0001-56',
+                'tipo_pessoa' => 'pj',
+                'genero' => 'ni',
+                'verificado' => 's',
+                'excluido' => 'n',
+                'deletado' => 'n',
+                'foto_perfil' => 'suppliers/lsx_medical.png',
+                'config' => json_encode([
+                    'address' => 'Alameda Dr. Carlos de Carvalho, 431 12. andar, Curitiba, PR',
+                    'tag' => 'LSX'
+                ]),
             ]
         ];
 
-        $tableName = (new User())->getTable();
+        $tableName = 'users';
 
         foreach ($suppliers as $data) {
             // Ensure token is set if needed (though Qlib::token() was used in original, we can re-add if we want it fresh every time, but updateOrCreate might keep old one if we don't pass it. Let's add it if creating.)
              if (!isset($data['token'])) {
                 $data['token'] = Qlib::token();
             }
-            
+
             // Filter fields
             $validData = array_filter($data, function ($key) use ($tableName) {
                 return \Illuminate\Support\Facades\Schema::hasColumn($tableName, $key);

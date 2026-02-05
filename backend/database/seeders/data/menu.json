@@ -47,6 +47,7 @@
         { "title": "Funil e etapas", "url": "/settings/stages" },
         { "title": "Todas Categorias", "url": "/categories" },
         { "title": "Organizações", "url": "/settings/organizations" },
+        { "title": "Integrações", "url": "/settings/integration" },
         { "title": "Sistema", "url": "/settings/system"}
     ]
   }

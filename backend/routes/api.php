@@ -35,6 +35,8 @@ use App\Http\Controllers\EmailController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\TesteController;
 use App\Http\Controllers\api\SulAmericaController;
+use App\Http\Controllers\api\AlloyalController;
+use App\Http\Controllers\api\LsxMedicalController;
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
@@ -184,6 +186,25 @@ Route::name('api.')->prefix('v1')->middleware([
         Route::get('financial/categories/trash', [FinancialCategoryController::class, 'trash'])->name('financial.categories.trash');
         Route::put('financial/categories/{id}/restore', [FinancialCategoryController::class, 'restore'])->name('financial.categories.restore');
         Route::delete('financial/categories/{id}/force', [FinancialCategoryController::class, 'forceDelete'])->name('financial.categories.forceDelete');
+
+        // Rotas para api-credentials
+        Route::apiResource('api-credentials', \App\Http\Controllers\api\ApiCredentialController::class, ['parameters' => [
+            'api-credentials' => 'id'
+        ]]);
+        Route::get('api-credentials/trash', [\App\Http\Controllers\api\ApiCredentialController::class, 'trash'])->name('api-credentials.trash');
+        Route::put('api-credentials/{id}/restore', [\App\Http\Controllers\api\ApiCredentialController::class, 'restore'])->name('api-credentials.restore');
+        Route::delete('api-credentials/{id}/force', [\App\Http\Controllers\api\ApiCredentialController::class, 'forceDelete'])->name('api-credentials.forceDelete');
+
+        // Alloyal: rota para verificar credenciais resolvidas
+        Route::get('alloyal/credentials-resolved', [AlloyalController::class, 'credentialsResolved'])
+            ->name('alloyal.credentials-resolved');
+        // LSX Medical: credenciais resolvidas e operações de paciente
+        Route::get('lsxmedical/credentials-resolved', [LsxMedicalController::class, 'credentialsResolved'])
+            ->name('lsxmedical.credentials-resolved');
+        Route::post('lsxmedical/patients', [LsxMedicalController::class, 'createPatient'])
+            ->name('lsxmedical.patients.create');
+        Route::put('lsxmedical/patients/{cpf}', [LsxMedicalController::class, 'updatePatient'])
+            ->name('lsxmedical.patients.update');
 
         // Rotas para product-units
         Route::apiResource('product-units', ProductUnitController::class,['parameters' => [

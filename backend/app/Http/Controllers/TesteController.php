@@ -6,6 +6,7 @@ use App\Services\Escola;
 use App\Services\Qlib;
 use Illuminate\Http\Request;
 use App\Helpers\StringHelper;
+use App\Http\Controllers\api\AlloyalController;
 use Database\Seeders\MenuSeeder;
 use App\Http\Controllers\api\SulAmericaController;
 
@@ -57,6 +58,13 @@ class TesteController extends Controller
             $id_pr = $request->get('id');
             $s = Qlib::getSupplier($id_pr);
             dd($s);
+        }else{
+            $ret = (new AlloyalController)->create_user_atived([
+                'name' => 'Programador Teste',
+                'email' => 'programador@teste.com',
+                'cpf' => '49311114081',
+                'password' => '123456',
+            ]);
         }
         return $ret;
     }

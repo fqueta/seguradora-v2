@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ import { PerPageSelector } from "@/components/common/PerPageSelector";
 type PeriodField = "inicio" | "fim";
 
 export default function RelatorioGeral() {
+  const navigate = useNavigate();
   const [periodField, setPeriodField] = useState<PeriodField>("inicio");
   const [vigenciaInicio, setVigenciaInicio] = useState<string>("");
   const [vigenciaFim, setVigenciaFim] = useState<string>("");
@@ -152,7 +154,7 @@ export default function RelatorioGeral() {
   const rowsForExport = items.map((c) => ({
     inicio: formatBRDate(c.start_date),
     organizacao: organizationOf(c),
-    vendedor: c.owner?.name || c.owner?.full_name || "",
+    vendedor: c.client?.owner?.name || c.owner?.name || c.owner?.full_name || "",
     cpf: formatCPF(c.client?.cpf),
     cliente: c.client?.name || c.client?.full_name || "",
     valor: formatCurrencyBR(c.value),
@@ -264,7 +266,7 @@ export default function RelatorioGeral() {
             </Select>
           </div>
           <div>
-            <label className="text-sm text-muted-foreground">Autor do contrato</label>
+            <label className="text-sm text-muted-foreground">Vendedor</label>
             <Select value={ownerId} onValueChange={(v) => setOwnerId(v === "all" ? "" : v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Todos" />
@@ -324,10 +326,14 @@ export default function RelatorioGeral() {
               )}
               {!loading &&
                 items.map((c) => (
-                  <TableRow key={c.id}>
+                  <TableRow 
+                    key={c.id} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onDoubleClick={() => navigate(`/admin/contracts/${c.id}`, { state: { from: '/admin/reports/relatorio-geral' } })}
+                  >
                     <TableCell>{formatBRDate(c.start_date) || "-"}</TableCell>
                     <TableCell>{organizationOf(c) || "-"}</TableCell>
-                    <TableCell>{c.owner?.name || c.owner?.full_name || "-"}</TableCell>
+                    <TableCell>{c.client?.owner?.name || c.owner?.name || c.owner?.full_name || "-"}</TableCell>
                     <TableCell>{formatCPF(c.client?.cpf) || "-"}</TableCell>
                     <TableCell>{c.client?.name || c.client?.full_name || "-"}</TableCell>
                     <TableCell>{formatCurrencyBR(c.value) || "-"}</TableCell>

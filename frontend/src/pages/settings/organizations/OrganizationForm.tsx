@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { SmartDocumentInput } from '@/components/lib/SmartDocumentInput';
 import { phoneApplyMask } from '@/lib/masks/phone-apply-mask';
 import { AddressInputs } from '@/components/lib/AddressInputs';
-import { FormActionBar } from '@/components/common/FormActionBar';
+import EditFooterBar from '@/components/ui/edit-footer-bar';
 import { useUsersList, useUpdateUser } from '@/hooks/users';
 import { Combobox, useComboboxOptions } from '@/components/ui/combobox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -404,14 +404,12 @@ export default function OrganizationForm() {
                 </Card>
             )}
 
-            <FormActionBar
-                mode="create"
-                fixed
+            <EditFooterBar
                 onBack={() => navigate('/admin/settings/organizations')}
-                onCancel={() => navigate('/admin/settings/organizations')}
-                onSaveContinue={handleSaveAndStay}
-                onSaveExit={handleSaveAndExit}
-                isLoading={createMutation.isPending || updateMutation.isPending}
+                onContinue={handleSaveAndStay}
+                onFinish={handleSaveAndExit}
+                disabled={createMutation.isPending || updateMutation.isPending}
+                fixed
             />
         </div>
     );

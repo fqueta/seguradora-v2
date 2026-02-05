@@ -374,10 +374,17 @@ export default function ClientEdit() {
         data: clientData
       },
       {
-        onSuccess: () => {
+        onSuccess: (resp: any) => {
+          const payload = resp?.data ?? resp;
+          const retAlloyal = payload?.retAlloyal ?? null;
+          const baseDesc = `Cliente ${data.name} atualizado com sucesso`;
+          const extraMsg = retAlloyal && retAlloyal.exec === false
+            ? String(retAlloyal.message || 'Integração com o Clube falhou')
+            : null;
           toast({
             title: "Cliente atualizado",
-            description: `Cliente ${data.name} atualizado com sucesso`,
+            description: extraMsg ? `${baseDesc}\n${extraMsg}` : baseDesc,
+            variant: extraMsg ? "destructive" : "success",
           });
           setIsLoading(false);
           const shouldRedirect = options?.redirectAfterSave ?? true;

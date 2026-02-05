@@ -45,6 +45,8 @@ class DatabaseSeeder extends Seeder
                     FunnelStageSeeder::class,
                     // AircraftAttendanceSeeder::class,
                     // AeronavesSeeder::class,
+                    ApiCredentialsSeeder::class,
+                    ApiCredentialsAlloyalSeeder::class,
                     // CursosSeeder::class,
                     // TurmasSeeder::class,
                     // QoptionSeeder::class,
@@ -74,6 +76,10 @@ class DatabaseSeeder extends Seeder
                     // AeronavesSeeder::class,
                     SupplierSeeder::class,
                     SulamericaProductSeeder::class,
+                    LsxProductSeeder::class,
+                    ApiCredentialsSeeder::class,
+                    ApiCredentialsAlloyalSeeder::class,
+                    LsxProductsSeeder::class,
             ];
 
         }

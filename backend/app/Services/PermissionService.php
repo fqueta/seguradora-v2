@@ -107,17 +107,20 @@ class PermissionService
             $url = '/school/enrollment-situation';
         }elseif($name=='api.metrics.index' || $name == 'api.metrics.update' || $name == 'api.metrics.show' || $name == 'api.metrics.store' || $name == 'api.metrics.destroy'){
             $url = '/settings/metrics';
-        }elseif($name=='api.clients.index' || $name == 'api.clients.convertToUser' || $name == 'api.clients.update' || $name == 'api.clients.show' || $name == 'api.clients.store' || $name == 'api.clients.destroy' || $name == 'api.clients.restore' || $name == 'api.clients.forceDelete' || $name == 'api.clients.attendances.store'){
+        }elseif($name=='api.clients.index' || $name == 'api.clients.convertToUser' || $name == 'api.clients.update' || $name == 'api.clients.show' || $name == 'api.clients.store' || $name == 'api.clients.destroy' || $name == 'api.clients.restore' || $name == 'api.clients.forceDelete' || $name == 'api.clients.attendances.store' || $name == 'api.lsxmedical.patients.create' || $name == 'api.lsxmedical.patients.update'){
             //api.clients.convertToUser para converter cliente em usuario
             $url = '/clients';
-        }elseif($name=='api.options.index' || $name == 'api.options.update' || $name == 'api.options.show' || $name == 'api.options.store' || $name == 'api.options.destroy' || $name == 'api.options.restore' || $name == 'api.options.forceDelete' || $name == 'api.options.trash'){
-            $url = '/options';
+        }elseif($name=='api.api-credentials.index' || $name == 'api.api-credentials.update' || $name == 'api.api-credentials.show' || $name == 'api.api-credentials.store' || $name == 'api.api-credentials.destroy' || $name == 'api.api-credentials.restore' || $name == 'api.api-credentials.forceDelete' || $name == 'api.api-credentials.trash'){
+            $url = '/settings/integration';
         }elseif($name=='api.posts.index' || $name == 'api.posts.update' || $name == 'api.posts.show' || $name == 'api.posts.store' || $name == 'api.posts.destroy' || $name == 'api.posts.restore' || $name == 'api.posts.forceDelete' || $name == 'api.posts.trash'){
             $url = '/posts';
         }elseif($name=='api.aircraft.index' || $name == 'api.aircraft.update' || $name == 'api.aircraft.show' || $name == 'api.aircraft.store' || $name == 'api.aircraft.destroy' || $name == 'api.aircraft.restore' || $name == 'api.aircraft.forceDelete' || $name == 'api.aircraft.trash'){
             $url = '/aircraft';
         }elseif($name=='api.aeronaves.index' || $name=='api.aeronaves.store' || $name == 'api.aeronaves.update' || $name == 'api.aeronaves.show' || $name == 'api.aeronaves.destroy' || $name == 'api.aeronaves.restore' || $name == 'api.aeronaves.forceDelete' || $name == 'api.aeronaves.trash'){
             $url = '/settings/aircrafts';
+        }
+        if($name=='api.options.index' || $name == 'api.options.update' || $name == 'api.options.show' || $name == 'api.options.store' || $name == 'api.options.destroy' || $name == 'api.options.all.get' || $name == 'api.options.all'){
+            $url = '/settings/system';
         }
         if($name=='api.options.index' || $name == 'api.options.update' || $name == 'api.options.show' || $name == 'api.options.store' || $name == 'api.options.destroy' || $name == 'api.options.all.get' || $name == 'api.options.all'){
             $url = '/settings/system';

@@ -16,7 +16,7 @@ class ContractController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Contract::with(['client', 'owner', 'organization', 'product']);
+        $query = Contract::with(['client.owner', 'owner', 'organization', 'product']);
 
         if ($request->has('search')) {
             $search = $request->search;
@@ -65,9 +65,15 @@ class ContractController extends Controller
                 }
             }
 
-            // Filtro por owner_id disponível para todos (respeitando organização se for o caso)
+            // Filtro por owner_id (Contract Owner OR Client's 'autor')
             if ($request->filled('owner_id')) {
-                $query->where('owner_id', $request->owner_id);
+                $ownerId = $request->owner_id;
+                $query->where(function ($q) use ($ownerId) {
+                    $q->where('owner_id', $ownerId)
+                      ->orWhereHas('client', function ($qc) use ($ownerId) {
+                          $qc->where('autor', $ownerId);
+                      });
+                });
             }
         }
 
@@ -346,7 +352,7 @@ class ContractController extends Controller
      */
     public function trash(Request $request): JsonResponse
     {
-        $query = Contract::onlyTrashed()->with(['client', 'owner', 'organization']);
+        $query = Contract::onlyTrashed()->with(['client.owner', 'owner', 'organization']);
 
         if ($request->has('search')) {
             $search = $request->search;
@@ -385,7 +391,13 @@ class ContractController extends Controller
                 }
             }
             if ($request->filled('owner_id')) {
-                $query->where('owner_id', $request->owner_id);
+                $ownerId = $request->owner_id;
+                $query->where(function ($q) use ($ownerId) {
+                    $q->where('owner_id', $ownerId)
+                      ->orWhereHas('client', function ($qc) use ($ownerId) {
+                          $qc->where('autor', $ownerId);
+                      });
+                });
             }
         }
 

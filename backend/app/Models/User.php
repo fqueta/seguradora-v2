@@ -71,6 +71,11 @@ class User extends Authenticatable
         return $this->belongsTo(Organization::class);
     }
 
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'autor');
+    }
+
 
     // MÉTODO PARA RETORNAR MENUS FORMATADOS
     // public function menusPermitidosFiltrados()

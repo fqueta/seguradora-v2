@@ -56,8 +56,8 @@ export function SulAmericaSettingsCard({ option, value, onChange, onSave, isLoad
           Configure as credenciais para integração com a API da SulAmérica.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
+      <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2 md:col-span-2">
           <Label htmlFor="sa_url">Url</Label>
           <Input
             id="sa_url"
@@ -78,7 +78,7 @@ export function SulAmericaSettingsCard({ option, value, onChange, onSave, isLoad
         </div>
 
         <div className="space-y-2">
-            <Label htmlFor="sa_pass">senha</Label>
+            <Label htmlFor="sa_pass">Senha</Label>
             <Input
                 id="sa_pass"
                 type="password"
@@ -88,7 +88,7 @@ export function SulAmericaSettingsCard({ option, value, onChange, onSave, isLoad
             />
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 md:col-span-2">
           <Label htmlFor="sa_produto">Produto</Label>
           <Input
             id="sa_produto"

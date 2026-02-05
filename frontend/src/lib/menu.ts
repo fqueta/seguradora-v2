@@ -286,6 +286,12 @@ export const defaultMenu: MenuItemDTO[] = [
         can_view: true
       },
       {
+        title: "Integrações",
+        url: "/admin/settings/integration",
+        permission: "settings.system.view",
+        can_view: true
+      },
+      {
         title: "Sistema",
         url: "/admin/settings/system",
         permission: "settings.system.view",
