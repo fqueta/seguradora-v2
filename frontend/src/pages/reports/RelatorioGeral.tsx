@@ -348,6 +348,7 @@ export default function RelatorioGeral() {
                   <TableRow 
                     key={c.id} 
                     className="cursor-pointer hover:bg-muted/50"
+                    title="Dê dois cliques para ver detalhes"
                     onDoubleClick={() => navigate(`/admin/contracts/${c.id}`, { state: { from: '/admin/reports/relatorio-geral' + location.search } })}
                   >
                     <TableCell>{formatBRDate(c.start_date) || "-"}</TableCell>
