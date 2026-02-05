@@ -59,7 +59,11 @@ export default function ContractView() {
      * en-US: Navigates back to origin (client if present, or contracts list).
      */
     const handleBack = () => {
-        navigate(clientIdParam ? `/admin/clients/${clientIdParam}/view` : '/admin/contracts');
+        if (location.state?.from) {
+            navigate(location.state.from);
+        } else {
+            navigate(clientIdParam ? `/admin/clients/${clientIdParam}/view` : '/admin/contracts');
+        }
     };
     /**
      * handleEdit

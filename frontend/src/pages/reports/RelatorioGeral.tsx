@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,18 +24,37 @@ type PeriodField = "inicio" | "fim";
 
 export default function RelatorioGeral() {
   const navigate = useNavigate();
-  const [periodField, setPeriodField] = useState<PeriodField>("inicio");
-  const [vigenciaInicio, setVigenciaInicio] = useState<string>("");
-  const [vigenciaFim, setVigenciaFim] = useState<string>("");
-  const [status, setStatus] = useState<string>("");
-  const [ownerId, setOwnerId] = useState<string>("");
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Initialize state from URL params
+  const [periodField, setPeriodField] = useState<PeriodField>(() => (searchParams.get("period_field") as PeriodField) || "inicio");
+  const [vigenciaInicio, setVigenciaInicio] = useState<string>(() => searchParams.get("vigencia_inicio") || "");
+  const [vigenciaFim, setVigenciaFim] = useState<string>(() => searchParams.get("vigencia_fim") || "");
+  const [status, setStatus] = useState<string>(() => searchParams.get("status") || "");
+  const [ownerId, setOwnerId] = useState<string>(() => searchParams.get("owner_id") || "");
+  
   const [loading, setLoading] = useState<boolean>(false);
-  const [page, setPage] = useState<number>(1);
-  const [perPage, setPerPage] = useState<number>(50);
+  const [page, setPage] = useState<number>(() => Number(searchParams.get("page")) || 1);
+  const [perPage, setPerPage] = useState<number>(() => Number(searchParams.get("per_page")) || 50);
   const [total, setTotal] = useState<number>(0);
   const [items, setItems] = useState<ContractRecord[]>([]);
   const [owners, setOwners] = useState<UserRecord[]>([]);
   const [orgMap, setOrgMap] = useState<Record<string | number, string>>({});
+
+  // Sync state changes to URL
+  useEffect(() => {
+    const params: any = {};
+    if (page > 1) params.page = String(page);
+    if (perPage !== 50) params.per_page = String(perPage); // Default perPage
+    if (periodField !== "inicio") params.period_field = periodField;
+    if (vigenciaInicio) params.vigencia_inicio = vigenciaInicio;
+    if (vigenciaFim) params.vigencia_fim = vigenciaFim;
+    if (status) params.status = status;
+    if (ownerId) params.owner_id = ownerId;
+    
+    setSearchParams(params, { replace: true });
+  }, [page, perPage, periodField, vigenciaInicio, vigenciaFim, status, ownerId, setSearchParams]);
 
   useEffect(() => {
     usersService
@@ -84,7 +103,7 @@ export default function RelatorioGeral() {
 
   const handleFilter = () => {
     setPage(1);
-    fetchData();
+    // fetchData is called by useEffect on filtersMemo change
   };
 
   const handleClear = () => {
@@ -275,7 +294,7 @@ export default function RelatorioGeral() {
                 <SelectItem value="all">Todos</SelectItem>
                 {owners.map((u) => (
                   <SelectItem key={u.id} value={String(u.id)}>
-                    {u.name || u.full_name || u.email}
+                    {u.name || u.email}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -329,7 +348,7 @@ export default function RelatorioGeral() {
                   <TableRow 
                     key={c.id} 
                     className="cursor-pointer hover:bg-muted/50"
-                    onDoubleClick={() => navigate(`/admin/contracts/${c.id}`, { state: { from: '/admin/reports/relatorio-geral' } })}
+                    onDoubleClick={() => navigate(`/admin/contracts/${c.id}`, { state: { from: '/admin/reports/relatorio-geral' + location.search } })}
                   >
                     <TableCell>{formatBRDate(c.start_date) || "-"}</TableCell>
                     <TableCell>{organizationOf(c) || "-"}</TableCell>
