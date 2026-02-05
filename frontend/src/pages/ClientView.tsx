@@ -455,7 +455,7 @@ export default function ClientView() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Proprietário</label>
+              <label className="text-sm font-medium text-muted-foreground">Vendedor</label>
               <p className="text-sm">{client.autor_name || client.autor || 'Não informado'}</p>
             </div>
             

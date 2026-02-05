@@ -364,7 +364,7 @@ export function ClientForm({
                 name="autor"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700">Proprietário</FormLabel>
+                    <FormLabel className="text-sm font-medium text-gray-700">Vendedor</FormLabel>
                     <Select
                       onValueChange={(value) => {
                         field.onChange(value);
@@ -374,7 +374,7 @@ export function ClientForm({
                     >
                       <FormControl>
                         <SelectTrigger className="h-11">
-                          <SelectValue placeholder="Selecione o proprietário" />
+                          <SelectValue placeholder="Selecione o vendedor" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>

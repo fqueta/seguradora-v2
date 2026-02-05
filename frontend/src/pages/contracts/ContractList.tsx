@@ -427,7 +427,7 @@ export default function ContractList() {
                                                                         setChangeOwnerOpen(true);
                                                                     }
                                                                 }}>
-                                                                    <Pencil className="mr-2 h-4 w-4" /> Alterar Proprietário
+                                                                    <Pencil className="mr-2 h-4 w-4" /> Alterar Vendedor
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem onClick={() => setDeleteId(contract.id)}>
                                                                     <Trash className="mr-2 h-4 w-4 text-red-500" /> Excluir
@@ -504,9 +504,9 @@ export default function ContractList() {
             <Dialog open={changeOwnerOpen} onOpenChange={setChangeOwnerOpen}>
                 <DialogContent className="sm:max-w-[560px]">
                     <DialogHeader>
-                        <DialogTitle>Alterar Proprietário do Contrato</DialogTitle>
+                        <DialogTitle>Alterar Vendedor do Contrato</DialogTitle>
                         <DialogDescription>
-                            Selecione o novo proprietário para este contrato. Apenas usuários da mesma organização ({selectedContract?.organization?.name}) são listados.
+                            Selecione o novo vendedor para este contrato. Apenas usuários da mesma organização ({selectedContract?.organization?.name}) são listados.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -514,10 +514,10 @@ export default function ContractList() {
                             Contrato: <span className="font-medium">{selectedContract?.contract_number || selectedContract?.id}</span>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Novo Proprietário</label>
+                            <label className="text-sm font-medium">Novo Vendedor</label>
                             <Select value={newOwnerId} onValueChange={setNewOwnerId}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Selecione o proprietário" />
+                                    <SelectValue placeholder="Selecione o vendedor" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {users?.data
@@ -537,11 +537,11 @@ export default function ContractList() {
                                     if (!selectedContract || !newOwnerId) return;
                                     try {
                                         await contractsService.changeOwner(String(selectedContract.id), newOwnerId);
-                                        toast({ title: 'Sucesso', description: 'Proprietário alterado com sucesso.' });
+                                        toast({ title: 'Sucesso', description: 'Vendedor alterado com sucesso.' });
                                         setChangeOwnerOpen(false);
                                         queryClient.invalidateQueries({ queryKey: ['contracts'] });
                                     } catch (e: any) {
-                                        const msg = e?.body?.message || e?.message || 'Falha ao alterar proprietário';
+                                        const msg = e?.body?.message || e?.message || 'Falha ao alterar vendedor';
                                         toast({ title: 'Erro', description: msg, variant: 'destructive' });
                                     }
                                 }}

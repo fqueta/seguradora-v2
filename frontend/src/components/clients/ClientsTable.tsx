@@ -233,7 +233,7 @@ export function ClientsTable({
                   }
                 }}
                       >
-                        <Pencil className="mr-2 h-4 w-4" /> Alterar Proprietário
+                        <Pencil className="mr-2 h-4 w-4" /> Alterar Vendedor
                       </DropdownMenuItem>
                     )}
                     {trashEnabled && (
@@ -359,9 +359,9 @@ export function ClientsTable({
       <Dialog open={changeOwnerOpen} onOpenChange={setChangeOwnerOpen}>
         <DialogContent className="sm:max-w-[560px]">
           <DialogHeader>
-            <DialogTitle>Alterar Proprietário do Cliente</DialogTitle>
+            <DialogTitle>Alterar Vendedor do Cliente</DialogTitle>
             <DialogDescription>
-              Selecione o novo proprietário para este cliente. Apenas usuários da mesma organização ({selectedClient?.organization?.name}) são listados.
+              Selecione o novo vendedor para este cliente. Apenas usuários da mesma organização ({selectedClient?.organization?.name}) são listados.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -369,10 +369,10 @@ export function ClientsTable({
               Cliente: <span className="font-medium">{selectedClient?.name}</span>
             </div>
             <div className="grid grid-cols-1 gap-2">
-              <label className="text-sm font-medium">Novo Proprietário</label>
+              <label className="text-sm font-medium">Novo Vendedor</label>
               <Select value={newOwnerId} onValueChange={(v) => setNewOwnerId(v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o proprietário" />
+                  <SelectValue placeholder="Selecione o vendedor" />
                 </SelectTrigger>
                 <SelectContent>
                   {isLoadingPotentialOwners && (
@@ -393,12 +393,12 @@ export function ClientsTable({
                   if (!selectedClient || !newOwnerId) return;
                   try {
                     await clientsService.changeOwner(String(selectedClient.id), newOwnerId);
-                    toast({ title: 'Sucesso', description: 'Proprietário alterado com sucesso.' });
+                    toast({ title: 'Sucesso', description: 'Vendedor alterado com sucesso.' });
                     setChangeOwnerOpen(false);
                     // Invalidar query para atualizar a lista sem reload
                     queryClient.invalidateQueries({ queryKey: ['clients'] });          
                   } catch (e: any) {
-                    const msg = e?.body?.message || e?.message || 'Falha ao alterar proprietário';
+                    const msg = e?.body?.message || e?.message || 'Falha ao alterar vendedor';
                     toast({ title: 'Erro', description: msg, variant: 'destructive' as any });
                   }
                 }}
