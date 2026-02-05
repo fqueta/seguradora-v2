@@ -157,6 +157,13 @@ class MenuSeeder extends Seeder
 
         // Restaura verificação de FKs
         try { DB::statement('SET FOREIGN_KEY_CHECKS=1'); } catch (\Throwable $e) {}
+
+        /**
+         * Executa as seeders de permissões específicas de cada perfil.
+         * Isso garante que, ao rodar MenuSeeder, todas as regras
+         * de menu_permission por perfil sejam aplicadas automaticamente.
+         */
+        $this->call(MenuPermissionSeedersAll::class);
     }
 
     /**

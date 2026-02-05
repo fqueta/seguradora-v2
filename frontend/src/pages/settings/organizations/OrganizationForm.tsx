@@ -368,8 +368,10 @@ export default function OrganizationForm() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {organization.users && organization.users.length > 0 ? (
-                                    organization.users.map((user: UserRecord) => (
+                                {organization.users && organization.users.filter((u: UserRecord) => Number(u.permission_id) <= 5).length > 0 ? (
+                                    organization.users
+                                        .filter((u: UserRecord) => Number(u.permission_id) <= 5)
+                                        .map((user: UserRecord) => (
                                         <TableRow key={user.id}>
                                             <TableCell className="font-medium">
                                                 <div className="flex items-center gap-2">
