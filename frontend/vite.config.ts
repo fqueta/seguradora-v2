@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     // Bind to localhost to avoid DNS issues on Windows
     host: true,
-    port: 5000,
+    port: 7000,
     strictPort: true,
     // Use default HMR settings (auto)
   },

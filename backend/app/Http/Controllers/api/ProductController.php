@@ -71,11 +71,11 @@ class ProductController extends Controller
             return response()->json(['error' => 'Acesso negado'], 403);
         }
         $permission_id = $user->permission_id ?? null;
-        if($permission_id < 2){
-            if (!$this->permissionService->isHasPermission('view')) {
-                return response()->json(['error' => 'Acesso negado'], 403);
-            }
-        }
+        // if($permission_id < 2){
+        //     if (!$this->permissionService->isHasPermission('view')) {
+        //         return response()->json(['error' => 'Acesso negado'], 403);
+        //     }
+        // }
 
         $perPage = $request->input('per_page', 10);
         $order_by = $request->input('order_by', 'created_at');
@@ -83,6 +83,11 @@ class ProductController extends Controller
 
         $query = Product::query()
             ->orderBy($order_by, $order);
+
+        // Filtra por organização para usuários com permission_id >= 3
+        if (isset($user->permission_id) && intval($user->permission_id) >= 3) {
+            $query->where('organization_id', $user->organization_id);
+        }
 
         // Filtros opcionais
         if ($request->filled('name')) {
@@ -110,6 +115,29 @@ class ProductController extends Controller
         return response()->json($products);
     }
     /**
+     * Lista pública para vitrine (sem autenticação)
+     */
+    public function publicList(Request $request)
+    {
+        $perPage = $request->input('per_page', $request->input('limit', 50));
+        $order_by = $request->input('order_by', 'created_at');
+        $order = $request->input('order', 'desc');
+        $query = Product::query()
+            ->published()
+            ->orderBy($order_by, $order);
+        if ($request->filled('category')) {
+            $query->where('guid', $request->input('category'));
+        }
+        if ($request->filled('name')) {
+            $query->where('post_title', 'like', '%' . $request->input('name') . '%');
+        }
+        $products = $query->paginate($perPage);
+        $products->getCollection()->transform(function ($item) {
+            return $this->map_product($item);
+        });
+        return response()->json($products);
+    }
+    /**
      * Mapeia um produto para o formato do frontend     *
      * @param Product $product
      * @return array
@@ -129,9 +157,9 @@ class ProductController extends Controller
             'slug' => $product->post_name,
             'active' => $this->decode_status($product->post_status),
             'category' => $product->guid,
-            'costPrice' => $product->post_value1,
-            'salePrice' => $product->post_value2,
-            'stock' => $product->comment_count,
+            'costPrice' => (float) $product->post_value1,
+            'salePrice' => (float) $product->post_value2,
+            'stock' => (int) $product->comment_count,
             'categoryData' => Qlib::get_category_by_id($product->guid),
             'unitData' => Qlib::get_unit_by_id($product->config['unit'] ?? null),
             'unit' => $product->config['unit'] ?? null,
@@ -140,6 +168,7 @@ class ProductController extends Controller
             'rating' => $product->config['rating'] ?? 0,
             'reviews' => $product->config['reviews'] ?? 0,
             'terms' => $product->config['terms'] ?? [],
+            'variationGroups' => $product->config['variationGroups'] ?? [],
             'plan' => $product->config['plan'] ?? null,
             'supplier_id' => $supplierid,
             'supplierData' => $supplierData,
@@ -163,7 +192,8 @@ class ProductController extends Controller
             'rating' => 'nullable|numeric|min:0|max:5',
             'reviews' => 'nullable|integer|min:0',
             'terms' => 'nullable|array',
-            'plan' => 'nullable|integer|min:1|max:9',
+            'plan' => 'nullable|integer|min:1|max:12',
+            'variationGroups' => 'nullable|array',
             'supplier_id' => 'nullable|string|exists:users,id',
         ];
     }
@@ -266,6 +296,9 @@ class ProductController extends Controller
         if (isset($validated['plan'])) {
             $config['plan'] = (int)$validated['plan'];
         }
+        if (isset($validated['variationGroups']) && is_array($validated['variationGroups'])) {
+            $config['variationGroups'] = $validated['variationGroups'];
+        }
         if (isset($validated['supplier_id'])) {
             $config['supplier_id'] = $validated['supplier_id'];
         }
@@ -284,6 +317,7 @@ class ProductController extends Controller
 
         // Definir autor como usuário logado
         $mappedData['post_author'] = $user->id;
+        $mappedData['organization_id'] = $user->organization_id;
 
         // Valores padrão
         $mappedData['comment_status'] = 'closed';
@@ -314,9 +348,9 @@ class ProductController extends Controller
         if (!$user) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
-        if (!$this->permissionService->isHasPermission('view')) {
-            return response()->json(['error' => 'Acesso negado'], 403);
-        }
+        // if (!$this->permissionService->isHasPermission('view')) {
+        //     return response()->json(['error' => 'Acesso negado'], 403);
+        // }
 
         $product = Product::findOrFail($id);
 
@@ -339,9 +373,9 @@ class ProductController extends Controller
         if (!$user) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
-        if (!$this->permissionService->isHasPermission('edit')) {
-            return response()->json(['error' => 'Acesso negado'], 403);
-        }
+        // if (!$this->permissionService->isHasPermission('edit')) {
+        //     return response()->json(['error' => 'Acesso negado'], 403);
+        // }
 
         // Validação dos dados
         $validator = Validator::make($request->all(), [
@@ -360,6 +394,7 @@ class ProductController extends Controller
             'rating' => 'nullable|numeric|min:0|max:5',
             'reviews' => 'nullable|integer|min:0',
             'terms' => 'nullable|array',
+            'variationGroups' => 'nullable|array',
             'supplier_id' => 'nullable|string|exists:users,id',
         ]);
 
@@ -424,6 +459,9 @@ class ProductController extends Controller
         }
         if (isset($validated['plan'])) {
             $config['plan'] = (int)$validated['plan'];
+        }
+        if (isset($validated['variationGroups']) && is_array($validated['variationGroups'])) {
+            $config['variationGroups'] = $validated['variationGroups'];
         }
         if (isset($validated['supplier_id'])) {
             $config['supplier_id'] = $validated['supplier_id'];
@@ -507,12 +545,15 @@ class ProductController extends Controller
         $order_by = $request->input('order_by', 'updated_at');
         $order = $request->input('order', 'desc');
 
-        $products = Product::withoutGlobalScope('notDeleted')
+        $query = Product::withoutGlobalScope('notDeleted')
             ->where(function($query) {
                 $query->where('excluido', 's')->orWhere('deletado', 's');
             })
-            ->orderBy($order_by, $order)
-            ->paginate($perPage);
+            ->orderBy($order_by, $order);
+        if (isset($user->permission_id) && intval($user->permission_id) >= 3) {
+            $query->where('organization_id', $user->organization_id);
+        }
+        $products = $query->paginate($perPage);
 
         // Transformar dados para o formato do frontend
         $products->getCollection()->transform(function ($item) {

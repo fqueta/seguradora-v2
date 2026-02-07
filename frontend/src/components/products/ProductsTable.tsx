@@ -23,19 +23,21 @@ import {
 import { 
   Plus, 
   Search, 
-  MoreHorizontal, 
+  MoreVertical, 
   Edit, 
   Trash2, 
   Eye,
   Package,
   AlertTriangle,
-  Loader2,
-  ArrowUpDown
+  ArrowUpDown,
+  Filter,
+  X
 } from "lucide-react";
 import type { Product } from "@/types/products";
 import { useUpdateProduct } from "@/hooks/products";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { Separator } from "@/components/ui/separator";
 
 interface ProductsTableProps {
   products: Product[];
@@ -63,66 +65,7 @@ export default function ProductsTable({
 
   const updateProductMutation = useUpdateProduct();
   const { user } = useAuth();
-  /**
-   * Determina se o usuário pode editar o estoque.
-   * Rule: only users with permission_id <= 5.
-   */
-  const canEditStock = Number(user?.permission_id ?? Infinity) <= 5;
-
-  /**
-   * Estado para controlar edição inline do estoque na tabela.
-   * - editingStockId: linha atualmente em edição.
-   * - stockDraft: valor temporário do estoque para salvar.
-   */
-  const [editingStockId, setEditingStockId] = useState<string | null>(null);
-  const [stockDraft, setStockDraft] = useState<number>(0);
-
-  /**
-   * Inicia edição de estoque para um produto da listagem.
-   * @param product Produto alvo para edição
-   */
-  const handleStartEditStock = (product: Product) => {
-    setEditingStockId(product.id);
-    setStockDraft(Number(product.stock) || 0);
-  };
-
-  /**
-   * Atualiza o valor digitado do estoque (com piso em 0).
-   * @param value Novo valor numérico
-   */
-  const handleChangeStock = (value: number) => {
-    setStockDraft(Math.max(0, Number.isNaN(value) ? 0 : value));
-  };
-
-  /**
-   * Ajusta o estoque incrementalmente (por exemplo, +1 ou -1).
-   * @param delta Incremento a aplicar
-   */
-  const handleAdjustStock = (delta: number) => {
-    setStockDraft((prev) => Math.max(0, (Number(prev) || 0) + delta));
-  };
-
-  /**
-   * Salva o novo estoque via API e atualiza a listagem.
-   * @param productId ID do produto que está sendo editado
-   */
-  const handleSaveStock = async (productId: string) => {
-    try {
-      await updateProductMutation.mutateAsync({
-        id: productId,
-        data: { stock: Math.max(0, Number(stockDraft) || 0) },
-      });
-      toast({ title: 'Estoque atualizado', description: 'Alteração salva com sucesso.' });
-      setEditingStockId(null);
-      onRefetch();
-    } catch (err: any) {
-      toast({ title: 'Erro ao atualizar estoque', description: err?.message || 'Tente novamente mais tarde.', variant: 'destructive' });
-    }
-  };
-
-  /**
-   * Navega para a página de visualização do produto
-   */
+  
   const handleViewProduct = (product: Product) => {
     navigate(link_admin + `/products/${product.id}`);
   };
@@ -146,7 +89,6 @@ export default function ProductsTable({
     let aValue: any = (a as any)[sortConfig.key];
     let bValue: any = (b as any)[sortConfig.key];
 
-    // Handle special cases
     if (sortConfig.key === 'supplier') {
         aValue = (a as any).supplierData?.name || (a as any).supplier?.name || a.supplier_name || '';
         bValue = (b as any).supplierData?.name || (b as any).supplier?.name || b.supplier_name || '';
@@ -162,127 +104,98 @@ export default function ProductsTable({
     return 0;
   });
 
+  const formatBRL = new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Lista de Produtos</CardTitle>
-        <CardDescription>
-          Visualize e gerencie todos os produtos cadastrados
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center space-x-2 mb-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar produtos..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8"
-            />
+    <Card className="rounded-[2.5rem] shadow-xl border-none overflow-hidden bg-white">
+      <CardHeader className="bg-gray-50/50 px-8 py-8 border-b space-y-6">
+        <div className="flex flex-col xl:flex-row gap-6 justify-between items-start xl:items-center">
+          <div>
+            <CardTitle className="text-2xl font-black text-gray-900 leading-none">Lista de Produtos</CardTitle>
+            <CardDescription className="text-gray-500 mt-2 font-medium">
+              Visualize e gerencie seu catálogo completo de itens.
+            </CardDescription>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+             <div className="relative flex-1 group min-w-[300px]">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                <Input
+                  placeholder="Pesquisar por nome ou descrição..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-12 h-14 bg-white border-gray-200 rounded-2xl shadow-sm focus-visible:ring-primary focus-visible:ring-offset-0 text-lg font-medium w-full"
+                />
+             </div>
+             <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setSearchTerm("")}
+                className="h-12 w-12 rounded-2xl hover:bg-red-50 hover:text-red-500 text-gray-400"
+             >
+                <X className="w-6 h-6" />
+             </Button>
           </div>
         </div>
+      </CardHeader>
 
-        <div className="rounded-md border">
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Imagem</TableHead>
-                <TableHead>
-                  <Button variant="ghost" onClick={() => handleSort('name')} className="-ml-4">
+            <TableHeader className="bg-gray-50/30">
+              <TableRow className="hover:bg-transparent h-16 border-b border-gray-100">
+                <TableHead className="pl-8 font-black text-gray-500 text-xs uppercase tracking-widest w-[100px]">Imagem</TableHead>
+                <TableHead className="font-black text-gray-500 text-xs uppercase tracking-widest">
+                  <button onClick={() => handleSort('name')} className="flex items-center gap-1 hover:text-primary transition-colors">
                     Produto
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
+                    <ArrowUpDown className="h-3 w-3" />
+                  </button>
                 </TableHead>
-                <TableHead>
-                  <Button variant="ghost" onClick={() => handleSort('salePrice')} className="-ml-4">
-                    Preço de Venda
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
+                <TableHead className="font-black text-gray-500 text-xs uppercase tracking-widest">
+                  <button onClick={() => handleSort('salePrice')} className="flex items-center gap-1 hover:text-primary transition-colors">
+                    Preço
+                    <ArrowUpDown className="h-3 w-3" />
+                  </button>
                 </TableHead>
-                <TableHead>
-                  <Button variant="ghost" onClick={() => handleSort('supplier')} className="-ml-4">
-                    Fornecedor
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
+                <TableHead className="font-black text-gray-500 text-xs uppercase tracking-widest hidden md:table-cell">
+                  Dependências
                 </TableHead>
-                <TableHead>
-                   <Button variant="ghost" onClick={() => handleSort('plan')} className="-ml-4">
-                    Plano
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </TableHead>
-                {/* <TableHead>Pontos</TableHead> */}
-                <TableHead>
-                  <Button variant="ghost" onClick={() => handleSort('active')} className="-ml-4">
+                <TableHead className="font-black text-gray-500 text-xs uppercase tracking-widest">
+                  <button onClick={() => handleSort('active')} className="flex items-center gap-1 hover:text-primary transition-colors">
                     Status
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
+                    <ArrowUpDown className="h-3 w-3" />
+                  </button>
                 </TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="pr-8 text-right font-black text-gray-500 text-xs uppercase tracking-widest">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    <div className="flex items-center justify-center space-x-2">
-                      <Package className="h-4 w-4 animate-spin" />
-                      <span>Carregando produtos...</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i} className="h-24 animate-pulse">
+                    <TableCell colSpan={6} className="bg-gray-50/50 border-b border-gray-100"></TableCell>
+                  </TableRow>
+                ))
               ) : error ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    <div className="flex flex-col items-center space-y-2 text-destructive">
-                      <AlertTriangle className="h-8 w-8" />
-                      <div>
-                        <p className="font-medium">Erro ao carregar produtos</p>
-                        <p className="text-sm text-muted-foreground">
-                          {error?.message || 'Não foi possível conectar com o servidor'}
-                        </p>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={onRefetch}
-                        className="mt-2"
-                      >
-                        Tentar novamente
-                      </Button>
+                <TableRow className="h-64">
+                  <TableCell colSpan={6} className="text-center">
+                    <div className="flex flex-col items-center justify-center space-y-4 opacity-50">
+                      <AlertTriangle className="h-12 w-12 text-red-500" />
+                      <p className="font-bold text-gray-900">Erro ao carregar produtos</p>
+                      <Button variant="outline" className="rounded-xl" onClick={onRefetch}>Tentar novamente</Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : !products || products.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    <div className="flex flex-col items-center space-y-2 text-muted-foreground">
-                      <Package className="h-8 w-8" />
-                      <div>
-                        <p className="font-medium">Nenhum produto cadastrado</p>
-                        <p className="text-sm">Comece criando seu primeiro produto</p>
-                      </div>
-                      <Button 
-                        onClick={onNewProduct}
-                        size="sm"
-                        className="mt-2"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Criar produto
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : filteredProducts.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    <div className="flex flex-col items-center space-y-2 text-muted-foreground">
-                      <Search className="h-8 w-8" />
-                      <div>
-                        <p className="font-medium">Nenhum produto encontrado</p>
-                        <p className="text-sm">Tente ajustar os filtros de busca</p>
-                      </div>
+              ) : sortedProducts.length === 0 ? (
+                <TableRow className="h-64">
+                  <TableCell colSpan={6} className="text-center">
+                    <div className="flex flex-col items-center justify-center space-y-4 opacity-50">
+                      <Package className="h-12 w-12 text-gray-300" />
+                      <p className="font-bold text-gray-900">Nenhum produto encontrado</p>
+                      <Button variant="outline" className="rounded-xl" onClick={() => setSearchTerm("")}>Limpar busca</Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -291,93 +204,93 @@ export default function ProductsTable({
                   <TableRow
                     key={product.id}
                     onDoubleClick={() => handleViewProduct(product)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleViewProduct(product);
-                      }
-                    }}
-                    tabIndex={0}
-                    role="button"
-                    className="cursor-pointer hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="h-24 hover:bg-gray-50/80 transition-all border-b border-gray-100 group cursor-pointer"
                   >
-                    <TableCell>
-                      <div className="w-16 h-16 rounded-md overflow-hidden bg-muted flex items-center justify-center">
+                    <TableCell className="pl-8">
+                      <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gray-100 border-2 border-white shadow-sm group-hover:shadow-md transition-all flex items-center justify-center">
                         {product.image ? (
                           <img 
                             src={product.image} 
                             alt={product.name}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                             onError={(e) => {
                               (e.currentTarget as HTMLElement).style.display = 'none';
                               (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
                             }}
                           />
                         ) : null}
-                        <div className={`text-xs text-muted-foreground ${product.image ? 'hidden' : 'flex'} items-center justify-center w-full h-full`}>
-                          Sem imagem
+                        <div className={`text-[10px] font-black uppercase text-gray-400 ${product.image ? 'hidden' : 'flex'} items-center justify-center w-full h-full text-center px-1`}>
+                          Sem foto
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div>
-                        <div className="font-medium">{product.name}</div>
+                      <div className="flex flex-col">
+                        <span className="font-black text-gray-900 text-lg leading-tight group-hover:text-primary transition-colors">{product.name}</span>
                         <div 
-                          className="text-sm text-muted-foreground"
-                          dangerouslySetInnerHTML={{ __html: product.description || '' }}
+                          className="text-xs text-gray-400 font-medium mt-1 line-clamp-1 max-w-[300px]"
+                          dangerouslySetInnerHTML={{ __html: product.description || 'Sem descrição cadastrada' }}
                         />
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm font-medium">
-                        R$ {product.salePrice?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'}
+                      <div className="flex flex-col">
+                        <span className="text-xl font-black text-gray-900">{formatBRL.format(product.salePrice || 0)}</span>
+                        {product.unit && (
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{product.unit}</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs font-bold text-gray-600">
+                          {product.supplierData?.name || (product as any).supplier?.name || product.supplier_name || 'Nenhum fornecedor'}
+                        </span>
+                        {product.plan && (
+                          <Badge variant="outline" className="w-fit text-[10px] font-black bg-gray-50 border-gray-200">
+                            PLANO {product.plan}
+                          </Badge>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm">
-                        {product.supplierData?.name || (product as any).supplier?.name || product.supplier_name || '-'}
-                      </div>
+                      {product.active ? (
+                        <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 w-fit px-3 py-1 rounded-full text-xs font-black ring-1 ring-emerald-200">
+                          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          ATIVO
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-gray-400 bg-gray-50 w-fit px-3 py-1 rounded-full text-xs font-black ring-1 ring-gray-200">
+                          <div className="w-2 h-2 rounded-full bg-gray-300" />
+                          INATIVO
+                        </div>
+                      )}
                     </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {product.plan ? `Plano ${product.plan}` : '-'}
-                      </div>
-                    </TableCell>
-                    {/* <TableCell>
-                      <div className="text-sm font-medium">
-                        {product.points?.toLocaleString('pt-BR') || '0'}
-                      </div>
-                    </TableCell> */}
-                    <TableCell>
-                      <Badge variant={product.active ? "default" : "destructive"}>
-                        {product.active ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="pr-8 text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Abrir menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
+                          <Button variant="ghost" className="h-12 w-12 rounded-2xl hover:bg-gray-100 text-gray-400">
+                            <MoreVertical className="h-6 w-6" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleViewProduct(product)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Visualizar
+                        <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl shadow-2xl border-none">
+                          <DropdownMenuLabel className="text-xs font-black uppercase text-gray-400 px-3 py-2 tracking-widest">Gerenciar Item</DropdownMenuLabel>
+                          <DropdownMenuSeparator className="bg-gray-100 mx-2" />
+                          <DropdownMenuItem onClick={() => handleViewProduct(product)} className="rounded-xl h-11 px-3 cursor-pointer">
+                            <Eye className="mr-3 h-5 w-5 text-gray-400" />
+                            <span className="font-bold">Visualizar Detalhes</span>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onEditProduct(product)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Editar
+                          <DropdownMenuItem onClick={() => onEditProduct(product)} className="rounded-xl h-11 px-3 cursor-pointer">
+                            <Edit className="mr-3 h-5 w-5 text-gray-400" />
+                            <span className="font-bold">Editar Dados</span>
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                           <DropdownMenuItem 
-                            className="text-destructive"
+                          <DropdownMenuSeparator className="bg-gray-100 mx-2" />
+                          <DropdownMenuItem 
+                            className="rounded-xl h-11 px-3 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
                             onClick={() => onDeleteProduct(product)}
                           >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Excluir
+                            <Trash2 className="mr-3 h-5 w-5" />
+                            <span className="font-bold">Remover Produto</span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

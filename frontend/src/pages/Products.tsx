@@ -6,14 +6,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useProductsList, useCreateProduct, useUpdateProduct, useDeleteProduct, useProductCategories, useProductUnits } from "@/hooks/products";
 import type { Product, CreateProductInput, UpdateProductInput } from "@/types/products";
-import { Plus, Edit } from "lucide-react";
+import { Plus, Edit, Package, LayoutGrid, Zap, Search, Filter, Badge as BadgeIcon } from "lucide-react";
 import ProductsStats from "@/components/products/ProductsStats";
 import ProductsTable from "@/components/products/ProductsTable";
 import ProductFormDialog from "@/components/products/ProductFormDialog";
 import { ProductFormData, productSchema } from "@/components/products/ProductForm";
+import { Badge } from "@/components/ui/badge";
 
-
-
+/**
+ * Products
+ * pt-BR: Centro de gestão de produtos com design unificado e visual Premium.
+ */
 export default function Products() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,6 +25,7 @@ export default function Products() {
 
   // Hooks para produtos
   const { data: productsData, isLoading: isLoadingProducts, error: productsError, refetch } = useProductsList();
+  
   const createMutation = useCreateProduct({
     onSuccess: () => {
       toast.success('Produto criado com sucesso!');
@@ -34,6 +38,7 @@ export default function Products() {
       toast.error(error?.response?.data?.message || 'Erro ao criar produto');
     }
   });
+
   const updateMutation = useUpdateProduct({
     onSuccess: () => {
       toast.success('Produto atualizado com sucesso!');
@@ -46,6 +51,7 @@ export default function Products() {
       toast.error(error?.response?.data?.message || 'Erro ao atualizar produto');
     }
   });
+
   const deleteMutation = useDeleteProduct({
     onSuccess: () => {
       toast.success('Produto excluído com sucesso!');
@@ -92,17 +98,15 @@ export default function Products() {
   };
 
   const handleDeleteProduct = async (product: Product) => {
-    try {
-      await deleteMutation.mutateAsync(product.id);
-    } catch (error) {
-      // Erro já tratado no hook de mutação
+    if (confirm("Deseja realmente remover este produto do catálogo?")) {
+       await deleteMutation.mutateAsync(product.id);
     }
   };
 
   const onSubmit = async (data: ProductFormData) => {
     try {
       if (editingProduct) {
-        const updateData: UpdateProductInput = {
+        const updateData: UpdateCategoryInput = {
           name: data.name,
           description: data.description || '',
           category: data.category,
@@ -120,7 +124,7 @@ export default function Products() {
         };
         await updateMutation.mutateAsync({ id: editingProduct.id, data: updateData });
       } else {
-        const createData: CreateProductInput = {
+        const createData: CreateCategoryInput = {
           name: data.name,
           description: data.description || '',
           category: data.category,
@@ -139,43 +143,57 @@ export default function Products() {
         await createMutation.mutateAsync(createData);
       }
     } catch (error) {
-      // Erro já tratado nos hooks de mutação
     }
   };
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-10">
+      
+      {/* Header Premium Unificado */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2 pt-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Produtos</h1>
-          <p className="text-muted-foreground">
-            Gerencie todos os produtos do estoque
-          </p>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-3 bg-primary/10 rounded-2xl">
+              <Package className="h-6 w-6 text-primary" />
+            </div>
+            <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest py-0.5 border-primary/20 bg-primary/5 text-primary">
+              Catálogo de Vendas
+            </Badge>
+          </div>
+          <h1 className="text-4xl font-black text-gray-900 tracking-tight">Produtos & Estoque</h1>
+          <p className="text-muted-foreground mt-1 font-medium italic">Gerencie sua vitrine virtual, precificação e níveis de disponibilidade com precisão.</p>
         </div>
-        <Button onClick={handleNewProduct}>
-          <Plus className="mr-2 h-4 w-4" />
+
+        <Button 
+          onClick={handleNewProduct}
+          className="h-14 px-8 rounded-[1.5rem] font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 gap-3 transition-all hover:scale-[1.02] active:scale-95 text-white"
+        >
+          <Plus className="h-5 w-5" />
           Novo Produto
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <ProductsStats products={products} />
+      {/* Stats Cards Section */}
+      <div className="px-2">
+         <ProductsStats products={products} />
+      </div>
 
-      {/* Products Table */}
-      <ProductsTable
-        products={products}
-        isLoading={isLoadingProducts}
-        error={productsError}
-        onNewProduct={handleNewProduct}
-        onEditProduct={handleEditProduct}
-        onDeleteProduct={handleDeleteProduct}
-        onRefetch={refetch}
-      />
+      {/* Main Table Content */}
+      <div className="px-2 pb-20">
+         <ProductsTable
+            products={products}
+            isLoading={isLoadingProducts}
+            error={productsError}
+            onNewProduct={handleNewProduct}
+            onEditProduct={handleEditProduct}
+            onDeleteProduct={handleDeleteProduct}
+            onRefetch={refetch}
+         />
+      </div>
 
-      {/* Product Form Dialog */}
+      {/* Form Dialog (Se for usado na listagem) */}
       <ProductFormDialog
         isOpen={isDialogOpen}
         onOpenChange={setIsDialogOpen}
@@ -190,6 +208,11 @@ export default function Products() {
         unitsError={unitsError}
         isSubmitting={isSubmitting}
       />
+
+      {/* Info Footer */}
+      <div className="text-center pb-20 opacity-30">
+         <p className="text-[10px] font-black uppercase tracking-[0.4em]">Inventory Management Neural Cloud v2.1.4</p>
+      </div>
     </div>
   );
 }

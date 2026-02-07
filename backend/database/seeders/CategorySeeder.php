@@ -15,34 +15,20 @@ class CategorySeeder extends Seeder
     {
         // Categorias da entidade PRODUTOS
         $categoriasProdutos = [
-            'Assistência Residencial',
-            'Planos Funerários',
-            'Seguros de Vida',
-            'Telemedicina',
-            'Outros'
+            'Hambúrgueres',
+            'Pizzas',
+            'Bebidas',
         ];
 
         // Categorias da entidade SERVIÇOS
         $categoriasServicos = [
             'Mentoria e suporte',
         ];
-        //excluir categorias que não estão na lista
+        // 🔹 Excluir categorias que não estão na lista (produtos/serviços)
         DB::table('categories')
             ->where('entidade', 'produtos')
             ->whereNotIn('name', $categoriasProdutos)
             ->delete();
-
-        DB::table('categories')
-            ->where('entidade', 'servicos')
-            ->whereNotIn('name', $categoriasServicos)
-            ->delete();
-
-        // 🔹 Mantém apenas as categorias definidas
-        DB::table('categories')
-            ->where('entidade', 'produtos')
-            ->whereNotIn('name', $categoriasProdutos)
-            ->delete();
-
         DB::table('categories')
             ->where('entidade', 'servicos')
             ->whereNotIn('name', $categoriasServicos)

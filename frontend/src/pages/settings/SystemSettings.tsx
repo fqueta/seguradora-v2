@@ -7,7 +7,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Settings, Save, Palette, Link, Image as ImageIcon, Building2, Loader2 } from "lucide-react";
+import { 
+  Settings, 
+  Save, 
+  Palette, 
+  Link, 
+  Image as ImageIcon, 
+  Building2, 
+  Loader2, 
+  Monitor, 
+  Zap, 
+  ShieldCheck, 
+  Globe, 
+  Server, 
+  Database, 
+  Archive,
+  MousePointer2,
+  Moon,
+  Sun,
+  Maximize2
+} from "lucide-react";
 import { getInstitutionName, getInstitutionSlogan, getInstitutionDescription, getInstitutionUrl } from "@/lib/branding";
 import { systemSettingsService, AdvancedSystemSettings } from "@/services/systemSettingsService";
 import { useApiOptions } from "@/hooks/useApiOptions";
@@ -16,6 +35,8 @@ import { fileStorageService, type FileStorageItem, extractFileStorageUrl } from 
 import { ImageUpload } from "@/components/lib/ImageUpload";
 import { SulAmericaSettingsCard } from "@/components/settings/SulAmericaSettingsCard";
 import { useTheme } from "@/contexts/ThemeContext";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 /**
  * Página de configurações do sistema
@@ -43,39 +64,34 @@ export default function SystemSettings() {
   
   // Estado local para as configurações de API (antes de salvar)
   const [localApiOptions, setLocalApiOptions] = useState<{[key: number]: string}>({});
-  /**
-   * getCurrentOptionValue
-   * pt-BR: Retorna o valor atual de uma opção, priorizando edição local.
-   * en-US: Returns current option value, prioritizing local edits.
-   */
+
   const getCurrentOptionValue = (option: any) => {
     return localApiOptions[option.id] !== undefined ? localApiOptions[option.id] : option.value;
   };
-  /**
-   * Funis/Etapas para selects de padrão
-   * pt-BR: Carrega funis (área de vendas) e etapas do funil selecionado.
-   * en-US: Loads funnels (sales area) and stages for the selected funnel.
-   */
+
   const { data: funnelsData, isLoading: isLoadingFunnels } = useFunnelsList({ per_page: 200 });
   const salesFunnels = React.useMemo(() => {
     const list: any[] = (funnelsData?.data || (funnelsData as any)?.items || []);
     return list.filter((f) => String(f?.settings?.place || '').toLowerCase() === 'vendas');
   }, [funnelsData]);
+
   const defaultFunnelOption = React.useMemo(() => (
     (apiOptions || []).find((o: any) => o.url === 'default_funil_vendas_id') || null
   ), [apiOptions]);
+
   const defaultStageOption = React.useMemo(() => (
     (apiOptions || []).find((o: any) => o.url === 'default_etapa_vendas_id') || null
   ), [apiOptions]);
+
   const selectedDefaultFunnelId = React.useMemo(() => (
     defaultFunnelOption ? String(getCurrentOptionValue(defaultFunnelOption) || '') : ''
   ), [defaultFunnelOption, localApiOptions]);
+
   const { data: stagesData, isLoading: isLoadingStages } = useStagesList(String(selectedDefaultFunnelId || ''), { per_page: 200 }, { enabled: !!selectedDefaultFunnelId });
   const stagesForDefaultFunnel = React.useMemo(() => (
     stagesData?.data || (stagesData as any)?.items || []
   ), [stagesData]);
 
-  // Estados para configurações básicas - Switch
   const [basicSwitchSettings, setBasicSwitchSettings] = useState(() => {
     const saved = localStorage.getItem('basicSwitchSettings');
     return saved ? JSON.parse(saved) : {
@@ -86,9 +102,6 @@ export default function SystemSettings() {
     };
   });
 
-  // Nota: As configurações de aparência agora são aplicadas globalmente pelo ThemeProvider
-
-  // Estados para configurações básicas - Select
   const [basicSelectSettings, setBasicSelectSettings] = useState(() => {
     const saved = localStorage.getItem('basicSelectSettings');
     return saved ? JSON.parse(saved) : {
@@ -99,7 +112,6 @@ export default function SystemSettings() {
     };
   });
 
-  // Estados para configurações de aparência
   const [appearanceSettings, setAppearanceSettings] = useState(() => {
     const saved = localStorage.getItem('appearanceSettings');
     return saved ? JSON.parse(saved) : {
@@ -115,7 +127,6 @@ export default function SystemSettings() {
 
   const [appearanceHydratedFromDb, setAppearanceHydratedFromDb] = useState(false);
 
-  // Estados para configurações avançadas - Switch
   const [advancedSwitchSettings, setAdvancedSwitchSettings] = useState({
     enableApiLogging: true,
     enableCaching: true,
@@ -123,7 +134,6 @@ export default function SystemSettings() {
     enableSslRedirect: true,
   });
 
-  // Estados para configurações avançadas - Select
   const [advancedSelectSettings, setAdvancedSelectSettings] = useState({
     logLevel: "info",
     cacheDriver: "redis",
@@ -131,7 +141,6 @@ export default function SystemSettings() {
     queueDriver: "sync",
   });
 
-  // Estados para configurações avançadas - Input
   const [advancedInputSettings, setAdvancedInputSettings] = useState({
     maxFileSize: "",
     sessionTimeout: "",
@@ -142,47 +151,26 @@ export default function SystemSettings() {
     token_api_aeroclube: "",
   });
 
-  /**
-   * Manipula mudanças nos switches das configurações básicas
-   */
   const handleBasicSwitchChange = (key: string, value: boolean) => {
     const newSettings = { ...basicSwitchSettings, [key]: value };
     setBasicSwitchSettings(newSettings);
     localStorage.setItem('basicSwitchSettings', JSON.stringify(newSettings));
-    
-    // Aplicar configurações do sistema em tempo real
     applySystemSettings(newSettings);
   };
 
-  /**
-   * Manipula mudanças nos selects das configurações básicas
-   */
   const handleBasicSelectChange = (key: string, value: string) => {
     const newSettings = { ...basicSelectSettings, [key]: value };
     setBasicSelectSettings(newSettings);
     localStorage.setItem('basicSelectSettings', JSON.stringify(newSettings));
   };
 
-  /**
-   * Manipula mudanças nas configurações de aparência
-   */
   const handleAppearanceChange = (key: string, value: string | boolean) => {
     const newSettings = { ...appearanceSettings, [key]: value };
     setAppearanceSettings(newSettings);
     localStorage.setItem('appearanceSettings', JSON.stringify(newSettings));
-    
-    // Aplicar configurações de aparência em tempo real
     applyThemeSettings();
   };
 
-  // -----------------------------
-  // Branding & Imagens (Logo, Favicon, Social)
-  // -----------------------------
-  /**
-   * Branding URLs state
-   * pt-BR: Inicializa com valores persistidos em localStorage, se existirem.
-   * en-US: Initializes with values persisted in localStorage, if present.
-   */
   const [brandingLogoUrl, setBrandingLogoUrl] = useState<string | null>(() => {
     try { return (localStorage.getItem('app_logo_url') || '').trim() || null; } catch { return null; }
   });
@@ -193,41 +181,21 @@ export default function SystemSettings() {
     try { return (localStorage.getItem('app_social_image_url') || '').trim() || null; } catch { return null; }
   });
 
-  /**
-   * Institution name state
-   * pt-BR: Nome da instituição, com valor inicial via util de branding.
-   * en-US: Institution name, initial value via branding util.
-   */
   const [institutionName, setInstitutionName] = useState<string>(() => getInstitutionName());
-  /**
-   * Institution extra fields
-   * pt-BR: Slogan, descrição curta e URL institucional.
-   * en-US: Slogan, short description and institutional URL.
-   */
   const [institutionSlogan, setInstitutionSlogan] = useState<string>(() => getInstitutionSlogan());
   const [institutionDescription, setInstitutionDescription] = useState<string>(() => getInstitutionDescription());
   const [institutionUrl, setInstitutionUrl] = useState<string>(() => getInstitutionUrl());
 
-  /**
-   * hydrateBrandingFromApiOptions
-   * pt-BR: Se localStorage está vazio, carrega das opções da API e persiste
-   *        localmente (localStorage) e globalmente (window.__APP_*__),
-   *        garantindo que cabeçalhos/rodapés usem imediatamente os valores.
-   * en-US: If localStorage is empty, loads from API options and persists to
-   *        localStorage and window globals (window.__APP_*__), ensuring
-   *        headers/footers immediately reflect the values.
-   */
   useEffect(() => {
     try {
       const logo = (localStorage.getItem('app_logo_url') || '').trim();
       const fav = (localStorage.getItem('app_favicon_url') || '').trim();
       const soc = (localStorage.getItem('app_social_image_url') || '').trim();
       const inst = (localStorage.getItem('app_institution_name') || '').trim();
-      // Already initialized above; only hydrate from API if missing
       const needLogo = !logo && !brandingLogoUrl;
       const needFav = !fav && !brandingFaviconUrl;
       const needSoc = !soc && !brandingSocialUrl;
-      const needInst = !inst; // nome não tem state local dedicado
+      const needInst = !inst;
       if (!(needLogo || needFav || needSoc || needInst)) return;
       const getOpt = (key: string) => (apiOptions || []).find((o: any) => String(o?.url || '') === key);
       const getOptByKeys = (keys: string[]) => {
@@ -280,7 +248,6 @@ export default function SystemSettings() {
           setInstitutionName(v);
         }
       }
-      // Optional hydration for slogan/description/url if present in API
       const optSlogan = getOptByKeys(['app_institution_slogan']);
       const valSlogan = (optSlogan && (optSlogan.value ?? optSlogan.current_value ?? '')) || '';
       if (String(valSlogan).trim()) {
@@ -306,29 +273,22 @@ export default function SystemSettings() {
         setInstitutionUrl(u);
       }
     } catch {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiOptions]);
 
-  /**
-   * handleSaveInstitution
-   * pt-BR: Persiste o nome da instituição em localStorage, globais e opções da API.
-   * en-US: Persists institution name to localStorage, globals and API options.
-   */
   async function handleSaveInstitution() {
+    setIsLoading(true);
     try {
       const v = (institutionName || '').trim();
       if (!v) {
         toast.warning('Informe um nome de instituição válido.');
         return;
       }
-      // Persist local and globals
       try { localStorage.setItem('app_institution_name', v); } catch {}
       const anyWin = window as any;
       anyWin.__APP_INSTITUTION_NAME__ = v;
       anyWin.__APP_SITE_NAME__ = anyWin.__APP_SITE_NAME__ || v;
       anyWin.__APP_APP_NAME__ = anyWin.__APP_APP_NAME__ || v;
 
-      // Persist optional fields locally/globally
       const s = (institutionSlogan || '').trim();
       const d = (institutionDescription || '').trim();
       const u = (institutionUrl || '').trim();
@@ -336,145 +296,77 @@ export default function SystemSettings() {
       if (d) { try { localStorage.setItem('app_institution_description', d); } catch {} anyWin.__APP_INSTITUTION_DESCRIPTION__ = d; }
       if (u) { try { localStorage.setItem('app_institution_url', u); } catch {} anyWin.__APP_INSTITUTION_URL__ = u; }
 
-      // Persist to API options
       const ok = await saveMultipleOptions({ 
         app_institution_name: v,
         ...(s ? { app_institution_slogan: s } : {}),
         ...(d ? { app_institution_description: d } : {}),
         ...(u ? { app_institution_url: u } : {}),
       });
-      if (!ok) {
-        toast.warning('Nome salvo localmente; falha ao persistir em opções da API.');
+      if (ok) {
+        toast.success('Identidade institucional salva!');
       } else {
-        toast.success('Nome da instituição salvo com sucesso.');
+        toast.warning('Salvo localmente; falha ao persistir na API.');
       }
     } catch (error: any) {
-      toast.error(`Falha ao salvar nome: ${error?.message || 'erro desconhecido'}`);
+      toast.error(`Falha ao salvar: ${error?.message}`);
+    } finally {
+      setIsLoading(false);
     }
   }
 
-  /**
-   * handleUploadGeneric
-   * pt-BR: Faz upload genérico via /file-storage e retorna a URL pública.
-   * en-US: Uploads a file via /file-storage and returns the public URL.
-   */
   async function handleUploadGeneric(file: File, meta?: Record<string, any>): Promise<string> {
-    try {
-      const resp: any = await fileStorageService.upload<any>(file, {
-        active: true,
-        ...meta,
-      });
-      // Extrai URL usando util compartilhado do serviço
-      const url = extractFileStorageUrl(resp);
-      if (!url) throw new Error('URL não retornada pelo servidor.');
-      return url;
-    } catch (error: any) {
-      toast.error(`Falha ao enviar arquivo: ${error?.message || 'erro desconhecido'}`);
-      throw error;
-    }
+    const resp: any = await fileStorageService.upload<any>(file, { active: true, ...meta });
+    const url = extractFileStorageUrl(resp);
+    if (!url) throw new Error('URL não retornada.');
+    return url;
   }
 
-  /**
-   * handleUploadLogo
-   * pt-BR: Envia a logo e atualiza estado.
-   * en-US: Uploads the logo and updates state.
-   */
   async function handleUploadLogo(file: File): Promise<string> {
     const url = await handleUploadGeneric(file, { title: 'logo', name: 'app-logo' });
     setBrandingLogoUrl(url);
     return url;
   }
 
-  /**
-   * handleUploadFavicon
-   * pt-BR: Envia o favicon e atualiza estado.
-   * en-US: Uploads the favicon and updates state.
-   */
   async function handleUploadFavicon(file: File): Promise<string> {
     const url = await handleUploadGeneric(file, { title: 'favicon', name: 'app-favicon' });
     setBrandingFaviconUrl(url);
     return url;
   }
 
-  /**
-   * handleUploadSocial
-   * pt-BR: Envia a imagem social (OpenGraph/Twitter) e atualiza estado.
-   * en-US: Uploads the social image (OpenGraph/Twitter) and updates state.
-   */
   async function handleUploadSocial(file: File): Promise<string> {
     const url = await handleUploadGeneric(file, { title: 'social-image', name: 'app-social-image' });
     setBrandingSocialUrl(url);
     return url;
   }
 
-  /**
-   * handleSaveBranding
-   * pt-BR: Persiste URLs em localStorage e também em /options/all (se disponível).
-   *        O index.html lerá de localStorage e aplicará dinamicamente.
-   * en-US: Persists URLs to localStorage and also to /options/all (if available).
-   *        index.html will read from localStorage and apply dynamically.
-   */
   async function handleSaveBranding() {
+    setIsLoading(true);
     const payload: Record<string, string> = {};
     if (brandingLogoUrl) payload['app_logo_url'] = brandingLogoUrl;
     if (brandingFaviconUrl) payload['app_favicon_url'] = brandingFaviconUrl;
     if (brandingSocialUrl) payload['app_social_image_url'] = brandingSocialUrl;
 
     try {
-      // Persistir em localStorage
       Object.entries(payload).forEach(([k, v]) => localStorage.setItem(k, v));
-
-      console.log('handleSaveBranding payload:', payload);
-
-      // Opcional: persistir em /options/all para retenção no backend
       if (Object.keys(payload).length > 0) {
-        const ok = await saveMultipleOptions(payload);
-        console.log('handleSaveBranding result:', ok);
-        if (!ok) {
-          toast.warning('URLs salvas localmente; falha ao persistir em opções da API.');
-        }
-      } else {
-        console.warn('handleSaveBranding: Payload vazio, nenhuma requisição enviada.');
+        await saveMultipleOptions(payload);
       }
-
-      toast.success('Branding salvo. Recarregue a página para aplicar.');
+      toast.success('Branding atualizado com sucesso!');
     } catch (error: any) {
-      toast.error(`Falha ao salvar branding: ${error?.message || 'erro desconhecido'}`);
+      toast.error(`Erro ao salvar branding: ${error?.message}`);
+    } finally {
+      setIsLoading(false);
     }
   }
 
-  /**
-   * Aplica configurações do sistema em tempo real
-   */
   const applySystemSettings = (settings: typeof basicSwitchSettings) => {
-    // Aplicar notificações
-    if (settings.enableNotifications) {
-      // Habilitar notificações do sistema
-      console.log('Notificações habilitadas');
-    } else {
-      console.log('Notificações desabilitadas');
-    }
-    
-    // Aplicar modo de manutenção
     if (settings.enableMaintenanceMode) {
       document.body.classList.add('maintenance-mode');
-      toast.info('Modo de manutenção ativado');
     } else {
       document.body.classList.remove('maintenance-mode');
     }
-    
-    // Aplicar modo debug
-    if (settings.enableDebugMode) {
-      console.log('Modo debug ativado - logs detalhados habilitados');
-      window.localStorage.setItem('debug', 'true');
-    } else {
-      window.localStorage.removeItem('debug');
-    }
   };
 
-  /**
-   * Aplica configurações de aparência em tempo real
-   */
   const handleSaveAppearanceSettings = async () => {
     setIsLoading(true);
     try {
@@ -482,17 +374,13 @@ export default function SystemSettings() {
         ui_primary_color: String(appearanceSettings.primaryColor || '').trim(),
         ui_secondary_color: String(appearanceSettings.secondaryColor || '').trim(),
       });
-
-      if (!ok) {
-        toast.error('Erro ao salvar cores do sistema');
-        return;
+      if (ok) {
+        localStorage.setItem('appearanceSettings', JSON.stringify(appearanceSettings));
+        applyThemeSettings();
+        toast.success('Aparência aplicada globalmente!');
       }
-
-      localStorage.setItem('appearanceSettings', JSON.stringify(appearanceSettings));
-      applyThemeSettings();
-      toast.success('Cores do sistema salvas e aplicadas!');
     } catch (e) {
-      toast.error('Erro ao salvar cores do sistema');
+      toast.error('Erro ao salvar aparência.');
     } finally {
       setIsLoading(false);
     }
@@ -501,11 +389,9 @@ export default function SystemSettings() {
   useEffect(() => {
     if (appearanceHydratedFromDb) return;
     if (!apiOptions || apiOptions.length === 0) return;
-
     const findOpt = (key: string) => (apiOptions as any[]).find((o) => String(o?.url || '') === key);
     const primary = String(findOpt('ui_primary_color')?.value || '').trim();
     const secondary = String(findOpt('ui_secondary_color')?.value || '').trim();
-
     const isHex = (v: string) => /^#[0-9a-fA-F]{6}$/.test(v);
     const saved = localStorage.getItem('appearanceSettings');
     const current = saved ? JSON.parse(saved) : {};
@@ -521,185 +407,92 @@ export default function SystemSettings() {
       ...(isHex(primary) ? { primaryColor: primary } : {}),
       ...(isHex(secondary) ? { secondaryColor: secondary } : {}),
     };
-
     setAppearanceSettings(next);
     localStorage.setItem('appearanceSettings', JSON.stringify(next));
     applyThemeSettings();
     setAppearanceHydratedFromDb(true);
   }, [apiOptions, appearanceHydratedFromDb]);
 
-  /**
-   * Manipula mudanças nas configurações de API (apenas localmente)
-   */
   const handleApiOptionChange = (id: number, value: string) => {
-    setLocalApiOptions(prev => ({
-      ...prev,
-      [id]: value
-    }));
+    setLocalApiOptions(prev => ({ ...prev, [id]: value }));
   };
 
-  /**
-   * Salva todas as configurações de API
-   */
   const handleSaveApiSettings = async () => {
     setIsLoading(true);
-    
     try {
-      // Converte para o formato {name_campo: value} com todos os campos
       const dataToSave: {[key: string]: string} = {};
-      
       getApiConfigOptions().forEach((option) => {
-        const currentValue = getCurrentOptionValue(option);
-        dataToSave[option.url] = currentValue || '';
+        dataToSave[option.url] = getCurrentOptionValue(option) || '';
       });
-      
-      if (Object.keys(dataToSave).length === 0) {
-        toast.info('Nenhuma configuração encontrada para salvar');
-        return;
-      }
-      
       const success = await saveMultipleOptions(dataToSave);
-      
-      if (success) {
-        toast.success('Configurações de API salvas com sucesso!');
-        // setLocalApiOptions({}); // Limpa as mudanças locais
-      } else {
-        toast.error('Erro ao salvar configurações de API');
-      }
+      if (success) toast.success('Configurações de API salvas!');
     } catch (error) {
-      console.error('Erro ao salvar configurações de API:', error);
-      toast.error('Erro ao salvar configurações de API');
+      toast.error('Erro ao salvar API settings.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  /**
-   * handleSaveFunctionalityOptions
-   * pt-BR: Monta o payload com todas as opções do endpoint `/options/all` e salva em lote.
-   * en-US: Builds the payload with all options from `/options/all` and saves them in batch.
-   */
   const handleSaveFunctionalityOptions = async () => {
     setIsLoading(true);
     try {
       const dataToSave: { [key: string]: string } = {};
       (apiOptions || []).forEach((option: any) => {
-        const currentValue = getCurrentOptionValue(option);
-        dataToSave[option.url] = currentValue || '';
+        dataToSave[option.url] = getCurrentOptionValue(option) || '';
       });
-      if (Object.keys(dataToSave).length === 0) {
-        toast.info('Nenhuma configuração encontrada para salvar');
-        return;
-      }
       const success = await saveMultipleOptions(dataToSave);
-      if (success) {
-        toast.success('Configurações de funcionalidade salvas com sucesso!');
-      } else {
-        toast.error('Erro ao salvar configurações de funcionalidade');
-      }
+      if (success) toast.success('Configurações salvas!');
     } catch (error) {
-      console.error('Erro ao salvar configurações de funcionalidade:', error);
-      toast.error('Erro ao salvar configurações de funcionalidade');
+      toast.error('Erro ao salvar configurações.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  
-
-  /**
-   * Salva configurações gerais
-   */
   const handleSaveGeneralSettings = () => {
     localStorage.setItem('basicSwitchSettings', JSON.stringify(basicSwitchSettings));
     applySystemSettings(basicSwitchSettings);
     toast.success('Configurações gerais salvas!');
   };
 
-  /**
-   * Salva preferências do sistema
-   */
   const handleSaveSystemPreferences = () => {
     localStorage.setItem('basicSelectSettings', JSON.stringify(basicSelectSettings));
     toast.success('Preferências do sistema salvas!');
   };
 
-  /**
-   * Manipula mudanças nos switches das configurações avançadas
-   */
   const handleAdvancedSwitchChange = (key: string, value: boolean) => {
     setAdvancedSwitchSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  /**
-   * Manipula mudanças nos selects das configurações avançadas
-   */
   const handleAdvancedSelectChange = (key: string, value: string) => {
     setAdvancedSelectSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  /**
-   * Manipula mudanças nos inputs das configurações avançadas
-   */
   const handleAdvancedInputChange = (key: string, value: string) => {
     setAdvancedInputSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  /**
-   * Salva todas as configurações
-   */
   const handleSaveSettings = async () => {
+    setIsLoading(true);
     try {
-      // Prepara as configurações avançadas para envio à API
       const advancedSettings: AdvancedSystemSettings = {
-        // Configurações com Switch
-        enableApiLogging: advancedSwitchSettings.enableApiLogging,
-        enableCaching: advancedSwitchSettings.enableCaching,
-        enableCompression: advancedSwitchSettings.enableCompression,
-        enableSslRedirect: advancedSwitchSettings.enableSslRedirect,
-        
-        // Configurações com Select
-        logLevel: advancedSelectSettings.logLevel,
-        cacheDriver: advancedSelectSettings.cacheDriver,
-        sessionDriver: advancedSelectSettings.sessionDriver,
-        queueDriver: advancedSelectSettings.queueDriver,
-        
-        // Configurações com Input
-        maxFileSize: advancedInputSettings.maxFileSize,
-        sessionTimeout: advancedInputSettings.sessionTimeout,
-        apiRateLimit: advancedInputSettings.apiRateLimit,
-        maxConnections: advancedInputSettings.maxConnections,
-        backupRetention: advancedInputSettings.backupRetention,
-        url_api_aeroclube: advancedInputSettings.url_api_aeroclube,
-        token_api_aeroclube: advancedInputSettings.token_api_aeroclube,
+        ...advancedSwitchSettings,
+        ...advancedSelectSettings,
+        ...advancedInputSettings,
       };
-
-      // Envia as configurações avançadas para a API na rota /options
       await systemSettingsService.saveAdvancedSettings(advancedSettings);
-      
-      // Log das outras configurações (não enviadas para API ainda)
-      // console.log('Configurações Básicas - Switch:', basicSwitchSettings);
-      // console.log('Configurações Básicas - Select:', basicSelectSettings);
-      // console.log('Configurações de Aparência:', appearanceSettings);
-      // console.log('Configurações Avançadas enviadas para API:', advancedSettings);
-      
-      toast.success("Configurações salvas com sucesso!");
+      toast.success("Configurações avançadas salvas!");
     } catch (error) {
-      console.error('Erro ao salvar configurações:', error);
-      toast.error("Erro ao salvar configurações. Tente novamente.");
+      toast.error("Erro ao salvar avançado.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  /**
-   * Carrega as configurações avançadas da API
-   */
   const loadAdvancedSettings = async () => {
     try {
       setIsLoading(true);
       const data = await systemSettingsService.getAdvancedSettings('/options');
-      console.log('data',data);
-      
-      // Atualiza o estado com os dados da API
       setAdvancedInputSettings({
         maxFileSize: data.maxFileSize || "",
         sessionTimeout: data.sessionTimeout || "",
@@ -709,939 +502,597 @@ export default function SystemSettings() {
         url_api_aeroclube: data.url_api_aeroclube || "",
         token_api_aeroclube: data.token_api_aeroclube || "",
       });
-      
-      // Também atualiza as outras configurações se necessário
       if (data.enableApiLogging !== undefined) {
-        setAdvancedSwitchSettings(prev => ({
-          ...prev,
+        setAdvancedSwitchSettings({
           enableApiLogging: data.enableApiLogging,
           enableCaching: data.enableCaching,
           enableCompression: data.enableCompression,
           enableSslRedirect: data.enableSslRedirect,
-        }));
+        });
       }
-      
       if (data.logLevel) {
-        setAdvancedSelectSettings(prev => ({
-          ...prev,
+        setAdvancedSelectSettings({
           logLevel: data.logLevel,
           cacheDriver: data.cacheDriver,
           sessionDriver: data.sessionDriver,
           queueDriver: data.queueDriver,
-        }));
+        });
       }
-      
     } catch (error) {
-      console.error('Erro ao carregar configurações:', error);
-      toast.error('Erro ao carregar configurações da API');
+      console.error('Load Error:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  /**
-   * useEffect para carregar as configurações ao montar o componente
-   */
   useEffect(() => {
     loadAdvancedSettings();
   }, []);
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Cabeçalho */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Settings className="h-6 w-6" />
-          <h1 className="text-2xl font-bold">Configurações do Sistema</h1>
+    <div className="mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Header Premium */}
+      <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-3 bg-primary/10 rounded-2xl">
+              <Settings className="h-6 w-6 text-primary" />
+            </div>
+            <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest py-0.5 border-primary/20 bg-primary/5 text-primary">
+              Core Engine
+            </Badge>
+          </div>
+          <h1 className="text-4xl font-black text-gray-900 tracking-tight">Painel de Controle</h1>
+          <p className="text-muted-foreground mt-1 font-medium italic">Configure os parâmetros neurais e visuais da sua plataforma.</p>
         </div>
-        {/* Botão visível apenas na aba avançada */}
+
         {activeTab === "advanced" && (
-          <Button onClick={handleSaveSettings} className="flex items-center space-x-2">
-            <Save className="h-4 w-4" />
-            <span>Salvar Configurações</span>
+          <Button 
+            onClick={handleSaveSettings} 
+            disabled={isLoading}
+            className="h-14 px-8 rounded-[1.5rem] font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 gap-3 transition-all hover:scale-[1.02] active:scale-95"
+          >
+            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+            Salvar Tudo
           </Button>
         )}
       </div>
 
-      {/* Abas de Configurações */}
-      <Tabs defaultValue="basic" className="w-full" onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="basic">Configurações Básicas</TabsTrigger>
-          <TabsTrigger value="advanced">Configurações Avançadas</TabsTrigger>
-          <TabsTrigger value="api">Configurações de API</TabsTrigger>
-        </TabsList>
-
-        {/* Aba de Configurações Básicas */}
-        <TabsContent value="basic" className="space-y-6">
-          {/* Card de Configurações de Aparência */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Palette className="h-5 w-5" />
-                <span>Configurações de Aparência</span>
-              </CardTitle>
-              <CardDescription>
-                Personalize a aparência e o tema da interface do sistema.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Switches de Aparência */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="darkMode">Modo Escuro</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Ativar tema escuro para reduzir o cansaço visual
-                    </p>
-                  </div>
-                  <Switch
-                    id="darkMode"
-                    checked={appearanceSettings.darkMode}
-                    onCheckedChange={(value) => handleAppearanceChange('darkMode', value)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="compactMode">Modo Compacto</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Reduzir espaçamentos para mostrar mais conteúdo
-                    </p>
-                  </div>
-                  <Switch
-                    id="compactMode"
-                    checked={appearanceSettings.compactMode}
-                    onCheckedChange={(value) => handleAppearanceChange('compactMode', value)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="showAnimations">Animações</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Habilitar animações e transições na interface
-                    </p>
-                  </div>
-                  <Switch
-                    id="showAnimations"
-                    checked={appearanceSettings.showAnimations}
-                    onCheckedChange={(value) => handleAppearanceChange('showAnimations', value)}
-                  />
-                </div>
+      <Tabs defaultValue="basic" className="w-full space-y-10" onValueChange={setActiveTab}>
+        {/* Tabs Customizada Estilo Glassmorphism */}
+        <div className="bg-white/50 backdrop-blur-md p-1.5 rounded-[2rem] border border-gray-100 shadow-sm max-w-2xl mx-auto">
+          <TabsList className="grid w-full grid-cols-3 bg-transparent h-12">
+            <TabsTrigger 
+              value="basic" 
+              className="rounded-[1.5rem] data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-primary font-black uppercase tracking-tighter text-[11px] transition-all"
+            >
+              <div className="flex items-center gap-2">
+                <Monitor className="w-4 h-4" />
+                <span>Básico</span>
               </div>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="advanced" 
+              className="rounded-[1.5rem] data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-primary font-black uppercase tracking-tighter text-[11px] transition-all"
+            >
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4" />
+                <span>Avançado</span>
+              </div>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="api" 
+              className="rounded-[1.5rem] data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-primary font-black uppercase tracking-tighter text-[11px] transition-all"
+            >
+              <div className="flex items-center gap-2">
+                <Link className="w-4 h-4" />
+                <span>Conectividade</span>
+              </div>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-              {/* Configurações de Cores e Tema */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="primaryColor">Cor Primária</Label>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      id="primaryColor"
-                      type="color"
-                      value={appearanceSettings.primaryColor}
-                      onChange={(e) => handleAppearanceChange('primaryColor', e.target.value)}
-                      className="w-16 h-10 p-1 border rounded"
-                    />
-                    <Input
-                      type="text"
-                      value={appearanceSettings.primaryColor}
-                      onChange={(e) => handleAppearanceChange('primaryColor', e.target.value)}
-                      placeholder="#3b82f6"
-                      className="flex-1"
-                    />
+        {/* Aba Básica: Identidade e Aparência */}
+        <TabsContent value="basic" className="space-y-10">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            
+            {/* Card Aparência Redesenhado */}
+            <Card className="rounded-[2.5rem] border-none shadow-2xl shadow-gray-100/50 overflow-hidden group">
+              <div className="h-2 bg-primary/10 transition-all group-hover:h-3" />
+              <CardHeader className="p-8 pb-4">
+                <div className="flex items-center gap-4 mb-2">
+                  <div className="p-3 bg-orange-100 rounded-2xl">
+                    <Palette className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-black text-gray-900 tracking-tight">Design System</CardTitle>
+                    <CardDescription className="font-medium">Personalize a experiência visual do sistema.</CardDescription>
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="secondaryColor">Cor Secundária</Label>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      id="secondaryColor"
-                      type="color"
-                      value={appearanceSettings.secondaryColor}
-                      onChange={(e) => handleAppearanceChange('secondaryColor', e.target.value)}
-                      className="w-16 h-10 p-1 border rounded"
-                    />
-                    <Input
-                      type="text"
-                      value={appearanceSettings.secondaryColor}
-                      onChange={(e) => handleAppearanceChange('secondaryColor', e.target.value)}
-                      placeholder="#64748b"
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Selects de Aparência */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="theme">Tema</Label>
-                  <Select
-                    value={appearanceSettings.theme}
-                    onValueChange={(value) => handleAppearanceChange('theme', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tema" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="default">Padrão</SelectItem>
-                      <SelectItem value="modern">Moderno</SelectItem>
-                      <SelectItem value="classic">Clássico</SelectItem>
-                      <SelectItem value="minimal">Minimalista</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="fontSize">Tamanho da Fonte</Label>
-                  <Select
-                    value={appearanceSettings.fontSize}
-                    onValueChange={(value) => handleAppearanceChange('fontSize', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tamanho" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="small">Pequena</SelectItem>
-                      <SelectItem value="medium">Média</SelectItem>
-                      <SelectItem value="large">Grande</SelectItem>
-                      <SelectItem value="extra-large">Extra Grande</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              {/* Botão de salvamento do card de aparência */}
-              <div className="flex justify-end pt-4 border-t">
-                <Button onClick={handleSaveAppearanceSettings} disabled={isLoading} className="flex items-center space-x-2">
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  <span>Salvar Aparência</span>
-                </Button>
-              </div>
-          </CardContent>
-        </Card>
-        {/* Card - Identidade Institucional */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Building2 className="h-5 w-5" />
-              <span>Identidade Institucional</span>
-            </CardTitle>
-            <CardDescription>
-              Cadastre o nome da instituição para personalizar textos e metadados da aplicação.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="institution_name">Nome da instituição</Label>
-              <Input
-                id="institution_name"
-                type="text"
-                value={institutionName}
-                onChange={(e) => setInstitutionName(e.target.value)}
-                placeholder="Ex.: Aeroclube de Juiz de Fora"
-              />
-              <p className="text-sm text-muted-foreground">
-                Este nome aparecerá na página inicial e em áreas públicas.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="institution_slogan">Slogan</Label>
-                <Input
-                  id="institution_slogan"
-                  type="text"
-                  value={institutionSlogan}
-                  onChange={(e) => setInstitutionSlogan(e.target.value)}
-                  placeholder="Ex.: Educação que transforma"
-                />
-                <p className="text-sm text-muted-foreground">Usado em títulos e metatags sociais.</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="institution_url">URL institucional</Label>
-                <Input
-                  id="institution_url"
-                  type="url"
-                  value={institutionUrl}
-                  onChange={(e) => setInstitutionUrl(e.target.value)}
-                  placeholder="https://www.seu-dominio.com"
-                />
-                <p className="text-sm text-muted-foreground">Link oficial do site ou página institucional.</p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="institution_description">Descrição curta</Label>
-              <Input
-                id="institution_description"
-                type="text"
-                value={institutionDescription}
-                onChange={(e) => setInstitutionDescription(e.target.value)}
-                placeholder="Resumo curto para metatags e SEO"
-              />
-              <p className="text-sm text-muted-foreground">Aparece em descrição e OpenGraph/Twitter.</p>
-            </div>
-            <div className="flex justify-end pt-2">
-              <Button onClick={handleSaveInstitution} className="flex items-center space-x-2">
-                <Save className="h-4 w-4" />
-                <span>Salvar Instituição</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-        {/* Card - Branding & Imagens */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <ImageIcon className="h-5 w-5" />
-                <span>Branding & Imagens</span>
-              </CardTitle>
-              <CardDescription>
-                Envie a logo, favicon e imagem de redes sociais. Os arquivos são gravados em <code>/file-storage</code> e as URLs ficam salvas para personalizar seu sistema.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label>Logo</Label>
-                  <ImageUpload
-                    name="app_logo"
-                    label="Logo"
-                    value={brandingLogoUrl || ''}
-                    onChange={(val) => setBrandingLogoUrl(val || null)}
-                    onUpload={handleUploadLogo}
-                    acceptedTypes={["image/png", "image/jpeg", "image/webp", "image/svg+xml"]}
-                    className="max-w-xs"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Favicon</Label>
-                  <ImageUpload
-                    name="app_favicon"
-                    label="Favicon"
-                    value={brandingFaviconUrl || ''}
-                    onChange={(val) => setBrandingFaviconUrl(val || null)}
-                    onUpload={handleUploadFavicon}
-                    acceptedTypes={["image/png", "image/x-icon", "image/svg+xml"]}
-                    className="max-w-xs"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Imagem Social (OpenGraph/Twitter)</Label>
-                  <ImageUpload
-                    name="app_social_image"
-                    label="Imagem Social"
-                    value={brandingSocialUrl || ''}
-                    onChange={(val) => setBrandingSocialUrl(val || null)}
-                    onUpload={handleUploadSocial}
-                    acceptedTypes={["image/png", "image/jpeg", "image/webp"]}
-                    className="max-w-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-4 border-t">
-                <Button onClick={handleSaveBranding} className="flex items-center space-x-2">
-                  <Save className="h-4 w-4" />
-                  <span>Salvar Branding</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-          {/* Card 1 - Configurações com Switch */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Configurações Gerais</CardTitle>
-              <CardDescription>
-                Configure as opções básicas do sistema usando os interruptores abaixo.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="enableNotifications">Habilitar Notificações</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Receba notificações sobre eventos importantes do sistema
-                  </p>
-                </div>
-                <Switch
-                  id="enableNotifications"
-                  checked={basicSwitchSettings.enableNotifications}
-                  onCheckedChange={(value) => handleBasicSwitchChange('enableNotifications', value)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="enableAutoBackup">Backup Automático</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Realizar backup automático dos dados diariamente
-                  </p>
-                </div>
-                <Switch
-                  id="enableAutoBackup"
-                  checked={basicSwitchSettings.enableAutoBackup}
-                  onCheckedChange={(value) => handleBasicSwitchChange('enableAutoBackup', value)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="enableMaintenanceMode">Modo de Manutenção</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Ativar modo de manutenção para usuários externos
-                  </p>
-                </div>
-                <Switch
-                  id="enableMaintenanceMode"
-                  checked={basicSwitchSettings.enableMaintenanceMode}
-                  onCheckedChange={(value) => handleBasicSwitchChange('enableMaintenanceMode', value)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="enableDebugMode">Modo Debug</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Habilitar logs detalhados para depuração
-                  </p>
-                </div>
-                <Switch
-                  id="enableDebugMode"
-                  checked={basicSwitchSettings.enableDebugMode}
-                  onCheckedChange={(value) => handleBasicSwitchChange('enableDebugMode', value)}
-                />
-              </div>
-              
-              {/* Botão de salvamento do card geral */}
-              <div className="flex justify-end pt-4 border-t">
-                <Button onClick={handleSaveGeneralSettings} className="flex items-center space-x-2">
-                  <Save className="h-4 w-4" />
-                  <span>Salvar Configurações Gerais</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Card 2 - Configurações com Select */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Preferências do Sistema</CardTitle>
-              <CardDescription>
-                Configure as preferências padrão do sistema usando os seletores abaixo.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="defaultLanguage">Idioma Padrão</Label>
-                <Select
-                  value={basicSelectSettings.defaultLanguage}
-                  onValueChange={(value) => handleBasicSelectChange('defaultLanguage', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o idioma" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pt-BR">Português (Brasil)</SelectItem>
-                    <SelectItem value="en-US">English (US)</SelectItem>
-                    <SelectItem value="es-ES">Español</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="timezone">Fuso Horário</Label>
-                <Select
-                  value={basicSelectSettings.timezone}
-                  onValueChange={(value) => handleBasicSelectChange('timezone', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o fuso horário" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="America/Sao_Paulo">São Paulo (GMT-3)</SelectItem>
-                    <SelectItem value="America/New_York">New York (GMT-5)</SelectItem>
-                    <SelectItem value="Europe/London">London (GMT+0)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="dateFormat">Formato de Data</Label>
-                <Select
-                  value={basicSelectSettings.dateFormat}
-                  onValueChange={(value) => handleBasicSelectChange('dateFormat', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o formato" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
-                    <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
-                    <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="currency">Moeda Padrão</Label>
-                <Select
-                  value={basicSelectSettings.currency}
-                  onValueChange={(value) => handleBasicSelectChange('currency', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a moeda" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="BRL">Real (R$)</SelectItem>
-                    <SelectItem value="USD">Dólar ($)</SelectItem>
-                    <SelectItem value="EUR">Euro (€)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {/* Botão de salvamento das preferências */}
-              <div className="flex justify-end pt-4 border-t">
-                <Button onClick={handleSaveSystemPreferences} className="flex items-center space-x-2">
-                  <Save className="h-4 w-4" />
-                  <span>Salvar Preferências</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Aba de Configurações Avançadas */}
-        <TabsContent value="advanced" className="space-y-6">
-          {/* Card 1 - Configurações com Switch */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Configurações de Sistema</CardTitle>
-              <CardDescription>
-                Configure opções avançadas do sistema que afetam performance e segurança.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="enableApiLogging">Log de API</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Registrar todas as chamadas de API para auditoria
-                  </p>
-                </div>
-                <Switch
-                  id="enableApiLogging"
-                  checked={advancedSwitchSettings.enableApiLogging}
-                  onCheckedChange={(value) => handleAdvancedSwitchChange('enableApiLogging', value)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="enableCaching">Cache do Sistema</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Habilitar cache para melhorar performance
-                  </p>
-                </div>
-                <Switch
-                  id="enableCaching"
-                  checked={advancedSwitchSettings.enableCaching}
-                  onCheckedChange={(value) => handleAdvancedSwitchChange('enableCaching', value)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="enableCompression">Compressão GZIP</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Comprimir respostas HTTP para reduzir largura de banda
-                  </p>
-                </div>
-                <Switch
-                  id="enableCompression"
-                  checked={advancedSwitchSettings.enableCompression}
-                  onCheckedChange={(value) => handleAdvancedSwitchChange('enableCompression', value)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="enableSslRedirect">Redirecionamento SSL</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Forçar redirecionamento para HTTPS
-                  </p>
-                </div>
-                <Switch
-                  id="enableSslRedirect"
-                  checked={advancedSwitchSettings.enableSslRedirect}
-                  onCheckedChange={(value) => handleAdvancedSwitchChange('enableSslRedirect', value)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Card 2 - Configurações com Select */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Configurações de Infraestrutura</CardTitle>
-              <CardDescription>
-                Configure drivers e níveis de sistema para otimizar o funcionamento.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="logLevel">Nível de Log</Label>
-                <Select
-                  value={advancedSelectSettings.logLevel}
-                  onValueChange={(value) => handleAdvancedSelectChange('logLevel', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o nível" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="debug">Debug</SelectItem>
-                    <SelectItem value="info">Info</SelectItem>
-                    <SelectItem value="warning">Warning</SelectItem>
-                    <SelectItem value="error">Error</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="cacheDriver">Driver de Cache</Label>
-                <Select
-                  value={advancedSelectSettings.cacheDriver}
-                  onValueChange={(value) => handleAdvancedSelectChange('cacheDriver', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o driver" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="redis">Redis</SelectItem>
-                    <SelectItem value="memcached">Memcached</SelectItem>
-                    <SelectItem value="file">File</SelectItem>
-                    <SelectItem value="database">Database</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="sessionDriver">Driver de Sessão</Label>
-                <Select
-                  value={advancedSelectSettings.sessionDriver}
-                  onValueChange={(value) => handleAdvancedSelectChange('sessionDriver', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o driver" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="database">Database</SelectItem>
-                    <SelectItem value="redis">Redis</SelectItem>
-                    <SelectItem value="file">File</SelectItem>
-                    <SelectItem value="cookie">Cookie</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="queueDriver">Driver de Fila</Label>
-                <Select
-                  value={advancedSelectSettings.queueDriver}
-                  onValueChange={(value) => handleAdvancedSelectChange('queueDriver', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o driver" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="sync">Sync</SelectItem>
-                    <SelectItem value="redis">Redis</SelectItem>
-                    <SelectItem value="database">Database</SelectItem>
-                    <SelectItem value="sqs">Amazon SQS</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Card 3 - Configurações com Input */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Configurações Numéricas</CardTitle>
-              <CardDescription>
-                Configure limites e valores numéricos do sistema.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="maxFileSize">Tamanho Máximo de Arquivo (MB)</Label>
-                <Input
-                  id="maxFileSize"
-                  type="number"
-                  value={advancedInputSettings.maxFileSize}
-                  onChange={(e) => handleAdvancedInputChange('maxFileSize', e.target.value)}
-                  placeholder="10"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="sessionTimeout">Timeout de Sessão (minutos)</Label>
-                <Input
-                  id="sessionTimeout"
-                  type="number"
-                  value={advancedInputSettings.sessionTimeout}
-                  onChange={(e) => handleAdvancedInputChange('sessionTimeout', e.target.value)}
-                  placeholder="120"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="apiRateLimit">Limite de Taxa da API (req/min)</Label>
-                <Input
-                  id="apiRateLimit"
-                  type="number"
-                  value={advancedInputSettings.apiRateLimit}
-                  onChange={(e) => handleAdvancedInputChange('apiRateLimit', e.target.value)}
-                  placeholder="1000"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="maxConnections">Máximo de Conexões Simultâneas</Label>
-                <Input
-                  id="maxConnections"
-                  type="number"
-                  value={advancedInputSettings.maxConnections}
-                  onChange={(e) => handleAdvancedInputChange('maxConnections', e.target.value)}
-                  placeholder="100"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="backupRetention">Retenção de Backup (dias)</Label>
-                <Input
-                  id="backupRetention"
-                  type="number"
-                  value={advancedInputSettings.backupRetention}
-                  onChange={(e) => handleAdvancedInputChange('backupRetention', e.target.value)}
-                  placeholder="30"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="url_api_aeroclube">URL da api das propostas</Label>
-                <Input
-                  id="url_api_aeroclube"
-                  type="text"
-                  value={advancedInputSettings.url_api_aeroclube}
-                  onChange={(e) => handleAdvancedInputChange('url_api_aeroclube', e.target.value)}
-                  placeholder="http://localhost:3000"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="token_api_aeroclube">Token de acesso da API</Label>
-                <Input
-                  id="token_api_aeroclube"
-                  type="text"
-                  value={advancedInputSettings.token_api_aeroclube}
-                  onChange={(e) => handleAdvancedInputChange('token_api_aeroclube', e.target.value)}
-                  placeholder="token da api"
-                />
-              </div>
-              
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Aba de Configurações de API */}
-        <TabsContent value="api" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Link className="h-5 w-5" />
-                <span>Configurações de API</span>
-              </CardTitle>
-              <CardDescription>
-                Configure as opções de API do sistema.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {apiLoading ? (
-                <div className="flex items-center justify-center p-8">
-                  <div className="text-muted-foreground">Carregando configurações...</div>
-                </div>
-              ) : apiError ? (
-                <div className="flex items-center justify-center p-8">
-                  <div className="text-red-500">{apiError}</div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-4">
-                    {/* Renderiza o card da SulAmerica se a opção existir */}
-                    {getApiConfigOptions().find((o: any) => o.url === 'credenciais_sulamerica') && (
-                        <div className="mb-6">
-                            <SulAmericaSettingsCard
-                                option={getApiConfigOptions().find((o: any) => o.url === 'credenciais_sulamerica')}
-                                value={getCurrentOptionValue(getApiConfigOptions().find((o: any) => o.url === 'credenciais_sulamerica'))}
-                                onChange={(id, val) => handleApiOptionChange(id, val)}
-                                onSave={handleSaveApiSettings}
-                                isLoading={isLoading}
-                            />
+              </CardHeader>
+              <CardContent className="p-8 pt-4 space-y-8">
+                
+                {/* Grid de Switches de Aparência */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    { id: 'darkMode', label: 'Modo Escuro', icon: <Moon className="w-4 h-4" />, help: 'Interface noturna' },
+                    { id: 'compactMode', label: 'Modo Compacto', icon: <Maximize2 className="w-4 h-4" />, help: 'Densidade alta' },
+                    { id: 'showAnimations', label: 'Animações', icon: <Zap className="w-4 h-4" />, help: 'Fluidez visual' }
+                  ].map((s) => (
+                    <div key={s.id} className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100 flex items-center justify-between hover:bg-white hover:shadow-md transition-all">
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2 font-black text-xs text-gray-700">
+                          {s.icon}
+                          {s.label}
                         </div>
-                    )}
-                    
-                  {getApiConfigOptions().filter((o: any) => o.url !== 'credenciais_sulamerica').map((option) => (
-                    <div key={option.id} className="space-y-2">
-                      <Label htmlFor={`api-option-${option.id}`}>
-                        {option.name}
-                      </Label>
-                      <Input
-                         id={`api-option-${option.id}`}
-                         type="text"
-                         name={option.url}
-                         value={getCurrentOptionValue(option)}
-                         onChange={(e) => handleApiOptionChange(option.id, e.target.value)}
-                         placeholder={`Digite ${option.name.toLowerCase()}`}
-                         className="w-full"
-                       />
-                      {option.obs && (
-                        <p className="text-sm text-muted-foreground">
-                          {option.obs}
-                        </p>
-                      )}
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1">{s.help}</span>
+                      </div>
+                      <Switch 
+                        checked={(appearanceSettings as any)[s.id]} 
+                        onCheckedChange={(val) => handleAppearanceChange(s.id, val)}
+                      />
                     </div>
                   ))}
-                  
-                  {getApiConfigOptions().length === 0 && (
-                     <div className="text-center p-8 text-muted-foreground">
-                       Nenhuma configuração de API encontrada.
-                     </div>
-                   )}
-                 </div>
-               )}
-               
-               {/* Botão de Salvar */}
-               {getApiConfigOptions().length > 0 && (
-                 <div className="flex justify-end pt-4 border-t">
-                   <Button 
-                     onClick={handleSaveApiSettings}
-                     disabled={isLoading || Object.keys(localApiOptions).length === 0}
-                     className="flex items-center space-x-2"
-                   >
-                     <Save className="h-4 w-4" />
-                     <span>
-                       {isLoading ? 'Salvando...' : 'Salvar Configurações'}
-                     </span>
-                   </Button>
-                 </div>
-               )}
-           </CardContent>
-          </Card>
+                </div>
 
-          {/* Card - Configurações de Funcionalidade */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Configurações de Funcionalidade</CardTitle>
-              <CardDescription>
-                Lista de inputs (texto) carregada de `/options/all` para IDs, URLs e tokens.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {apiLoading ? (
-                <div className="flex items-center justify-center p-8">
-                  <div className="text-muted-foreground">Carregando configurações...</div>
-                </div>
-              ) : apiError ? (
-                <div className="flex items-center justify-center p-8">
-                  <div className="text-red-500">{apiError}</div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-4">
-                  {(apiOptions || []).map((option: any) => (
-                    <div key={option.id} className="space-y-2">
-                      <Label htmlFor={`func-option-${option.id}`}>{option.name}</Label>
-                      {option.url === 'default_funil_vendas_id' ? (
-                        <Select
-                          value={String(getCurrentOptionValue(option) || '')}
-                          onValueChange={(val) => {
-                            handleApiOptionChange(option.id, val);
-                            if (defaultStageOption) {
-                              handleApiOptionChange(defaultStageOption.id, '');
-                            }
-                          }}
+                {/* Seção de Cores com Visual Premium */}
+                <div className="space-y-6">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Paleta Cromática</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Primary Color Picker */}
+                    <div className="space-y-3">
+                      <Label className="text-xs font-black text-gray-600 px-1">Cor Primária (Marca)</Label>
+                      <div className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-gray-100 shadow-sm focus-within:ring-2 ring-primary/20 transition-all">
+                        <div 
+                          className="w-12 h-12 rounded-xl border border-gray-100 shadow-inner relative overflow-hidden" 
+                          style={{ backgroundColor: appearanceSettings.primaryColor }}
                         >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Selecione o funil de vendas" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {isLoadingFunnels ? (
-                              <SelectItem value="__loading_funnels__" disabled>Carregando funis...</SelectItem>
-                            ) : (
-                              salesFunnels.map((f: any) => (
-                                <SelectItem key={String(f.id)} value={String(f.id)}>
-                                  {f.name}
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
-                      ) : option.url === 'default_etapa_vendas_id' ? (
-                        <Select
-                          value={String(getCurrentOptionValue(option) || '')}
-                          onValueChange={(val) => handleApiOptionChange(option.id, val)}
-                          disabled={!selectedDefaultFunnelId || isLoadingStages}
+                          <input 
+                            type="color" 
+                            className="absolute inset-0 opacity-0 cursor-pointer scale-150"
+                            value={appearanceSettings.primaryColor}
+                            onChange={(e) => handleAppearanceChange('primaryColor', e.target.value)}
+                          />
+                        </div>
+                        <div className="flex-1 flex flex-col">
+                           <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">HEX CODE</span>
+                           <input 
+                             className="text-sm font-black text-gray-700 bg-transparent border-none p-0 focus:ring-0 uppercase"
+                             value={appearanceSettings.primaryColor}
+                             onChange={(e) => handleAppearanceChange('primaryColor', e.target.value)}
+                           />
+                        </div>
+                      </div>
+                    </div>
+                    {/* Secondary Color Picker */}
+                    <div className="space-y-3">
+                      <Label className="text-xs font-black text-gray-600 px-1">Cor Secundária (Apoio)</Label>
+                      <div className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-gray-100 shadow-sm focus-within:ring-2 ring-secondary/20 transition-all">
+                        <div 
+                          className="w-12 h-12 rounded-xl border border-gray-100 shadow-inner relative overflow-hidden" 
+                          style={{ backgroundColor: appearanceSettings.secondaryColor }}
                         >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder={selectedDefaultFunnelId ? 'Selecione a etapa' : 'Selecione um funil primeiro'} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {isLoadingStages ? (
-                              <SelectItem value="__loading_stages__" disabled>Carregando etapas...</SelectItem>
-                            ) : (
-                              stagesForDefaultFunnel.map((s: any) => (
-                                <SelectItem key={String(s.id)} value={String(s.id)}>
-                                  {s.name}
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Input
-                          id={`func-option-${option.id}`}
-                          type="text"
-                          name={option.url}
-                          value={getCurrentOptionValue(option)}
-                          onChange={(e) => handleApiOptionChange(option.id, e.target.value)}
-                          placeholder={`Digite ${option.name.toLowerCase()}`}
-                          className="w-full"
+                          <input 
+                            type="color" 
+                            className="absolute inset-0 opacity-0 cursor-pointer scale-150"
+                            value={appearanceSettings.secondaryColor}
+                            onChange={(e) => handleAppearanceChange('secondaryColor', e.target.value)}
+                          />
+                        </div>
+                        <div className="flex-1 flex flex-col">
+                           <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">HEX CODE</span>
+                           <input 
+                             className="text-sm font-black text-gray-700 bg-transparent border-none p-0 focus:ring-0 uppercase"
+                             value={appearanceSettings.secondaryColor}
+                             onChange={(e) => handleAppearanceChange('secondaryColor', e.target.value)}
+                           />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <Label className="text-xs font-black text-gray-600 px-1">Tema Estrutural</Label>
+                    <Select value={appearanceSettings.theme} onValueChange={(val) => handleAppearanceChange('theme', val)}>
+                      <SelectTrigger className="h-12 rounded-2xl border-gray-100 bg-gray-50/50 font-bold hover:bg-white transition-all shadow-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-none shadow-2xl">
+                        <SelectItem value="default" className="rounded-xl font-bold">💎 Padrão Premium</SelectItem>
+                        <SelectItem value="modern" className="rounded-xl font-bold">🚀 Moderno High-Tech</SelectItem>
+                        <SelectItem value="minimal" className="rounded-xl font-bold">🍃 Minimalista Puro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-xs font-black text-gray-600 px-1">Escala Tipográfica</Label>
+                    <Select value={appearanceSettings.fontSize} onValueChange={(val) => handleAppearanceChange('fontSize', val)}>
+                      <SelectTrigger className="h-12 rounded-2xl border-gray-100 bg-gray-50/50 font-bold hover:bg-white transition-all shadow-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-none shadow-2xl">
+                        <SelectItem value="small" className="rounded-xl font-bold">XS - Compacto</SelectItem>
+                        <SelectItem value="medium" className="rounded-xl font-bold">MD - Equilibrado</SelectItem>
+                        <SelectItem value="large" className="rounded-xl font-bold">LG - Acessível</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handleSaveAppearanceSettings} 
+                  disabled={isLoading}
+                  className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-xs gap-3 shadow-lg shadow-primary/10 transition-all hover:scale-[1.01]"
+                >
+                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                  Finalizar Aparência
+                </Button>
+              </CardContent>
+            </Card>
+
+            <div className="space-y-8">
+              {/* Card Identidade Institucional */}
+              <Card className="rounded-[2.5rem] border-none shadow-xl shadow-gray-100/30 overflow-hidden">
+                <CardHeader className="p-8 pb-4">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-blue-100 rounded-2xl">
+                      <Building2 className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <CardTitle className="text-xl font-black tracking-tight">Cérebro da Marca</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-8 pt-4 space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex flex-col">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1">Nome Principal</Label>
+                      <Input 
+                        value={institutionName} 
+                        onChange={(e) => setInstitutionName(e.target.value)}
+                        className="h-14 rounded-2xl border-gray-100 bg-gray-50/50 font-bold text-lg focus:ring-primary shadow-inner"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex flex-col">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1">Slogan Criativo</Label>
+                        <Input 
+                          value={institutionSlogan} 
+                          onChange={(e) => setInstitutionSlogan(e.target.value)}
+                          className="h-12 rounded-xl border-gray-100 bg-gray-50/50 font-bold shadow-inner"
                         />
-                      )}
-                      {option.obs && (
-                        <p className="text-sm text-muted-foreground">{option.obs}</p>
-                      )}
+                      </div>
+                      <div className="flex flex-col">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1">URL Oficial</Label>
+                        <Input 
+                          value={institutionUrl} 
+                          onChange={(e) => setInstitutionUrl(e.target.value)}
+                          className="h-12 rounded-xl border-gray-100 bg-gray-50/50 font-bold shadow-inner"
+                        />
+                      </div>
                     </div>
-                  ))}
-
-                  {(apiOptions || []).length === 0 && (
-                    <div className="text-center p-8 text-muted-foreground">Nenhuma configuração encontrada.</div>
-                  )}
-                </div>
-              )}
-
-              {(apiOptions || []).length > 0 && (
-                <div className="flex justify-end pt-4 border-t">
-                  <Button
-                    onClick={handleSaveFunctionalityOptions}
-                    disabled={isLoading || Object.keys(localApiOptions).length === 0}
-                    className="flex items-center space-x-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    <span>{isLoading ? 'Salvando...' : 'Salvar Configurações'}</span>
+                  </div>
+                  <Button onClick={handleSaveInstitution} variant="outline" className="w-full h-12 rounded-xl font-black uppercase tracking-widest text-[10px] border-2">
+                    Atualizar Identidade
                   </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+
+              {/* Card Branding Imagens */}
+              <Card className="rounded-[2.5rem] border-none shadow-xl shadow-gray-100/30 overflow-hidden">
+                <CardHeader className="p-8 pb-4">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-emerald-100 rounded-2xl">
+                      <ImageIcon className="h-6 w-6 text-emerald-600" />
+                    </div>
+                    <CardTitle className="text-xl font-black tracking-tight">Ativos de Marca</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-8 pt-4 space-y-8">
+                  <div className="grid grid-cols-3 gap-4">
+                    {[
+                      { label: 'Logo', val: brandingLogoUrl, up: handleUploadLogo, fn: setBrandingLogoUrl },
+                      { label: 'Favicon', val: brandingFaviconUrl, up: handleUploadFavicon, fn: setBrandingFaviconUrl },
+                      { label: 'Social', val: brandingSocialUrl, up: handleUploadSocial, fn: setBrandingSocialUrl }
+                    ].map((img) => (
+                      <div key={img.label} className="text-center group">
+                        <Label className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-3 block">{img.label}</Label>
+                        <div className="relative inline-block">
+                           <ImageUpload 
+                              value={img.val || ''}
+                              onUpload={img.up}
+                              onChange={(v) => img.fn(v || null)}
+                              className="w-full aspect-square rounded-3xl overflow-hidden border-2 border-dashed border-gray-100 group-hover:border-primary/30 transition-all"
+                           />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <Button onClick={handleSaveBranding} variant="secondary" className="w-full h-12 rounded-xl font-black uppercase tracking-widest text-[10px] bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-none shadow-none">
+                    Sincronizar Ativos
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Seção inferior de Preferências Gerais */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+             <Card className="rounded-[2.5rem] border-none shadow-lg shadow-gray-100/20">
+                <CardHeader className="p-8 pb-4">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-slate-100 rounded-2xl text-slate-600">
+                      <Globe className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-black tracking-tight">Preferências Regionais</CardTitle>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-8 pt-4 grid grid-cols-2 gap-4">
+                   {[
+                     { label: 'Idioma', val: basicSelectSettings.defaultLanguage, opts: [{v: 'pt-BR', l: 'Português'}, {v: 'en-US', l: 'English'}], fn: 'defaultLanguage' },
+                     { label: 'Fuso Horário', val: basicSelectSettings.timezone, opts: [{v: 'America/Sao_Paulo', l: 'São Paulo (GMT-3)'}], fn: 'timezone' },
+                     { label: 'Formato Data', val: basicSelectSettings.dateFormat, opts: [{v: 'DD/MM/YYYY', l: 'DD/MM/YYYY'}], fn: 'dateFormat' },
+                     { label: 'Moeda Padrão', val: basicSelectSettings.currency, opts: [{v: 'BRL', l: 'Real (R$)'}, {v: 'USD', l: 'Dólar ($)'}], fn: 'currency' }
+                   ].map((sel) => (
+                     <div key={sel.label} className="space-y-2">
+                        <Label className="text-[9px] font-black uppercase tracking-widest text-gray-400 ml-1">{sel.label}</Label>
+                        <Select value={sel.val} onValueChange={(v) => handleBasicSelectChange(sel.fn, v)}>
+                           <SelectTrigger className="h-12 rounded-xl bg-gray-50 border-gray-100 font-bold">
+                              <SelectValue />
+                           </SelectTrigger>
+                           <SelectContent className="rounded-xl border-none shadow-2xl">
+                             {sel.opts.map(o => <SelectItem key={o.v} value={o.v} className="rounded-lg">{o.l}</SelectItem>)}
+                           </SelectContent>
+                        </Select>
+                     </div>
+                   ))}
+                   <Button onClick={handleSaveSystemPreferences} className="col-span-2 h-12 rounded-xl font-bold mt-2">Salvar Regionalização</Button>
+                </CardContent>
+             </Card>
+
+             <Card className="rounded-[2.5rem] border-none shadow-lg shadow-gray-100/20">
+                <CardHeader className="p-8 pb-4">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-rose-100 rounded-2xl text-rose-600">
+                      <ShieldCheck className="h-6 w-6" />
+                    </div>
+                    <CardTitle className="text-lg font-black tracking-tight">Comportamento Core</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-8 pt-4 space-y-4">
+                   {[
+                     { id: 'enableNotifications', label: 'Central de Alertas', help: 'Push notifications de sistema' },
+                     { id: 'enableAutoBackup', label: 'Backup Automático', help: 'Segurança de dados diária' },
+                     { id: 'enableMaintenanceMode', label: 'Modo Manutenção', help: 'Bloqueio de acesso externo' },
+                   ].map((sw) => (
+                    <div key={sw.id} className="flex items-center justify-between p-3 px-4 bg-gray-50/50 rounded-2xl hover:bg-gray-50 transition-colors">
+                      <div className="flex flex-col">
+                         <Label className="font-bold text-gray-700">{sw.label}</Label>
+                         <span className="text-[10px] font-medium text-gray-400">{sw.help}</span>
+                      </div>
+                      <Switch 
+                        checked={(basicSwitchSettings as any)[sw.id]} 
+                        onCheckedChange={(val) => handleBasicSwitchChange(sw.id, val)} 
+                      />
+                    </div>
+                   ))}
+                   <Button onClick={handleSaveGeneralSettings} variant="outline" className="w-full h-12 rounded-xl font-bold mt-2 border-gray-200">Salvar Comportamentos</Button>
+                </CardContent>
+             </Card>
+          </div>
+        </TabsContent>
+
+        {/* Aba Avançada: Performance e Segurança */}
+        <TabsContent value="advanced" className="space-y-8 animate-in fade-in duration-500">
+           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              
+              <Card className="lg:col-span-2 rounded-[2.5rem] border-none shadow-xl">
+                 <CardHeader className="p-8">
+                    <div className="flex items-center gap-4">
+                       <div className="p-3 bg-indigo-100 rounded-2xl text-indigo-600">
+                          <Server className="w-6 h-6" />
+                       </div>
+                       <CardTitle className="text-xl font-black">Infraestrutura & Low-Level</CardTitle>
+                    </div>
+                 </CardHeader>
+                 <CardContent className="p-8 pt-0 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-6">
+                       <h5 className="text-[10px] font-black uppercase tracking-widest text-primary">Drivers de Sistema</h5>
+                       {[
+                         { label: 'Driver de Cache', fn: 'cacheDriver', val: advancedSelectSettings.cacheDriver, opts: [{v: 'redis', l: 'Redis (Alta Performance)'}, {v: 'file', l: 'Arquivos Locais'}] },
+                         { label: 'Driver de Sessão', fn: 'sessionDriver', val: advancedSelectSettings.sessionDriver, opts: [{v: 'database', l: 'Banco de Dados'}, {v: 'redis', l: 'Redis'}] },
+                         { label: 'Driver de Fila', fn: 'queueDriver', val: advancedSelectSettings.queueDriver, opts: [{v: 'sync', l: 'Síncrono'}, {v: 'redis', l: 'Worker Redis'}] }
+                       ].map(s => (
+                         <div key={s.fn} className="space-y-2">
+                           <Label className="text-xs font-bold text-gray-500 ml-1">{s.label}</Label>
+                           <Select value={s.val} onValueChange={(v) => handleAdvancedSelectChange(s.fn, v)}>
+                              <SelectTrigger className="h-12 rounded-2xl bg-gray-50 border-none font-bold shadow-inner">
+                                 <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-2xl border-none shadow-2xl">
+                                {s.opts.map(o => <SelectItem key={o.v} value={o.v} className="rounded-xl">{o.l}</SelectItem>)}
+                              </SelectContent>
+                           </Select>
+                         </div>
+                       ))}
+                    </div>
+
+                    <div className="space-y-6">
+                       <h5 className="text-[10px] font-black uppercase tracking-widest text-rose-500">Limites & Políticas</h5>
+                       {[
+                         { label: 'Max File Size (MB)', fn: 'maxFileSize', ph: '10' },
+                         { label: 'Session Timeout (min)', fn: 'sessionTimeout', ph: '120' },
+                         { label: 'API Rate Limit', fn: 'apiRateLimit', ph: '1000' },
+                         { label: 'Max Connections', fn: 'maxConnections', ph: '100' }
+                       ].map(i => (
+                         <div key={i.fn} className="space-y-2">
+                           <Label className="text-xs font-bold text-gray-500 ml-1">{i.label}</Label>
+                           <Input 
+                             type="number"
+                             value={(advancedInputSettings as any)[i.fn]} 
+                             onChange={(e) => handleAdvancedInputChange(i.fn, e.target.value)}
+                             placeholder={i.ph}
+                             className="h-12 rounded-2xl bg-gray-50 border-none font-black shadow-inner"
+                           />
+                         </div>
+                       ))}
+                    </div>
+                 </CardContent>
+              </Card>
+
+              <div className="space-y-8">
+                 <Card className="rounded-[2.5rem] border-none shadow-lg bg-slate-900 text-white">
+                    <CardHeader className="p-8">
+                       <div className="flex items-center gap-4">
+                          <div className="p-3 bg-white/10 rounded-2xl">
+                             <ShieldCheck className="w-6 h-6 text-emerald-400" />
+                          </div>
+                          <CardTitle className="text-lg font-black uppercase tracking-tighter">Security Gates</CardTitle>
+                       </div>
+                    </CardHeader>
+                    <CardContent className="p-8 pt-0 space-y-4">
+                       {[
+                         { id: 'enableApiLogging', label: 'Monitor de Chamadas', state: advancedSwitchSettings.enableApiLogging },
+                         { id: 'enableSslRedirect', label: 'Forçar HTTPS / SSL', state: advancedSwitchSettings.enableSslRedirect },
+                         { id: 'enableCompression', label: 'Otimização GZIP', state: advancedSwitchSettings.enableCompression }
+                       ].map(sw => (
+                         <div key={sw.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl">
+                            <Label className="font-bold text-white/90 cursor-pointer">{sw.label}</Label>
+                            <Switch 
+                              checked={sw.state} 
+                              onCheckedChange={(v) => handleAdvancedSwitchChange(sw.id, v)}
+                              className="data-[state=checked]:bg-emerald-500"
+                            />
+                         </div>
+                       ))}
+                       <div className="pt-4">
+                          <Badge className="bg-emerald-500/20 text-emerald-400 border-none w-full justify-center p-2 font-black uppercase text-[10px] tracking-widest">Protocolos de Segurança Ativos</Badge>
+                       </div>
+                    </CardContent>
+                 </Card>
+
+                 <Card className="rounded-[2.5rem] border-none shadow-xl">
+                    <CardHeader className="p-8 pb-4">
+                       <CardTitle className="text-xl font-black">Endpoints Externos</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-8 pt-0 space-y-4">
+                       <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Bridge API URL</Label>
+                          <Input 
+                            value={advancedInputSettings.url_api_aeroclube} 
+                            onChange={(e) => handleAdvancedInputChange('url_api_aeroclube', e.target.value)}
+                            className="h-12 rounded-xl bg-gray-50 border-gray-100 font-bold"
+                          />
+                       </div>
+                       <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Secure Access Token</Label>
+                          <Input 
+                            type="password"
+                            value={advancedInputSettings.token_api_aeroclube} 
+                            onChange={(e) => handleAdvancedInputChange('token_api_aeroclube', e.target.value)}
+                            className="h-12 rounded-xl bg-gray-50 border-gray-100 font-bold"
+                          />
+                       </div>
+                    </CardContent>
+                 </Card>
+              </div>
+
+           </div>
+        </TabsContent>
+
+        {/* Aba de Conectividade: API Options */}
+        <TabsContent value="api" className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
+           <Card className="rounded-[3rem] border-none shadow-2xl overflow-hidden">
+              <div className="bg-gradient-to-r from-primary to-primary/80 p-10 text-white">
+                 <div className="flex items-center gap-5 mb-4">
+                    <div className="p-4 bg-white/20 backdrop-blur-md rounded-[1.5rem] shadow-xl">
+                       <Database className="w-8 h-8" />
+                    </div>
+                    <div>
+                       <h3 className="text-3xl font-black tracking-tight">Canais de Integração</h3>
+                       <p className="opacity-80 font-bold uppercase tracking-widest text-[11px] mt-1">Gerencie tokens, credenciais e gateways externos</p>
+                    </div>
+                 </div>
+              </div>
+              
+              <CardContent className="p-10 space-y-10">
+                 {apiLoading ? (
+                   <div className="flex flex-col items-center justify-center p-20 gap-4">
+                      <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                      <p className="font-black text-gray-400 uppercase tracking-widest text-xs">Acessando cofre de chaves...</p>
+                   </div>
+                 ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                       {/* SulAmerica Case Especial */}
+                       {getApiConfigOptions().find((o: any) => o.url === 'credenciais_sulamerica') && (
+                          <div className="md:col-span-2 bg-blue-50/50 p-8 rounded-[2.5rem] border-2 border-dashed border-blue-100 mb-4">
+                              <SulAmericaSettingsCard
+                                  option={getApiConfigOptions().find((o: any) => o.url === 'credenciais_sulamerica')}
+                                  value={getCurrentOptionValue(getApiConfigOptions().find((o: any) => o.url === 'credenciais_sulamerica'))}
+                                  onChange={(id, val) => handleApiOptionChange(id, val)}
+                                  onSave={handleSaveApiSettings}
+                                  isLoading={isLoading}
+                              />
+                          </div>
+                       )}
+
+                       {/* Outras opções de API */}
+                       {getApiConfigOptions().filter((o: any) => o.url !== 'credenciais_sulamerica').map((option) => (
+                         <div key={option.id} className="group flex flex-col gap-3 p-6 rounded-[2rem] bg-gray-50/30 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all border border-transparent hover:border-gray-100">
+                            <div className="flex items-center justify-between">
+                               <Label className="font-black text-gray-800 text-sm">{option.name}</Label>
+                               <Badge variant="outline" className="text-[9px] border-gray-200 text-gray-400 uppercase font-black tracking-tighter">API Option #{option.id}</Badge>
+                            </div>
+                            <Input 
+                               value={getCurrentOptionValue(option)}
+                               onChange={(e) => handleApiOptionChange(option.id, e.target.value)}
+                               className="h-14 rounded-2xl border-gray-100 bg-white shadow-sm font-bold focus:ring-primary focus:border-primary px-5"
+                               placeholder="Digite o valor..."
+                            />
+                            {option.obs && (
+                              <div className="flex items-start gap-2 px-2">
+                                 <Archive className="w-3.5 h-3.5 text-gray-400 mt-0.5" />
+                                 <p className="text-[11px] font-medium text-gray-400 leading-tight">
+                                   {option.obs}
+                                 </p>
+                              </div>
+                            )}
+                         </div>
+                       ))}
+                    </div>
+                 )}
+
+                 <div className="flex justify-end pt-10 border-t border-gray-100 gap-4">
+                    <Button 
+                      variant="ghost" 
+                      onClick={handleSaveFunctionalityOptions} 
+                      className="h-14 px-8 rounded-2xl font-black text-xs uppercase tracking-widest text-gray-400 hover:text-primary transition-colors"
+                    >
+                       Sincronizar Lote
+                    </Button>
+                    <Button 
+                      onClick={handleSaveApiSettings}
+                      disabled={isLoading || Object.keys(localApiOptions).length === 0}
+                      className="h-14 px-10 rounded-[1.5rem] font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/20 gap-3"
+                    >
+                      {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                      Persistir Conexões
+                    </Button>
+                 </div>
+              </CardContent>
+           </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* Botão de Ajuda Flutuante ou Tip */}
+      <div className="mt-20 text-center pb-20">
+         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-300">
+           Sistema Baseado em Algoritmos de Alta Performance • v2.1.4
+         </p>
+      </div>
+
     </div>
   );
 }

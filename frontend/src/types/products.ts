@@ -1,7 +1,24 @@
 /**
  * Tipos relacionados a produtos
  */
-export type ProductPlan = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+export type ProductPlan = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "11" | "12";
+
+/**
+ * Variações de produto
+ */
+export interface VariationOption {
+  name: string;
+  price: number;
+  active: boolean;
+}
+
+export interface VariationGroup {
+  name: string;
+  required: boolean;
+  minChoices: number;
+  maxChoices: number;
+  options: VariationOption[];
+}
 
 /**
  * Produto base
@@ -23,6 +40,7 @@ export interface Product {
   salePrice?: number;
   active?: boolean; // Adicionado para consistência
   stock: number;
+  variationGroups?: VariationGroup[];
   supplier_id?: string;
   supplierData?: { name: string; [key: string]: any };
   supplier_name?: string; // For listing display
@@ -47,6 +65,7 @@ export interface CreateProductInput {
   availability: 'available' | 'limited' | 'unavailable';
   terms: string[];
   validUntil?: string;
+  variationGroups?: VariationGroup[];
   supplier_id?: string;
 }
 
@@ -69,6 +88,7 @@ export interface UpdateProductInput {
   availability?: 'available' | 'limited' | 'unavailable';
   terms?: string[];
   validUntil?: string;
+  variationGroups?: VariationGroup[];
   supplier_id?: string;
 }
 

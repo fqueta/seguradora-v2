@@ -62,6 +62,10 @@ class PostController extends Controller
         $order = $request->input('order', 'desc');
 
         $query = Post::query()->orderBy($order_by, $order);
+        // Filtra por organização para usuários com permission_id >= 3
+        if (isset($user->permission_id) && intval($user->permission_id) >= 3) {
+            $query->where('organization_id', $user->organization_id);
+        }
 
         // Não exibir registros marcados como deletados ou excluídos
         $query->where(function($q) {
@@ -168,6 +172,8 @@ class PostController extends Controller
 
         // Definir autor como usuário logado
         $validated['post_author'] = $user->id;
+        // Definir organização do usuário logado
+        $validated['organization_id'] = $user->organization_id;
 
         // Valores padrão
         $validated['post_status'] = $validated['post_status'] ?? 'draft';
@@ -349,6 +355,10 @@ class PostController extends Controller
                         $q->where('deletado', 's')->orWhere('excluido', 's');
                     })
                     ->orderBy($order_by, $order);
+        // Filtra por organização para usuários com permission_id >= 3
+        if (isset($user->permission_id) && intval($user->permission_id) >= 3) {
+            $query->where('organization_id', $user->organization_id);
+        }
 
         // Filtros opcionais
         if ($request->filled('post_title')) {

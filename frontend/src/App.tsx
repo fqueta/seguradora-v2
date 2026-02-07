@@ -26,6 +26,7 @@ import ServiceObjects from "./pages/ServiceObjects";
 import Aircraft from "./pages/Aircraft";
 import AircraftView from "./pages/AircraftView";
 import Products from "./pages/Products";
+import Mesas from "./pages/Mesas";
 import ProductView from "./pages/ProductView";
 import ProductCreate from "./pages/ProductCreate";
 import ProductEdit from "./pages/ProductEdit";
@@ -105,6 +106,18 @@ import CertificateGenerate from "./pages/school/CertificateGenerate";
 import CertificateView from "./pages/school/CertificateView";
 import CertificateValidate from "./pages/school/CertificateValidate";
 import RelatorioGeral from "./pages/reports/RelatorioGeral";
+import MenuPage from "./pages/menu/Index";
+import CheckoutPage from "./pages/checkout/Index";
+import OrderSuccessPage from "./pages/orders/Success";
+import AdminOrdersList from "./pages/admin/orders/List";
+import AdminOrderShow from "./pages/admin/orders/Show";
+import AdminOrderCreate from "./pages/admin/orders/Create";
+import AdminOrderEdit from "./pages/admin/orders/Edit";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import ClosingReport from "./pages/admin/reports/ClosingReport";
+import OrdersKanban from "./pages/admin/orders/Kanban";
+
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -164,6 +177,10 @@ const App = () => {
             <Routes>
               {/* Rotas públicas */}
               <Route path="/" element={<Navigate to="/admin" replace />} />
+              {/* Cardápio e Checkout (público) */}
+              <Route path="/menu" element={<MenuPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/pedido/sucesso" element={<OrderSuccessPage />} />
               <Route path="/login" element={
                 <AuthRedirect>
                   <Login />
@@ -230,7 +247,81 @@ const App = () => {
                 <AdminProtectedRoute>
                   <AppLayout>
                     {/* <Dashboard2 /> */}
-                    <Dashboard />
+                    <AdminDashboard />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/dashboard" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <AdminDashboard />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+
+              {/* Pedidos (Admin) */}
+              <Route path="/admin/orders" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <AdminOrdersList />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/orders/kanban" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <OrdersKanban />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+
+              <Route path="/admin/orders/create" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <AdminOrderCreate />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/orders/:id" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <AdminOrderShow />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/orders/:id/edit" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <AdminOrderEdit />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              {/* Alias direto */}
+              <Route path="/orders" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <AdminOrdersList />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/orders/create" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <AdminOrderCreate />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/orders/:id" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <AdminOrderShow />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/orders/:id/edit" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <AdminOrderEdit />
                   </AppLayout>
                 </AdminProtectedRoute>
               } />
@@ -243,6 +334,14 @@ const App = () => {
                   </AppLayout>
                 </AdminProtectedRoute>
               } />
+              <Route path="/admin/reports/closing" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <ClosingReport />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+
              
               <Route path="/admin/clients" element={
                 <AdminProtectedRoute>
@@ -385,6 +484,14 @@ const App = () => {
                 <AdminProtectedRoute>
                   <AppLayout>
                     <Products />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              {/* Mesas */}
+              <Route path="/admin/mesas" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <Mesas />
                   </AppLayout>
                 </AdminProtectedRoute>
               } />

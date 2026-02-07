@@ -30,14 +30,15 @@ class DatabaseSeeder extends Seeder
                     // ProfissaoSeeder::class,
                     MenuSeeder::class, //cadastra menus permissõs e menu_permissions
                     MenuPermissionSeederAdmin::class,
-                    MenuPermissionSeederGerente::class,
-                    MenuPermissionSeederConsultor::class,
+                    // MenuPermissionSeederGerente::class,
+                    // MenuPermissionSeederConsultor::class,
                     MenuPermissionSeederDiretor::class,
                     MenuPermissionSeederEscritorio::class,
                     MenuPermissionSeederVendedor::class,
                     // MenuPermissionSeeder::class,
                     DashboardMetricsSeeder::class,
                     CategorySeeder::class,
+                    FoodMenuSeeder::class,
                     FinancialCategoriesSeeder::class,
                     OptionsTableSeeder::class,
                     ProductUnitsSeeder::class,
@@ -59,13 +60,14 @@ class DatabaseSeeder extends Seeder
                     UserSeeder::class,
                     MenuSeeder::class, //cadastra menus permissõs e menu_permissions
                     MenuPermissionSeederAdmin::class,
-                    MenuPermissionSeederGerente::class,
-                    MenuPermissionSeederConsultor::class,
+                    // MenuPermissionSeederGerente::class,
+                    // MenuPermissionSeederConsultor::class,
                     MenuPermissionSeederDiretor::class,
                     MenuPermissionSeederEscritorio::class,
                     MenuPermissionSeederVendedor::class,
                     // DashboardMetricsSeeder::class,
                     CategorySeeder::class,
+                    FoodMenuSeeder::class,
                     FinancialCategoriesSeeder::class,
                     OptionsTableSeeder::class,
                     ProductUnitsSeeder::class,
@@ -75,17 +77,17 @@ class DatabaseSeeder extends Seeder
                     // AeronavesSeeder::class,
                     // AeronavesSeeder::class,
                     SupplierSeeder::class,
-                    SulamericaProductSeeder::class,
-                    LsxProductSeeder::class,
                     ApiCredentialsSeeder::class,
-                    ApiCredentialsAlloyalSeeder::class,
-                    LsxProductsSeeder::class,
             ];
 
         }
         // Executa TenantSeeder apenas no contexto central (fora do tenant)
         if (!(function_exists('tenant') && tenant())) {
             $var_cal[] = TenantSeeder::class;
+        }
+        // Executa seeders específicos de posts (tabelas do tenant) apenas dentro do contexto tenant
+        if (function_exists('tenant') && tenant()) {
+            $var_cal[] = MesasSeeder::class;
         }
         $this->call($var_cal);
     }

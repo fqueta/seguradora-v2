@@ -65,45 +65,44 @@ export function findMenuItemByUrl(menu: MenuItemDTO[], url: string): MenuItemDTO
 // Default menu structure when no menu is provided by API
 export const defaultMenu: MenuItemDTO[] = [
   {
-    title: "Dashboard",
-    url: "/admin/aero-dashboard",
+    title: "Início",
+    url: "/admin/dashboard",
     icon: "Home",
     permission: "dashboard.view",
     can_view: true
   },
   {
-    title: "Dashboard de Métricas",
-    url: "/admin/metrics-dashboard",
-    icon: "BarChart3",
-    permission: "settings.metrics.view",
-    can_view: true
+    title: "Gestão de Pedidos",
+    icon: "ClipboardList",
+    permission: "orders.view",
+    can_view: true,
+    items: [
+      {
+        title: "Listagem de Pedidos",
+        url: "/admin/orders",
+        permission: "orders.view",
+        can_view: true
+      },
+      {
+        title: "Painel Kanban",
+        url: "/admin/orders/kanban",
+        permission: "orders.view",
+        can_view: true
+      },
+      {
+        title: "Novo Pedido",
+        url: "/admin/orders/create",
+        permission: "orders.create",
+        can_view: true
+      }
+    ]
   },
+
   {
-    title: "Clientes",
-    url: "/admin/clients",
-    icon: "Users",
-    permission: "clients.view",
-    can_view: true
-  },
-  {
-    title: "Vendas",
-    url: "/admin/sales",
-    icon: "BarChart3",
-    permission: "sales.view",
-    can_view: true
-  },
-  {
-    title: "Parceiros",
-    url: "/admin/partners",
-    icon: "Users",
-    permission: "partners.view",
-    can_view: true
-  },
-  {
-    title: "Objetos de Serviço",
-    url: "/admin/service-objects",
-    icon: "Wrench",
-    permission: "service-objects.view",
+    title: "Cardápio (Site)",
+    url: "/menu",
+    icon: "Package",
+    permission: "menu.view",
     can_view: true
   },
   {
@@ -119,12 +118,6 @@ export const defaultMenu: MenuItemDTO[] = [
         can_view: true
       },
       {
-        title: "Serviços",
-        url: "/admin/services",
-        permission: "catalog.services.view",
-        can_view: true
-      },
-      {
         title: "Categorias",
         url: "/admin/categories",
         permission: "catalog.categories.view",
@@ -133,76 +126,11 @@ export const defaultMenu: MenuItemDTO[] = [
     ]
   },
   {
-    title: "Escola",
-    icon: "FileText",
-    permission: "school.view",
-    can_view: true,
-    items: [
-      {
-        title: "Cursos",
-        url: "/admin/school/courses",
-        permission: "school.courses.view",
-        can_view: true
-      },
-      {
-        title: "Turmas",
-        url: "/admin/school/classes",
-        permission: "school.classes.view",
-        can_view: true
-      }
-    ]
-  },
-  {
-    title: "Orçamentos",
-    url: "/admin/budgets",
-    icon: "FileText",
-    permission: "budgets.view",
+    title: "Clientes",
+    url: "/admin/clients",
+    icon: "Users",
+    permission: "clients.view",
     can_view: true
-  },
-  {
-    title: "Ordens de Serviço",
-    url: "/admin/service-orders",
-    icon: "ClipboardList",
-    permission: "service-orders.view",
-    can_view: true
-  },
-  {
-    title: "Financeiro",
-    icon: "DollarSign",
-    permission: "finance.view",
-    can_view: true,
-    items: [
-      {
-        title: "Categorias",
-        url: "/admin/financial/categories",
-        permission: "financial.categories.view",
-        can_view: true
-      },
-      {
-        title: "Pagamentos",
-        url: "/admin/finance/payments",
-        permission: "finance.payments.view",
-        can_view: true
-      },
-      {
-        title: "Fluxo de Caixa",
-        url: "/admin/finance/cash-flow",
-        permission: "finance.cash-flow.view",
-        can_view: true
-      },
-      {
-        title: "Contas a Receber",
-        url: "/admin/finance/accounts-receivable",
-        permission: "finance.accounts-receivable.view",
-        can_view: true
-      },
-      {
-        title: "Contas a Pagar",
-        url: "/admin/finance/accounts-payable",
-        permission: "finance.accounts-payable.view",
-        can_view: true
-      }
-    ]
   },
   {
     title: "Relatórios",
@@ -211,33 +139,15 @@ export const defaultMenu: MenuItemDTO[] = [
     can_view: true,
     items: [
       {
-        title: "Receita",
-        url: "/admin/reports/revenue",
-        permission: "reports.revenue.view",
+        title: "Fechamento de Caixa",
+        url: "/admin/reports/closing",
+        permission: "reports.closing.view",
         can_view: true
       },
       {
         title: "Relatório Geral",
         url: "/admin/reports/relatorio-geral",
         permission: "reports.general.view",
-        can_view: true
-      },
-      {
-        title: "Ordens de Serviço",
-        url: "/admin/reports/service-orders",
-        permission: "reports.service-orders.view",
-        can_view: true
-      },
-      {
-        title: "Top Produtos",
-        url: "/admin/reports/top-products",
-        permission: "reports.top-products.view",
-        can_view: true
-      },
-      {
-        title: "Financeiro",
-        url: "/admin/reports/financial",
-        permission: "reports.financial.view",
         can_view: true
       }
     ]
@@ -255,43 +165,6 @@ export const defaultMenu: MenuItemDTO[] = [
         can_view: true
       },
       {
-        title: "Organizações",
-        url: "/admin/settings/organizations",
-        icon: "Building",
-        permission: "settings.organizations.view",
-        can_view: true
-      },
-      {
-        title: "Perfis de Usuário",
-        url: "/admin/settings/user-profiles",
-        permission: "settings.user-profiles.view",
-        can_view: true
-      },
-      {
-        title: "Permissões",
-        url: "/admin/settings/permissions",
-        permission: "settings.permissions.view",
-        can_view: true
-      },
-      {
-        title: "Status de OS",
-        url: "/admin/settings/os-statuses",
-        permission: "settings.os-statuses.view",
-        can_view: true
-      },
-      {
-        title: "Métodos de Pagamento",
-        url: "/admin/settings/payment-methods",
-        permission: "settings.payment-methods.view",
-        can_view: true
-      },
-      {
-        title: "Integrações",
-        url: "/admin/settings/integration",
-        permission: "settings.system.view",
-        can_view: true
-      },
-      {
         title: "Sistema",
         url: "/admin/settings/system",
         permission: "settings.system.view",
@@ -300,6 +173,7 @@ export const defaultMenu: MenuItemDTO[] = [
     ]
   }
 ];
+
 
 // Filter menu based on can_view access (can_view undefined = invisible by default)
 export function filterMenuByViewAccess(menu: MenuItemResolved[]): MenuItemResolved[] {

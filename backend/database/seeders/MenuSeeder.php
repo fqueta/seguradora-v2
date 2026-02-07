@@ -29,11 +29,7 @@ class MenuSeeder extends Seeder
         DB::table('menus')->truncate();
 
         // Carrega JSON externo conforme modo do sistema
-        if (Qlib::is_crm_aero()) {
-            $path = database_path('seeders/data/menu_crm.json');
-        } else {
-            $path = database_path('seeders/data/menu.json');
-        }
+        $path = database_path('seeders/data/menu.json');
         $json = is_file($path) ? file_get_contents($path) : null;
         $menus = $json ? json_decode($json, true) : [];
         if (json_last_error() !== JSON_ERROR_NONE || !is_array($menus)) {

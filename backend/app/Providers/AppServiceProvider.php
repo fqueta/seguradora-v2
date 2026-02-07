@@ -35,6 +35,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $compiled = storage_path('framework/views');
+        if (!is_dir($compiled)) {
+            @mkdir($compiled, 0777, true);
+        }
         Inertia::share('nav', [
             ['label' => 'Dashboard', 'href' => '/dashboard'],
             ['label' => 'Usuários', 'href' => '/users'],

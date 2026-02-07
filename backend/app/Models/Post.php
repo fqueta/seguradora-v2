@@ -50,6 +50,7 @@ class Post extends Model
         'comment_count',
         'config',
         'token',
+        'organization_id',
         'excluido',
         'reg_excluido',
         'deletado',
@@ -65,6 +66,7 @@ class Post extends Model
         'post_parent' => 'integer',
         'menu_order' => 'integer',
         'comment_count' => 'integer',
+        'organization_id' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

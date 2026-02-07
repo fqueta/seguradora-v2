@@ -28,6 +28,7 @@ use App\Http\Controllers\api\DashboardChartController;
 use App\Http\Controllers\api\ProductUnitController;
 use App\Http\Controllers\api\ProductController;
 use App\Http\Controllers\api\ServiceController;
+use App\Http\Controllers\api\MesaController;
 use App\Http\Controllers\api\ServiceUnitController;
 use App\Http\Controllers\api\ServiceOrderController;
 use App\Http\Controllers\api\SituacaoMatriculaController;
@@ -309,6 +310,14 @@ Route::name('api.')->prefix('api/v1')->middleware([
         Route::get('posts/trash', [PostController::class, 'trash'])->name('posts.trash');
         Route::put('posts/{id}/restore', [PostController::class, 'restore'])->name('posts.restore');
         Route::delete('posts/{id}/force', [PostController::class, 'forceDelete'])->name('posts.forceDelete');
+
+        // Rotas para mesas (post_type=mesas)
+        Route::apiResource('mesas', MesaController::class, ['parameters' => [
+            'mesas' => 'id'
+        ]]);
+        Route::get('mesas/trash', [MesaController::class, 'trash'])->name('mesas.trash');
+        Route::put('mesas/{id}/restore', [MesaController::class, 'restore'])->name('mesas.restore');
+        Route::delete('mesas/{id}/force', [MesaController::class, 'forceDelete'])->name('mesas.forceDelete');
 
         // Rotas para situações de matrícula (post_type=situacao_matricula)
         Route::apiResource('situacoes-matricula', SituacaoMatriculaController::class, ['parameters' => [

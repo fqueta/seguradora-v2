@@ -57,6 +57,7 @@ class Product extends Model
         'comment_count',
         'config',
         'token',
+        'organization_id',
         'excluido',
         'reg_excluido',
         'deletado',
@@ -74,6 +75,7 @@ class Product extends Model
         'comment_count' => 'integer',
         'post_value1' => 'decimal:2',
         'post_value2' => 'decimal:2',
+        'organization_id' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

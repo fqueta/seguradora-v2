@@ -1,4 +1,14 @@
-import { ChevronUp, ChevronDown, User, Wrench } from "lucide-react";
+import { 
+  ChevronUp, 
+  ChevronDown, 
+  User, 
+  Wrench, 
+  LogOut, 
+  Settings, 
+  LayoutDashboard,
+  Menu,
+  ChevronLeft
+} from "lucide-react";
 import * as React from "react";
 import { NavLink, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,6 +32,7 @@ import {
   SidebarSeparator,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { Badge } from "@/components/ui/badge";
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,19 +40,23 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { buildMenuFromDTO, filterMenuByViewAccess, defaultMenu } from "@/lib/menu";
 import { BrandLogo } from "@/components/branding/BrandLogo";
 import { getInstitutionName, hydrateBrandingFromPublicApi } from "@/lib/branding";
+import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
 
 /**
  * AppSidebar
- * pt-BR: Menu lateral moderno com branding, tooltips no modo colapsado e ação de recolher.
- * en-US: Modern sidebar with branding, collapsed tooltips, and collapse action.
+ * pt-BR: Menu lateral premium com design moderno, animações suaves e branding refinado.
+ * en-US: Premium sidebar with modern design, smooth animations, and refined branding.
  */
 export function AppSidebar() {
-  const { state } = useSidebar();
-  const { menu: apiMenu, logout } = useAuth();
+  const { state, toggleSidebar } = useSidebar();
+  const { menu: apiMenu, logout, user } = useAuth();
   const location = useLocation();
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
@@ -53,31 +68,15 @@ export function AppSidebar() {
     });
   }, []);
 
-  /**
-   * BrandLogo usage
-   * pt-BR: Substitui lógica local de resolução por componente BrandLogo com fallback.
-   * en-US: Replaces local resolution logic with BrandLogo component using fallback.
-   */
-
-  /**
-   * resolveUrl
-   * pt-BR: Normaliza URLs do menu evitando duplicar "/admin" e garantindo barra inicial.
-   * en-US: Normalizes menu URLs, avoiding duplicate "/admin" and ensuring leading slash.
-   */
   const rota_admin = 'admin';
   const resolveUrl = (url?: string): string => {
     if (!url || url === '#') return '#';
     const base = `/${rota_admin}`;
-    if (url.startsWith(base)) return url; // already absolute under /admin
-    if (url.startsWith('/')) return `${base}${url}`; // relative from root
-    return `${base}/${url}`; // bare path
+    if (url.startsWith(base)) return url;
+    if (url.startsWith('/')) return `${base}${url}`;
+    return `${base}/${url}`;
   };
 
-  /**
-   * submenu collapse state
-   * pt-BR: Persistência de recolhimento de submenus por título do item.
-   * en-US: Persist submenu collapsed state by item title key.
-   */
   const GROUPS_KEY = 'sidebarGroupsCollapsed';
   const [collapsedGroups, setCollapsedGroups] = React.useState<Record<string, boolean>>(() => {
     try {
@@ -88,25 +87,9 @@ export function AppSidebar() {
     }
   });
 
-  /**
-   * getGroupKey
-   * pt-BR: Gera uma chave estável baseada no título do item.
-   * en-US: Generate a stable key from the item title.
-   */
   const getGroupKey = (title: string) => title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-
-  /**
-   * isGroupCollapsed
-   * pt-BR: Verifica se o grupo está recolhido (persistido).
-   * en-US: Check if group is collapsed (persisted).
-   */
   const isGroupCollapsed = (title: string) => !!collapsedGroups[getGroupKey(title)];
 
-  /**
-   * toggleGroup
-   * pt-BR: Alterna recolhimento e persiste no localStorage.
-   * en-US: Toggle collapse and persist to localStorage.
-   */
   const toggleGroup = (title: string) => {
     setCollapsedGroups((prev) => {
       const key = getGroupKey(title);
@@ -116,162 +99,132 @@ export function AppSidebar() {
     });
   };
 
-  // Build menu from API data or use default menu
   const baseMenu = apiMenu && apiMenu.length > 0 
     ? buildMenuFromDTO(apiMenu) 
     : buildMenuFromDTO(defaultMenu);
 
-  // Filter by can_view access
   const menuItems = filterMenuByViewAccess(baseMenu);
 
   const isActive = (path: string) => currentPath === resolveUrl(path);
   const hasActiveChild = (items: any[]) => 
     items?.some((item) => isActive(item.url));
 
-  /**
-   * areAllGroupsCollapsed / collapseAllGroups / expandAllGroups
-   * pt-BR: Utilitários para recolher/expandir todos os submenus de uma vez e persistir.
-   * en-US: Utilities to collapse/expand all submenus at once and persist.
-   */
   const groupKeys = menuItems.filter((i: any) => i.items)?.map((i: any) => getGroupKey(i.title)) ?? [];
   const areAllGroupsCollapsed = groupKeys.length > 0 && groupKeys.every((k) => !!collapsedGroups[k]);
+  
   const collapseAllGroups = () => {
-    setCollapsedGroups((prev) => {
-      const next = { ...prev } as Record<string, boolean>;
-      for (const k of groupKeys) next[k] = true;
-      localStorage.setItem(GROUPS_KEY, JSON.stringify(next));
-      return next;
-    });
+    setCollapsedGroups(groupKeys.reduce((acc, k) => ({ ...acc, [k]: true }), {}));
+    localStorage.setItem(GROUPS_KEY, JSON.stringify(groupKeys.reduce((acc, k) => ({ ...acc, [k]: true }), {})));
   };
+  
   const expandAllGroups = () => {
-    setCollapsedGroups((prev) => {
-      const next = { ...prev } as Record<string, boolean>;
-      for (const k of groupKeys) next[k] = false;
-      localStorage.setItem(GROUPS_KEY, JSON.stringify(next));
-      return next;
-    });
+    setCollapsedGroups({});
+    localStorage.removeItem(GROUPS_KEY);
   };
+
   return (
-    <Sidebar className={collapsed ? "w-14" : "w-64"} collapsible="icon">
-      {/* Rail para indicar área do menu quando colapsado */}
+    <Sidebar className={cn("border-r border-gray-100 transition-all duration-300", collapsed ? "w-20" : "w-72")} collapsible="icon">
       <SidebarRail />
 
-      {/* Header com branding */}
-      <SidebarHeader className="border-b border-border print:hidden">
-        <Link to="/" title="Ir para o site" className="flex items-center gap-2 px-4 py-3">
-          <BrandLogo alt="Logo" fallbackSrc="/aeroclube-logo.svg" className="h-6 w-auto" />
-          {!collapsed && (
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold">{institutionName}</span>
-              <span className="text-xs text-muted-foreground">Painel & Operações</span>
+      <SidebarHeader className="p-6 pb-2 print:hidden">
+        <div className="flex items-center justify-between gap-2">
+          <Link to="/" className="flex items-center gap-3 overflow-hidden transition-all duration-300">
+            <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 shadow-sm border border-primary/10 group hover:scale-105 transition-transform">
+              <BrandLogo alt="Logo" fallbackSrc="/aeroclube-logo.svg" className="h-6 w-auto group-hover:rotate-6 transition-transform" />
             </div>
+            {!collapsed && (
+              <div className="flex flex-col min-w-0">
+                <span className="text-base font-black tracking-tight text-gray-900 truncate uppercase leading-none">{institutionName}</span>
+                <span className="text-[10px] font-bold text-primary tracking-widest uppercase mt-1 opacity-80">Admin Panel</span>
+              </div>
+            )}
+          </Link>
+          {!collapsed && (
+            <Button variant="ghost" size="icon" onClick={() => toggleSidebar()} className="h-8 w-8 rounded-xl text-gray-400 hover:bg-gray-50 flex lg:hidden">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
           )}
-        </Link>
+        </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="px-4 py-4 space-y-6">
         <SidebarGroup>
-          {/*
-           * SidebarGroupLabel color override
-           * pt-BR: Força cor do rótulo para o foreground do sidebar, evitando aparência clara.
-           * en-US: Force label color to sidebar foreground to avoid washed-out text.
-           */}
-          <SidebarGroupLabel className="text-sidebar-foreground">Navegação Principal</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-4 h-auto">
+            {!collapsed ? "Navegação Principal" : "•"}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <TooltipProvider>
-              <SidebarMenu>
+            <TooltipProvider delayDuration={0}>
+              <SidebarMenu className="gap-1.5">
                 {menuItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     {item.items ? (
-                      // Menu with submenu
-                      <Tooltip disableHoverableContent={!collapsed}>
-                        <TooltipTrigger asChild>
-                          {/*
-                           * Submenu root button color
-                           * Usa text-sidebar-foreground para garantir contraste em temas claros/escuros.
-                           */}
-                          {/*
-                           * Evita button-aninhado: SidebarMenuButton asChild -> renderiza div.
-                           * pt-BR: Usamos asChild para que o elemento raiz seja uma div, permitindo um botão de ação dentro sem violar a semântica.
-                           * en-US: Use asChild so root becomes a div, allowing an inner action button without invalid nesting.
-                           */}
-                          <SidebarMenuButton
-                            asChild
-                            isActive={hasActiveChild(item.items)}
-                            className="text-sidebar-foreground"
-                            aria-expanded={!isGroupCollapsed(item.title)}
-                          >
-                            <div className="flex items-center gap-2 w-full">
-                              <item.icon className="h-4 w-4 text-sidebar-foreground" />
-                              {!collapsed && <span className="flex-1 truncate">{item.title}</span>}
-                              {/* Botão de ação para recolher/expandir submenu */}
-                              {!collapsed && (
-                                <SidebarMenuAction
-                                  onClick={() => toggleGroup(item.title)}
-                                  aria-label={isGroupCollapsed(item.title) ? 'Expandir' : 'Recolher'}
-                                  title={isGroupCollapsed(item.title) ? 'Expandir' : 'Recolher'}
-                                >
-                                  {isGroupCollapsed(item.title) ? (
-                                    <ChevronDown className="h-4 w-4" />
-                                  ) : (
-                                    <ChevronUp className="h-4 w-4" />
-                                  )}
-                                </SidebarMenuAction>
+                      <div className="space-y-1">
+                        <Tooltip disableHoverableContent={!collapsed}>
+                          <TooltipTrigger asChild>
+                            <SidebarMenuButton
+                              isActive={hasActiveChild(item.items)}
+                              onClick={() => !collapsed && toggleGroup(item.title)}
+                              className={cn(
+                                "h-12 rounded-2xl transition-all duration-200 font-bold text-gray-600 hover:bg-gray-50 group",
+                                hasActiveChild(item.items) && "bg-primary/5 text-primary"
                               )}
-                            </div>
-                          </SidebarMenuButton>
-                        </TooltipTrigger>
-                        {collapsed && (
-                          <TooltipContent side="right">{item.title}</TooltipContent>
+                            >
+                              <item.icon className={cn("h-5 w-5 shrink-0 transition-transform group-hover:scale-110", hasActiveChild(item.items) ? "text-primary" : "text-gray-400")} />
+                              {!collapsed && <span className="flex-1 truncate">{item.title}</span>}
+                              {!collapsed && (
+                                <div className="ml-auto transition-transform duration-300">
+                                  {isGroupCollapsed(item.title) ? (
+                                    <ChevronDown className="h-4 w-4 opacity-50" />
+                                  ) : (
+                                    <ChevronUp className="h-4 w-4 opacity-50" />
+                                  )}
+                                </div>
+                              )}
+                            </SidebarMenuButton>
+                          </TooltipTrigger>
+                          {collapsed && <TooltipContent side="right" className="font-bold border-none shadow-xl rounded-xl px-4 py-2">{item.title}</TooltipContent>}
+                        </Tooltip>
+
+                        {!collapsed && !isGroupCollapsed(item.title) && (
+                          <SidebarMenuSub className="ml-6 pl-4 border-l-2 border-gray-100 space-y-1 mt-1">
+                            {item.items.map((subItem: any) => (
+                              <SidebarMenuSubItem key={subItem.title}>
+                                <SidebarMenuSubButton 
+                                  asChild 
+                                  isActive={isActive(subItem.url)}
+                                  className={cn(
+                                    "h-10 rounded-xl font-bold text-sm text-gray-500 hover:text-gray-900 hover:bg-transparent transition-all",
+                                    isActive(subItem.url) && "text-primary bg-primary/5 px-4"
+                                  )}
+                                >
+                                  <NavLink to={resolveUrl(subItem.url)}>
+                                    <span>{subItem.title}</span>
+                                  </NavLink>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            ))}
+                          </SidebarMenuSub>
                         )}
-                      </Tooltip>
+                      </div>
                     ) : (
-                      // Simple menu item
                       <Tooltip disableHoverableContent={!collapsed}>
                         <TooltipTrigger asChild>
-                          {/*
-                           * Simple item active styling
-                           * pt-BR: Usa data-[active=true] para aplicar bg-primary + texto branco quando ativo.
-                           * en-US: Use data-[active=true] to apply bg-primary + white text on active.
-                           */}
                           <SidebarMenuButton 
                             asChild 
                             isActive={isActive(item.url)}
-                            className="data-[active=true]:bg-primary data-[active=true]:text-primary-foreground"
+                            className={cn(
+                              "h-12 rounded-2xl transition-all duration-200 font-bold text-gray-600 hover:bg-gray-50 group",
+                              isActive(item.url) && "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                            )}
                           >
-                            <NavLink 
-                              to={resolveUrl(item.url)} 
-                              className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                            >
-                              <item.icon className="h-4 w-4 text-sidebar-foreground" />
+                            <NavLink to={resolveUrl(item.url)}>
+                              <item.icon className={cn("h-5 w-5 shrink-0 transition-transform group-hover:scale-110", isActive(item.url) ? "text-white" : "text-gray-400")} />
                               {!collapsed && <span>{item.title}</span>}
                             </NavLink>
                           </SidebarMenuButton>
                         </TooltipTrigger>
-                        {collapsed && (
-                          <TooltipContent side="right">{item.title}</TooltipContent>
-                        )}
+                        {collapsed && <TooltipContent side="right" className="font-bold border-none shadow-xl rounded-xl px-4 py-2">{item.title}</TooltipContent>}
                       </Tooltip>
-                    )}
-                    {item.items && !collapsed && !isGroupCollapsed(item.title) && (
-                      <SidebarMenuSub>
-                        {item.items.map((subItem) => (
-                          <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton 
-                            asChild 
-                            isActive={isActive(subItem.url)}
-                            className="data-[active=true]:bg-primary data-[active=true]:text-primary-foreground"
-                          >
-                            <NavLink 
-                              to={resolveUrl(subItem.url)} 
-                              className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                            >
-                              <span>{subItem.title}</span>
-                            </NavLink>
-                          </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        ))}
-                      </SidebarMenuSub>
                     )}
                   </SidebarMenuItem>
                 ))}
@@ -281,67 +234,81 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarSeparator />
-
-      <SidebarFooter className="border-t border-border">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton>
-                  <User className="h-4 w-4" />
-                  {!collapsed && <span>Usuário</span>}
-                  <ChevronUp className="ml-auto h-4 w-4" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent 
-                side="top" 
-                className="w-[--radix-popper-anchor-width]"
-              >
-                <DropdownMenuItem asChild>
-                  <Link to="/admin/settings/user-profiles" className="flex items-center">
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Perfil</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/admin/settings/system" className="flex items-center">
-                    <Wrench className="mr-2 h-4 w-4" />
-                    <span>Configurações</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={logout} className="text-red-600 cursor-pointer">
-                  <ChevronUp className="mr-2 h-4 w-4" />
-                  <span>Sair</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-          {/**
-           * Removido: Botão "Recolher menu" do rodapé
-           * pt-BR: O controle de colapsar a sidebar deixou de ter efeito nesta UI.
-           * en-US: The sidebar collapse control is no longer effective in this UI.
-           */}
-          {/* Controle global de submenus: recolher/expandir todos com persistência */}
-          <SidebarMenuItem>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mx-2 mb-2 w-[calc(100%-1rem)]"
-              onClick={() => (areAllGroupsCollapsed ? expandAllGroups() : collapseAllGroups())}
-              aria-label={areAllGroupsCollapsed ? 'Expandir submenus' : 'Recolher submenus'}
-            >
-              {areAllGroupsCollapsed ? (
-                <ChevronDown className="mr-2 h-4 w-4" />
-              ) : (
-                <ChevronUp className="mr-2 h-4 w-4" />
-              )}
-              {!collapsed && (
-                <span>{areAllGroupsCollapsed ? 'Expandir submenus' : 'Recolher submenus'}</span>
-              )}
-            </Button>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarFooter className="p-4 mt-auto">
+        <div className="bg-gray-50/50 rounded-[2.5rem] p-3 border border-gray-100/50 backdrop-blur-sm">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton className="h-16 rounded-[1.8rem] bg-white shadow-sm border border-gray-100 hover:bg-gray-50 hover:shadow-md transition-all p-2 group">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center text-white font-black text-lg shrink-0 shadow-lg shadow-primary/20">
+                      {user?.name?.[0]?.toUpperCase() || <User className="h-6 w-6" />}
+                    </div>
+                    {!collapsed && (
+                      <div className="flex flex-col ml-3 min-w-0">
+                        <span className="text-sm font-black text-gray-900 truncate leading-none mb-1 text-left">{user?.name?.split(' ')[0]}</span>
+                        <div className="flex items-center gap-1.5 opacity-60">
+                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                           <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">{user?.role_name || "Administrador"}</span>
+                        </div>
+                      </div>
+                    )}
+                    {!collapsed && <ChevronUp className="ml-auto h-4 w-4 text-gray-300 group-hover:text-gray-600 transition-colors mr-2" />}
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="top" align="center" className="w-72 p-4 rounded-[2.5rem] shadow-2xl border-none animate-in slide-in-from-bottom-4 duration-500">
+                  <DropdownMenuLabel className="px-4 pb-4 pt-2">
+                    <div className="flex items-center gap-4 mb-4">
+                       <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black text-xl">
+                          {user?.name?.[0]?.toUpperCase()}
+                       </div>
+                       <div className="flex flex-col">
+                          <p className="text-lg font-black text-gray-900 leading-none">{user?.name}</p>
+                          <p className="text-xs text-gray-400 font-medium mt-1">{user?.email}</p>
+                       </div>
+                    </div>
+                    <Badge variant="outline" className="bg-gray-50 border-gray-100 text-[10px] font-black px-3 py-1 uppercase tracking-widest text-gray-400">
+                       Conta Corporativa
+                    </Badge>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-gray-100 mb-2" />
+                  <div className="space-y-1">
+                    <DropdownMenuItem asChild className="rounded-2xl h-12 px-4 cursor-pointer">
+                      <Link to="/admin/settings/user-profiles" className="flex items-center w-full">
+                        <User className="mr-3 h-5 w-5 text-gray-400" />
+                        <span className="font-bold">Perfil do Usuário</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="rounded-2xl h-12 px-4 cursor-pointer">
+                      <Link to="/admin/settings/system" className="flex items-center w-full">
+                        <Settings className="mr-3 h-5 w-5 text-gray-400" />
+                        <span className="font-bold">Estatísticas & Painel</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </div>
+                  <DropdownMenuSeparator className="bg-gray-100 my-2" />
+                  <DropdownMenuItem onClick={logout} className="rounded-2xl h-12 px-4 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
+                    <LogOut className="mr-3 h-5 w-5" />
+                    <span className="font-bold">Desconectar Sistema</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          </SidebarMenu>
+          
+          {!collapsed && (
+            <div className="mt-4 px-3 flex justify-between items-center text-[9px] font-black uppercase tracking-[0.2em] text-gray-300">
+               <button 
+                onClick={() => (areAllGroupsCollapsed ? expandAllGroups() : collapseAllGroups())}
+                className="hover:text-primary transition-colors flex items-center gap-2 group/btn"
+               >
+                 <ChevronDown className={cn("w-3 h-3 group-hover/btn:rotate-180 transition-transform", areAllGroupsCollapsed && "rotate-180")} />
+                 {areAllGroupsCollapsed ? "Expandir Menu" : "Recolher Menu"}
+               </button>
+               <span className="opacity-40">v2.1.4</span>
+            </div>
+          )}
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

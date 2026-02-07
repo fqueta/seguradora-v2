@@ -20,9 +20,11 @@ use App\Http\Controllers\api\StageController;
 use App\Http\Controllers\api\ProductUnitController;
 use App\Http\Controllers\api\ProductController;
 use App\Http\Controllers\api\ServiceController;
+use App\Http\Controllers\api\MesaController;
 use App\Http\Controllers\api\ServiceUnitController;
 use App\Http\Controllers\api\SituacaoMatriculaController;
 use App\Http\Controllers\api\ServiceOrderController;
+use App\Http\Controllers\api\OrderController;
 use App\Http\Controllers\api\RegisterController;
 use App\Http\Controllers\api\ModuleController;
 use App\Http\Controllers\api\ActivityController;
@@ -230,6 +232,14 @@ Route::name('api.')->prefix('v1')->middleware([
         Route::put('services/{id}/restore', [ServiceController::class, 'restore'])->name('services.restore');
         Route::delete('services/{id}/force', [ServiceController::class, 'forceDelete'])->name('services.forceDelete');
 
+        // Rotas para mesas (post_type=mesas)
+        Route::apiResource('mesas', MesaController::class, ['parameters' => [
+            'mesas' => 'id'
+        ]]);
+        Route::get('mesas/trash', [MesaController::class, 'trash'])->name('mesas.trash');
+        Route::put('mesas/{id}/restore', [MesaController::class, 'restore'])->name('mesas.restore');
+        Route::delete('mesas/{id}/force', [MesaController::class, 'forceDelete'])->name('mesas.forceDelete');
+
          // Rotas para service-units
          Route::apiResource('service-units', ServiceUnitController::class,['parameters' => [
              'service-units' => 'id'
@@ -246,6 +256,13 @@ Route::name('api.')->prefix('v1')->middleware([
          Route::put('service-orders/{id}/restore', [ServiceOrderController::class, 'restore'])->name('service-orders.restore');
          Route::put('service-orders/{id}/status ', [ServiceOrderController::class, 'updateStatus'])->name('service-orders.update-status');
          Route::delete('service-orders/{id}/force', [ServiceOrderController::class, 'forceDelete'])->name('service-orders.forceDelete');
+
+        // Rotas para orders (admin)
+        Route::apiResource('orders', OrderController::class, ['parameters' => [
+            'orders' => 'id'
+        ]]);
+        Route::put('orders/{id}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
+        Route::get('orders/{id}/receipt.pdf', [OrderController::class, 'receiptPdf'])->name('orders.receipt');
 
          // Rotas para dashboard-metrics
         Route::apiResource('dashboard-metrics', MetricasController::class,['parameters' => [
@@ -316,6 +333,12 @@ Route::name('api.')->prefix('v1')->middleware([
         // Rotas para Organizations
         Route::apiResource('organizations', \App\Http\Controllers\OrganizationController::class);
     });
+    // Vitrine de produtos (pública)
+    Route::get('point-store/products', [ProductController::class, 'publicList'])->name('point-store.products');
+    // Criação pública de pedidos
+    Route::post('orders', [OrderController::class, 'store'])->name('orders.public.store');
+    // Busca de mesa por token (pública)
+    Route::get('mesas/token/{token}', [MesaController::class, 'getByToken'])->name('mesas.token.public');
     // Rotas para tracking events
     Route::post('tracking/whatsapp-contact', [TrackingEventController::class, 'whatsappContact'])->name('tracking.whatsapp-contact');
     // Certificados - validação (pública)

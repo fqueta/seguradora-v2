@@ -49,9 +49,9 @@ class CategoryController extends Controller
         if (!$user) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
-        if (!$this->permissionService->isHasPermission('view')) {
-            return response()->json(['error' => 'Acesso negado'], 403);
-        }
+        // if (!$this->permissionService->isHasPermission('view')) {
+        //     return response()->json(['error' => 'Acesso negado'], 403);
+        // }
 
         $perPage = $request->input('per_page', 10);
         $order_by = $request->input('order_by', 'created_at');
@@ -117,9 +117,9 @@ class CategoryController extends Controller
         if (!$user) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
-        if (!$this->permissionService->isHasPermission('create')) {
-            return response()->json(['error' => 'Acesso negado'], 403);
-        }
+        // if (!$this->permissionService->isHasPermission('create')) {
+        //     return response()->json(['error' => 'Acesso negado'], 403);
+        // }
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|min:1|max:100',
@@ -192,9 +192,9 @@ class CategoryController extends Controller
         if (!$user) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
-        if (!$this->permissionService->isHasPermission('view')) {
-            return response()->json(['error' => 'Acesso negado'], 403);
-        }
+        // if (!$this->permissionService->isHasPermission('view')) {
+        //     return response()->json(['error' => 'Acesso negado'], 403);
+        // }
 
         $query = Category::where('id', $id);
 
@@ -234,7 +234,7 @@ class CategoryController extends Controller
     }
     /**
      * Metodo para mapear e normalizar
-     *  
+     *
      */
     private function mapData($data)
     {
@@ -261,6 +261,9 @@ class CategoryController extends Controller
         if (!$this->permissionService->isHasPermission('edit')) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
+        // if (!$this->permissionService->isHasPermission('edit')) {
+        //     return response()->json(['error' => 'Acesso negado'], 403);
+        // }
 
         $category = Category::findOrFail($id);
 
@@ -361,9 +364,9 @@ class CategoryController extends Controller
         if (!$user) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
-        if (!$this->permissionService->isHasPermission('delete')) {
-            return response()->json(['error' => 'Acesso negado'], 403);
-        }
+        // if (!$this->permissionService->isHasPermission('delete')) {
+        //     return response()->json(['error' => 'Acesso negado'], 403);
+        // }
 
         $category = Category::findOrFail($id);
 

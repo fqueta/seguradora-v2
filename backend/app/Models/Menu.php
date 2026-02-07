@@ -15,10 +15,15 @@ class Menu extends Model
         'icon',
         'items',
         'parent_id', // importante para estruturar hierarquia
+        'is_admin_only',
+        'printable',
+        'print_template',
     ];
 
     protected $casts = [
         'items' => 'array',
+        'is_admin_only' => 'boolean',
+        'printable' => 'boolean',
     ];
 
     /**

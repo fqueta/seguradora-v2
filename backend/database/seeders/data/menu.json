@@ -9,8 +9,14 @@
     "title": "Clientes",
     "icon": "Users",
     "submenu": [
-        { "title": "Lista de clientes", "url": "/clients" },
-        { "title": "Lista de contratos", "url": "/contracts" }
+        { "title": "Lista de clientes", "url": "/clients" }
+    ]
+  },
+  {
+    "title": "Pedidos",
+    "icon": "ClipboardList",
+    "submenu": [
+        { "title": "Lista de pedidos", "url": "/admin/orders" }
     ]
   },
   {
@@ -41,6 +47,7 @@
     "submenu": [
         { "title": "Usuários", "url": "/settings/users" },
         { "title": "Fornecedores", "url": "/suppliers" },
+        { "title": "Mesas", "url": "/mesas" },
         { "title": "Dados da empresa", "url": "/settings/dados_conta" },
         { "title": "Biblioteca de mídia", "url": "/settings/media-library-demo" },
         { "title": "Permissões", "url": "/settings/permissions" },

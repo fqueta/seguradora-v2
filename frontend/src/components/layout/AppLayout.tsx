@@ -1,6 +1,19 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
-import { Bell, Search, LogOut, Sun, Moon, Loader2 } from "lucide-react";
+import { 
+  Bell, 
+  Search, 
+  LogOut, 
+  Sun, 
+  Moon, 
+  Loader2, 
+  User, 
+  Command,
+  Settings,
+  ShieldCheck,
+  Zap,
+  LayoutDashboard
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -33,6 +46,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { BrandLogo } from "@/components/branding/BrandLogo";
 import { getInstitutionName, hydrateBrandingFromPublicApi } from "@/lib/branding";
 import { FindBeneficiaryModal } from "../clients/FindBeneficiaryModal";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -40,8 +55,8 @@ interface AppLayoutProps {
 
 /**
  * AppLayout
- * pt-BR: Shell global com sidebar, header moderno (sticky), toggle de tema e Command Palette.
- * en-US: Global shell with sidebar, modern sticky header, theme toggle, and Command Palette.
+ * pt-BR: Shell global moderno com design premium, header dinâmico e Command Palette integrador.
+ * en-US: Global shell with premium design, dynamic header, and integrated Command Palette.
  */
 export function AppLayout({ children }: AppLayoutProps) {
   const { user, logout } = useAuth();
@@ -60,48 +75,28 @@ export function AppLayout({ children }: AppLayoutProps) {
     });
   }, []);
 
-  // Branding
-  // pt-BR: Usa helper compartilhado para obter a logo com fallback.
-  // en-US: Uses shared helper to get brand logo with fallback.
+  // Shortcut for Command Palette
+  React.useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setCmdOpen((open) => !open);
+      }
+    };
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, []);
 
-  /**
-   * BrandLogo usage
-   * pt-BR: Usa componente BrandLogo para resolver e exibir a logo com fallback.
-   * en-US: Uses BrandLogo component to resolve and display the logo with fallback.
-   */
-
-  /**
-   * pendingCommentsQuery
-   * pt-BR: Busca comentários com status "pending" para exibir um alerta no sino.
-   *        Faz polling leve a cada 60s e atualiza ao focar a janela.
-   * en-US: Fetches comments with "pending" status to show an alert on the bell.
-   *        Performs light polling every 60s and updates on window focus.
-   */
   const pendingCommentsQuery = useQuery({
     queryKey: ["admin-pending-comments"],
     queryFn: async () => {
-      // Disabled for now as per user request
       return { items: [], total: 0 };
-      /*
-      const res: any = await commentsService.adminList("pending", 1, 5);
-      if (Array.isArray(res)) {
-        return { items: res, total: res.length };
-      }
-      const items = Array.isArray(res?.data) ? res.data : [];
-      const total = Number(res?.total ?? items.length);
-      return { items, total };
-      */
     },
-    enabled: false, // Explicitly disable query
+    enabled: false,
     refetchInterval: 60 * 1000,
     refetchOnWindowFocus: true,
   });
 
-  /**
-   * bellApproveMutation
-   * pt-BR: Aprova comentário diretamente a partir do sininho e atualiza contagem.
-   * en-US: Approves comment from the bell and refreshes pending count.
-   */
   const bellApproveMutation = useMutation({
     mutationFn: async (id: number | string) => commentsService.adminApprove(id),
     onSuccess: () => {
@@ -112,11 +107,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     onError: () => toast({ title: "Falha ao aprovar", variant: "destructive" } as any),
   });
 
-  /**
-   * bellRejectMutation
-   * pt-BR: Rejeita comentário diretamente a partir do sininho e atualiza contagem.
-   * en-US: Rejects comment from the bell and refreshes pending count.
-   */
   const bellRejectMutation = useMutation({
     mutationFn: async (id: number | string) => commentsService.adminReject(id),
     onSuccess: () => {
@@ -140,9 +130,6 @@ export function AppLayout({ children }: AppLayoutProps) {
       .toUpperCase();
   };
 
-  /**
-   * Alterna modo claro/escuro persistindo em localStorage e aplicando via ThemeProvider
-   */
   const toggleTheme = () => {
     try {
       const saved = localStorage.getItem("appearanceSettings");
@@ -160,172 +147,183 @@ export function AppLayout({ children }: AppLayoutProps) {
       open={prefs.sidebarOpen} 
       onOpenChange={(open) => setPref('sidebarOpen', open)}
     >
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex w-full bg-gray-50/30">
         <AppSidebar />
         
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <header className="sticky top-0 z-40 h-14 border-b border-border bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-4 lg:px-6">
-            <div className="flex items-center gap-4">
-              <SidebarTrigger data-lov-name="SidebarTrigger" />
-              <div className="hidden md:flex items-center gap-2">
-                <BrandLogo alt="Logo" fallbackSrc="/aeroclube-logo.svg" className="h-6 w-auto" />
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          {/* Header Premium */}
+          <header className="sticky top-0 z-40 h-20 border-b border-gray-100 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60 flex items-center justify-between px-6 lg:px-10 transition-all">
+            <div className="flex items-center gap-6">
+              <SidebarTrigger className="h-10 w-10 rounded-xl hover:bg-gray-100" />
+              
+              <div className="hidden xl:flex items-center gap-4">
+                <div className="h-8 w-px bg-gray-100" />
                 <div className="flex flex-col">
-                  {user?.organization && (
-                    <span className="text-xs font-semibold text-primary uppercase tracking-wider">
-                      {user.organization.name}
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">
+                      Acesso Administrador
                     </span>
-                  )}
-                  <span className="hidden lg:block text-sm text-muted-foreground">{institutionName}</span>
+                  </div>
+                  <span className="text-sm font-bold text-gray-900 mt-0.5 leading-tight">{institutionName}</span>
                 </div>
               </div>
+
+              {/* Quick Search Button */}
+              <Button 
+                variant="outline" 
+                onClick={() => setCmdOpen(true)}
+                className="hidden md:flex items-center gap-3 h-11 px-4 rounded-2xl bg-gray-50/50 border-gray-100 hover:bg-gray-100 hover:border-gray-200 transition-all w-64 justify-start text-gray-400 group"
+              >
+                <Search className="h-4 w-4 group-hover:text-primary transition-colors" />
+                <span className="text-xs font-bold flex-1 text-left">Busca rápida...</span>
+                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-white px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                  <span className="text-xs">⌘</span>K
+                </kbd>
+              </Button>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={() => setBeneficiaryModalOpen(true)} title="Encontrar beneficiário">
-                <Search className="h-4 w-4" />
+            <div className="flex items-center gap-3">
+              {/* Theme Toggle */}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={toggleTheme} 
+                className="h-11 w-11 rounded-2xl hover:bg-gray-100 text-gray-500"
+              >
+                <Sun className="h-5 w-5 dark:hidden" />
+                <Moon className="h-5 w-5 hidden dark:block" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={toggleTheme} title="Alternar tema">
-                {/* Mostra sol/lua conforme classe dark no documento */}
-                <Sun className="h-4 w-4 dark:hidden" />
-                <Moon className="h-4 w-4 hidden dark:block" />
-              </Button>
+
+              {/* Notifications */}
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" title="Notificações de comentários">
-                    <div className="relative">
-                      <Bell className="h-4 w-4" />
-                      {Number(pendingCommentsQuery.data?.total || 0) > 0 && (
-                        <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-red-600 text-white text-[10px] leading-4 text-center">
-                          {Math.min(99, Number(pendingCommentsQuery.data?.total || 0))}
-                        </span>
-                      )}
-                    </div>
+                  <Button variant="ghost" size="icon" className="h-11 w-11 rounded-2xl hover:bg-gray-100 text-gray-500 relative">
+                    <Bell className="h-5 w-5" />
+                    {Number(pendingCommentsQuery.data?.total || 0) > 0 && (
+                      <span className="absolute top-2.5 right-2.5 h-4 w-4 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center ring-2 ring-white">
+                        {Math.min(99, Number(pendingCommentsQuery.data?.total || 0))}
+                      </span>
+                    )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent align="end" className="w-80">
-                  <div className="space-y-2">
-                    <div className="text-sm font-medium">Moderação de comentários</div>
-                    {pendingCommentsQuery.isPending ? (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Carregando…
-                      </div>
-                    ) : Number(pendingCommentsQuery.data?.total || 0) === 0 ? (
-                      <div className="text-sm text-muted-foreground">Sem comentários pendentes.</div>
-                    ) : (
-                      <div className="space-y-2">
-                        {(pendingCommentsQuery.data?.items || []).map((c: any) => {
-                          const targetType = String(c?.commentable_type || c?.target_type || "").toLowerCase();
-                          const targetId = String(c?.commentable_id || c?.target_id || "");
-                          const isActivity = targetType.includes("activity") || /activity/i.test(String(c?.commentable_type || ""));
-                          const viewPath = isActivity && targetId ? `/admin/school/activities/${targetId}/view` : undefined;
-                          const modPath = isActivity && targetId ? `/admin/school/activities/${targetId}/comments` : "/admin/school/comments";
-                          return (
-                            <div key={String(c?.id)} className="rounded-md border p-2 hover:bg-muted">
-                              <div className="text-xs text-muted-foreground">
-                                {String(c?.user_name || "Autor")}{c?.created_at ? ` • ${new Date(String(c.created_at)).toLocaleString()}` : ""}
-                              </div>
-                              <div className="text-sm line-clamp-2">{String(c?.body || "")}</div>
-                              <div className="text-[11px] text-muted-foreground mt-1">
-                                Alvo: {String(c?.commentable_type || "?")} #{String(c?.commentable_id || "?")}
-                              </div>
-                              <div className="mt-2 flex flex-wrap gap-2 justify-end">
-                                {isActivity && viewPath && (
-                                  <Button size="sm" variant="outline" onClick={() => navigate(viewPath)}>Ver atividade</Button>
-                                )}
-                                <Button size="sm" variant="outline" onClick={() => navigate(modPath)}>Ir para moderação</Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => bellApproveMutation.mutate(c?.id ?? "")}
-                                  disabled={bellApproveMutation.isPending}
-                                >Aprovar</Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => bellRejectMutation.mutate(c?.id ?? "")}
-                                  disabled={bellRejectMutation.isPending}
-                                >Rejeitar</Button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                    <div className="pt-1 flex justify-end">
-                      <Button size="sm" variant="outline" onClick={() => navigate('/admin/school/comments')}>
-                        Ir para moderação
-                      </Button>
+                <PopoverContent align="end" className="w-80 p-0 rounded-[2rem] shadow-2xl border-none overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  <div className="bg-gray-50 p-4 border-b border-gray-100">
+                    <p className="text-xs font-black uppercase text-gray-400 tracking-widest">Central de Notificações</p>
+                  </div>
+                  <div className="p-4 bg-white min-h-[100px] flex items-center justify-center">
+                    <div className="text-center">
+                       <Zap className="h-10 w-10 text-gray-200 mx-auto mb-2" />
+                       <p className="text-sm font-bold text-gray-400">Sem novas notificações</p>
                     </div>
                   </div>
                 </PopoverContent>
               </Popover>
+
+              <div className="h-8 w-px bg-gray-100 mx-2" />
               
+              {/* User Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2 text-sm h-auto p-2">
-                    <div className="text-right hidden sm:block">
-                      <div className="font-medium">{user?.name}</div>
-                      <div className="text-muted-foreground">{user?.role || 'Usuário'}</div>
-                    </div>
-                    <Avatar className="h-8 w-8">
+                  <Button variant="ghost" className="flex items-center gap-3 h-14 pl-2 pr-4 rounded-3xl hover:bg-gray-50 transition-all group">
+                    <Avatar className="h-10 w-10 rounded-2xl ring-2 ring-white shadow-md group-hover:scale-105 transition-transform">
                       <AvatarImage src={user?.avatar} alt={user?.name} />
-                      <AvatarFallback>
+                      <AvatarFallback className="bg-primary text-white font-black">
                         {user?.name ? getUserInitials(user.name) : 'U'}
                       </AvatarFallback>
                     </Avatar>
+                    <div className="text-left hidden sm:block">
+                      <div className="text-xs font-black text-gray-900 leading-none mb-1">{user?.name}</div>
+                      <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest py-0 h-4 border-gray-200 text-gray-400 bg-gray-50 group-hover:bg-primary/5 transition-colors">
+                        {user?.role_name || 'Usuário'}
+                      </Badge>
+                    </div>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Sair</span>
+                <DropdownMenuContent align="end" className="w-64 p-3 rounded-[2rem] shadow-2xl border-none">
+                  <DropdownMenuLabel className="px-4 py-3">
+                    <p className="text-xs font-black uppercase text-gray-400 tracking-widest mb-1">Acesso Rápido</p>
+                    <p className="font-black text-gray-900">{user?.name}</p>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-gray-100 mx-2" />
+                  <div className="p-1 space-y-1">
+                    <DropdownMenuItem onClick={() => navigate('/admin/settings/user-profiles')} className="rounded-2xl h-11 cursor-pointer">
+                      <User className="mr-3 h-5 w-5 text-gray-400" />
+                      <span className="font-bold">Meu Perfil</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={toggleTheme} className="rounded-2xl h-11 cursor-pointer">
+                      <Zap className="mr-3 h-5 w-5 text-gray-400" />
+                      <span className="font-bold">Alternar Tema</span>
+                    </DropdownMenuItem>
+                  </div>
+                  <DropdownMenuSeparator className="bg-gray-100 mx-2" />
+                  <DropdownMenuItem onClick={handleLogout} className="rounded-2xl h-11 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 m-1">
+                    <LogOut className="mr-3 h-5 w-5" />
+                    <span className="font-bold">Encerrar Sessão</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
           </header>
 
-          {/* Main Content */}
-          <main className="flex-1 overflow-auto p-4 lg:p-1">
-            {children}
+          {/* Conteúdo Principal com Scroll Suave */}
+          <main className="flex-1 overflow-y-auto px-6 py-8 lg:px-10 lg:py-12 flex flex-col items-center">
+            <div className="w-full max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+              {children}
+            </div>
           </main>
 
-          {/* Command Palette Global */}
+          {/* Command Palette Modernizado */}
           <CommandDialog open={cmdOpen} onOpenChange={setCmdOpen}>
-            <CommandInput placeholder="Buscar ou navegar..." />
-            <CommandList>
-              <CommandEmpty>Nenhum resultado.</CommandEmpty>
-              <CommandGroup heading="Ir para">
-                <CommandItem onSelect={() => { setCmdOpen(false); navigate('/admin/school-dashboard'); }}>
-                  Dashboard
+            <div className="p-3 border-b bg-gray-50/50">
+               <CommandInput placeholder="Digite para buscar ferramentas, páginas ou ações..." className="h-12 border-none bg-transparent" />
+            </div>
+            <CommandList className="max-h-[450px] p-2">
+              <CommandEmpty className="p-10 text-center">
+                 <Search className="h-10 w-10 text-gray-200 mx-auto mb-2" />
+                 <p className="font-bold text-gray-400">Nenhum resultado encontrado.</p>
+              </CommandEmpty>
+              
+              <CommandGroup heading="Navegação Direta" className="px-3 py-2">
+                <CommandItem onSelect={() => { setCmdOpen(false); navigate('/admin/dashboard'); }} className="rounded-xl h-12 mb-1 px-3">
+                  <LayoutDashboard className="mr-3 h-5 w-5 text-primary" />
+                  <span className="font-bold">Dashboard de Operações</span>
                 </CommandItem>
-                <CommandItem onSelect={() => { setCmdOpen(false); navigate('/admin/clients'); }}>
-                  Clientes
+                <CommandItem onSelect={() => { setCmdOpen(false); navigate('/admin/clients'); }} className="rounded-xl h-12 mb-1 px-3">
+                  <User className="mr-3 h-5 w-5 text-blue-500" />
+                  <span className="font-bold">Gestão de Clientes</span>
                 </CommandItem>
-                <CommandItem onSelect={() => { setCmdOpen(false); navigate('/admin/service-orders'); }}>
-                  Ordens de Serviço
+                <CommandItem onSelect={() => { setCmdOpen(false); navigate('/admin/orders'); }} className="rounded-xl h-12 mb-1 px-3">
+                  <Zap className="mr-3 h-5 w-5 text-orange-500" />
+                  <span className="font-bold">Gerenciador de Pedidos</span>
                 </CommandItem>
-                <CommandItem onSelect={() => { setCmdOpen(false); navigate('/admin/products'); }}>
-                  Produtos
-                </CommandItem>
-                <CommandItem onSelect={() => { setCmdOpen(false); navigate('/admin/metrics'); }}>
-                  Métricas
+                <CommandItem onSelect={() => { setCmdOpen(false); navigate('/admin/products'); }} className="rounded-xl h-12 mb-1 px-3">
+                  <Zap className="mr-3 h-5 w-5 text-emerald-500" />
+                  <span className="font-bold">Catálogo de Produtos</span>
                 </CommandItem>
               </CommandGroup>
-              <CommandSeparator />
-              <CommandGroup heading="Ações">
-                <CommandItem onSelect={() => { toggleTheme(); }}>
-                  Alternar tema
+              
+              <CommandSeparator className="bg-gray-100 my-2" />
+              
+              <CommandGroup heading="Configurações & Sistema" className="px-3 py-2">
+                <CommandItem onSelect={() => { toggleTheme(); }} className="rounded-xl h-12 mb-1 px-3">
+                  <Sun className="mr-3 h-5 w-5 text-yellow-500" />
+                  <span className="font-bold">Mudar Aparência (Dark/Light)</span>
                 </CommandItem>
-                <CommandItem onSelect={() => { setCmdOpen(false); handleLogout(); }}>
-                  Sair
+                <CommandItem onSelect={() => { setCmdOpen(false); navigate('/admin/settings/system'); }} className="rounded-xl h-12 mb-1 px-3">
+                  <Settings className="mr-3 h-5 w-5 text-gray-400" />
+                  <span className="font-bold">Configurações Gerais</span>
+                </CommandItem>
+                <CommandItem onSelect={() => { setCmdOpen(false); handleLogout(); }} className="rounded-xl h-12 mb-1 px-3 text-red-600 focus:bg-red-50 focus:text-red-600">
+                  <LogOut className="mr-3 h-5 w-5" />
+                  <span className="font-bold">Finalizar Expediente (Sair)</span>
                 </CommandItem>
               </CommandGroup>
             </CommandList>
+            <div className="p-3 border-t bg-gray-50/50 flex justify-end gap-1">
+               <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-white px-1.5 font-mono text-[10px] font-medium text-muted-foreground">esc</kbd>
+               <span className="text-[10px] font-bold text-gray-400 uppercase">para fechar</span>
+            </div>
           </CommandDialog>
           
           <FindBeneficiaryModal 
