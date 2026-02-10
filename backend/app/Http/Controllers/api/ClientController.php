@@ -16,6 +16,7 @@ use Illuminate\Validation\Rule;
 use App\Models\Organization;
 use App\Models\Contract;
 use App\Models\Permission;
+use App\Services\LsxMedicalService;
 
 class ClientController extends Controller
 {
@@ -277,6 +278,56 @@ class ClientController extends Controller
     }
 
     /**
+     * Processa a integração de atualização com a LSX Medical se aplicável.
+     */
+    private function processLsxMedicalUpdate(Client $client, Request $request, LsxMedicalService $lsxMedicalService): array
+    {
+        $result = ['extraMsg' => null, 'retLsx' => null];
+        try {
+            $contracts = Contract::where('client_id', $client->id)
+                ->where('status', 'approved')
+                ->whereNull('deleted_at')
+                ->get();
+            
+            $hasLsx = false;
+            foreach ($contracts as $contract) {
+                $supplierTag = Qlib::getSupplier($contract->product_id);
+                if ($supplierTag && (stripos($supplierTag, 'LSX') !== false || stripos($supplierTag, 'Medical') !== false)) {
+                    $hasLsx = true;
+                    break;
+                }
+            }
+
+            if ($hasLsx) {
+                $retLsx = $lsxMedicalService->updatePatient($client, $request->all());
+                
+                $config = is_string($client->config)
+                    ? (json_decode($client->config, true) ?? [])
+                    : ($client->config ?? []);
+                
+                if (!is_array($config)) {
+                    $config = [];
+                }
+                
+                $config['integration_lsx_medical_update'] = $retLsx;
+                $client->config = $config;
+                $client->save();
+
+                if (isset($retLsx['exec']) && !$retLsx['exec']) {
+                    $msg = $retLsx['message'] ?? 'Erro na integração LSX Medical';
+                    // Try to get a more specific error from the data.error field
+                    if (isset($retLsx['data']['error']) && is_string($retLsx['data']['error'])) {
+                        $msg = $retLsx['data']['error'];
+                    }
+                    $result['extraMsg'] = $msg;
+                    $result['retLsx'] = $retLsx;
+                }
+            }
+        } catch (\Throwable $e) {}
+        return $result;
+    }
+
+    /**
      * Criar um novo cliente
      *
      * Nota/Note: Força `permission_id = 7` na criação para
@@ -468,9 +519,9 @@ class ClientController extends Controller
                 $alloyalController = new \App\Http\Controllers\api\AlloyalController();
                 $retAlloyal = $alloyalController->create_user_atived($payloadAlloyal, $client->id);
                 $client->config = is_array($client->config) ? $client->config : [];
-                $client->config['integration_alloyal'] = $retAlloyal;
             }
         } catch (\Throwable $e) {}
+
         // converter o client->config para array (decodificando JSON quando necessário)
         if (is_string($client->config)) {
             $decoded = json_decode($client->config, true);
@@ -532,7 +583,7 @@ class ClientController extends Controller
     /**
      * Atualizar um cliente específico
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, string $id, LsxMedicalService $lsxMedicalService)
     {
         $user = $request->user();
         if (!$user) {
@@ -666,7 +717,13 @@ class ClientController extends Controller
 
         // dd($validated);
         $clientToUpdate->update($validated);
-        $retAlloyal = ['exec'=>false,'message'=>''];
+        $ret = [
+            'data' => $clientToUpdate,
+            'message' => 'Cadastro atualizado',
+            'status' => 200
+        ];
+        $extraMsg = null;
+
         // Envio/atualização na integração Alloyal (quando aplicável)
         try {
             $cpfPlain = $request->get('cpf') ?: $clientToUpdate->cpf;
@@ -698,8 +755,8 @@ class ClientController extends Controller
                 ];
                 $alloyalController = new \App\Http\Controllers\api\AlloyalController();
                 $retAlloyal = $alloyalController->create_user_atived($payloadAlloyal, $clientToUpdate->id);
+                
                 // Anexar retorno no config para auditoria
-                // dd($retAlloyal,$payloadAlloyal);
                 $clientToUpdate->config = is_string($clientToUpdate->config)
                     ? (json_decode($clientToUpdate->config, true) ?? [])
                     : ($clientToUpdate->config ?? []);
@@ -707,8 +764,27 @@ class ClientController extends Controller
                     $clientToUpdate->config = [];
                 }
                 $clientToUpdate->config['integration_alloyal_update'] = $retAlloyal;
+                $clientToUpdate->save();
+
+                if (isset($retAlloyal['exec']) && !$retAlloyal['exec']) {
+                    $extraMsg = (string)($retAlloyal['message'] ?? 'Erro na integração com o Clube');
+                    $ret['retAlloyal'] = $retAlloyal;
+                }
             }
         } catch (\Throwable $e) {}
+
+        // Envio/atualização na integração LSX Medical (quando aplicável)
+        $resLsx = $this->processLsxMedicalUpdate($clientToUpdate, $request, $lsxMedicalService);
+        if ($resLsx['extraMsg']) {
+            if ($extraMsg) {
+                $extraMsg .= ' | ' . $resLsx['extraMsg'] . ' lsx medical';
+            } else {
+                $extraMsg = $resLsx['extraMsg'] . ' lsx medical';
+            }
+        }
+        if ($resLsx['retLsx']) {
+            $ret['retLsx'] = $resLsx['retLsx'];
+        }
 
         // Converter config para array na resposta (decodifica se string JSON)
         if (is_string($clientToUpdate->config)) {
@@ -717,18 +793,10 @@ class ClientController extends Controller
         } elseif (!is_array($clientToUpdate->config)) {
             $clientToUpdate->config = [];
         }
-        // dd($retAlloyal);
-        $ret['data'] = $clientToUpdate;
-        $extraMsg = null;
-        if (isset($retAlloyal) && is_array($retAlloyal) && array_key_exists('exec', $retAlloyal) && !$retAlloyal['exec']) {
-            $extraMsg = (string)($retAlloyal['message'] ?? 'Erro na integração com o Clube');
-            $ret['retAlloyal'] = $retAlloyal;
-        }
-        $ret['message'] = 'Cliente atualizado com sucesso';
+
         if ($extraMsg) {
-            $ret['message'] .= ' | Integração Clube: ' . $extraMsg;
+            $ret['message'] .= ' | ' . $extraMsg;
         }
-        $ret['status'] = 200;
 
         return response()->json($ret);
     }

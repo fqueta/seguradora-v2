@@ -11,9 +11,17 @@ use App\Services\Qlib;
 use App\Http\Controllers\api\SulAmericaController;
 use App\Models\Client;
 use Carbon\Carbon;
+use App\Services\LsxMedicalService;
 
 class ContractController extends Controller
 {
+    protected LsxMedicalService $lsxMedicalService;
+
+    public function __construct(LsxMedicalService $lsxMedicalService)
+    {
+        $this->lsxMedicalService = $lsxMedicalService;
+    }
+
     public function index(Request $request): JsonResponse
     {
         $query = Contract::with(['client.owner', 'owner', 'organization', 'product']);
@@ -105,13 +113,14 @@ class ContractController extends Controller
              $exists = Contract::where('client_id', $data['client_id'])
                 ->where('product_id', $data['product_id'])
                 ->where('status', '!=', 'cancelled')
+                // ->where('status', '!=', 'pending')
                 ->where('deleted_at', null)
                 ->where('end_date', '>=', now()->format('Y-m-d'))
                 ->first();
              if($exists){
                  return response()->json([
                     'exec' => false,
-                    'mens' => 'Este cliente já possui um contrato válido para este produto. Id contrato: '.$exists->id.' - '.$exists->contract_number
+                    'mens' => 'Este cliente já possui um contrato válido para este produto no status: '.ucfirst($exists->status).'. Id contrato: '.$exists->id.' - '.$exists->contract_number
                  ], 400);
              }
         }
@@ -150,20 +159,91 @@ class ContractController extends Controller
         }
 
         if ($contract) {
-             $integrationRet = $this->processSulamericaIntegration($contract);
+             // Verificar o Fornecedor do Produto
+             $product_id = $contract->product_id;
+             $supplier = Qlib::getSupplier($product_id); // Retorna string|null
+             // Lógica para SulAmérica
+            if ($supplier && (stripos($supplier, 'SulAmerica') !== false)) {
+                 $integrationRet = $this->processSulamericaIntegration($contract);
 
-             // Check integration result
-             if (isset($integrationRet['exec']) && $integrationRet['exec'] === true) {
-                 // Integration Success
-                 $ret['data'] = $contract->refresh(); // Get updated fields
-                 $ret['mens'] = 'Contrato criado e integrado com sucesso.';
-             } else {
-                 // Integration Failed or Skipped
-                 // If there is an error message, it means it was attempted and failed
-                 if (!empty($integrationRet['mens'])) {
-                     $ret['mens'] = 'Contrato cadastrado com sucesso, porém houve falha na integração: ' . $integrationRet['mens'];
-                     // We keep exec=true so the frontend considers it "success" (contract created) and redirects.
-                     // The user sees the warning in the toast.
+                 // Check integration result
+                 if (isset($integrationRet['exec']) && $integrationRet['exec'] === true) {
+                     // Integration Success
+                     $ret['data'] = $contract->refresh(); // Get updated fields
+                     $ret['mens'] = 'Contrato criado e integrado com sucesso.';
+                 } else {
+                     // Integration Failed or Skipped
+                     if (!empty($integrationRet['mens'])) {
+                         $ret['mens'] = 'Contrato cadastrado com sucesso, porém houve falha na integração SulAmérica: ' . $integrationRet['mens'];
+                     }
+                 }
+             }
+       
+             // Lógica para LSX Medical
+             elseif ($supplier && (stripos($supplier, 'LSX') !== false)) {
+                 // Debug: Logar tentativa
+                 \App\Services\ContractEventLogger::log(
+                     $contract,
+                     'debug_lsx_attempt',
+                     'Tentativa de integração LSX detectada. Fornecedor: ' . $supplier,
+                     ['supplier' => $supplier],
+                     null,
+                     auth()->id()
+                 );
+
+                 // Integration LSX Medical
+                 try {
+                     if ($this->lsxMedicalService->isIntegrationActive()) {
+                        $clientFn = Client::find($data['client_id'] ?? 0);
+                        if($clientFn){
+                            $retLsx = $this->lsxMedicalService->createPatient($clientFn, $request->all());
+
+                            Qlib::update_contract_meta($contract->id, 'integration_lsx_medical', json_encode($retLsx));
+
+                            if (isset($retLsx['exec']) && $retLsx['exec'] === true) {
+                                // Sucesso: Aprovar contrato automaticamente
+                                $oldStatus = $contract->status;
+                                $contract->update(['status' => 'approved']);
+                                
+                                // Logar mudança de status
+                                \App\Services\ContractEventLogger::logStatusChange(
+                                    $contract,
+                                    $oldStatus, // provavelmente 'pending' ou equivalente inicial
+                                    'approved',
+                                    'Contrato aprovado automaticamente via integração LSX Medical.',
+                                    ['integration_response' => $retLsx],
+                                    json_encode($retLsx),
+                                    auth()->id()
+                                );
+
+                                $ret['mens'] .= ' | Integração LSX: Sucesso e Contrato Aprovado.';
+                                $ret['data'] = $contract->refresh();
+                            } else {
+                                 // Falha
+                                 $msgLsx = $retLsx['message'] ?? 'Erro LSX';
+                                 $ret['mens'] .= ' | Falha LSX: ' . $msgLsx;
+
+                                 // Logar falha na integração
+                                 \App\Services\ContractEventLogger::log(
+                                     $contract,
+                                     'integration_error',
+                                     'Falha na integração LSX Medical: ' . $msgLsx,
+                                     ['integration_response' => $retLsx],
+                                     json_encode($retLsx),
+                                     auth()->id()
+                                 );
+                            }
+                        }
+                     }
+                 } catch (\Throwable $e) {
+                      \App\Services\ContractEventLogger::log(
+                         $contract,
+                         'integration_exception',
+                         'Exceção na integração LSX: ' . $e->getMessage(),
+                         ['trace' => $e->getTraceAsString()],
+                         json_encode(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]),
+                         auth()->id()
+                     );
                  }
              }
         }
@@ -199,6 +279,16 @@ class ContractController extends Controller
                 $contract->setRelation('events', collect());
             }
 
+        }
+        
+        // LSX Medical Integration Data
+        $contract['integration_lsx_medical'] = [];
+        $lsx_integration = Qlib::get_contract_meta($contract->id, 'integration_lsx_medical');
+        if ($lsx_integration) {
+            $lsx_data = is_array($lsx_integration) ? $lsx_integration : json_decode($lsx_integration, true);
+            if(isset($lsx_data['exec'])){
+                 $contract['integration_lsx_medical'] = $lsx_data;
+            }
         }
 
         return response()->json($contract);
@@ -274,8 +364,99 @@ class ContractController extends Controller
             ]);
         }
         if ($contract->status !== 'approved') {
-           $ret = $this->processSulamericaIntegration($contract);
-           return response()->json($ret);
+            // Verificar o Fornecedor do Produto
+            $product_id = $contract->product_id;
+            $supplier = Qlib::getSupplier($product_id);
+
+            // Lógica para SulAmérica
+            if ($supplier && (stripos($supplier, 'SulAmerica') !== false)) {
+                $ret = $this->processSulamericaIntegration($contract);
+                return response()->json($ret);
+            }
+            // Lógica para LSX Medical
+            elseif ($supplier && (stripos($supplier, 'LSX') !== false || stripos($supplier, 'Medical') !== false)) {
+                // Debug: Logar tentativa
+                 \App\Services\ContractEventLogger::log(
+                     $contract,
+                     'debug_lsx_attempt_update',
+                     'Tentativa de integração LSX (Update). Fornecedor: ' . $supplier,
+                     ['supplier' => $supplier],
+                     null,
+                     auth()->id()
+                 );
+
+                // Integration LSX Medical
+                try {
+                     if ($this->lsxMedicalService->isIntegrationActive()) {
+                        $clientFn = Client::find($contract->client_id ?? 0);
+                        if($clientFn){
+                            $retLsx = $this->lsxMedicalService->createPatient($clientFn, $request->all());
+
+                            Qlib::update_contract_meta($contract->id, 'integration_lsx_medical', json_encode($retLsx));
+
+                            $ret = [
+                                'exec' => true,
+                                'mens' => 'Contrato atualizado com sucesso.',
+                                'data' => $contract
+                            ];
+
+                            if (isset($retLsx['exec']) && $retLsx['exec'] === true) {
+                                // Sucesso: Aprovar contrato automaticamente
+                                $oldStatus = $contract->status;
+                                $contract->update(['status' => 'approved']);
+                                
+                                // Logar mudança de status
+                                // Logar mudança de status
+                                \App\Services\ContractEventLogger::logStatusChange(
+                                    $contract,
+                                    $oldStatus, // provavelmente 'pending'
+                                    'approved',
+                                    'Contrato aprovado automaticamente via integração LSX Medical (Update).',
+                                    ['integration_response' => $retLsx],
+                                    json_encode($retLsx),
+                                    auth()->id()
+                                );
+
+                                $ret['mens'] .= ' | Integração LSX: Sucesso e Contrato Aprovado.';
+                                $ret['data'] = $contract->refresh();
+                            } else {
+                                // Falha
+                                $msgLsx = $retLsx['message'] ?? 'Erro LSX';
+                                $ret['mens'] .= ' | Falha LSX: ' . $msgLsx;
+
+                                // Logar falha
+                                // Logar falha
+                                \App\Services\ContractEventLogger::log(
+                                    $contract,
+                                    'integration_error',
+                                    'Falha na integração LSX Medical (Update): ' . $msgLsx,
+                                    ['integration_response' => $retLsx],
+                                    json_encode($retLsx),
+                                    auth()->id()
+                                );
+                            }
+                            return response()->json($ret);
+                        }
+                     }
+                 } catch (\Throwable $e) {
+                     \App\Services\ContractEventLogger::log(
+                         $contract,
+                         'integration_exception_update',
+                         'Exceção na integração LSX (Update): ' . $e->getMessage(),
+                         ['trace' => $e->getTraceAsString()],
+                         null,
+                         auth()->id()
+                     );
+                }
+            }
+            
+            // Fallback padrão se não for nenhuma das integrações acima
+           return response()->json([
+               'exec' => true,
+               'mens' => 'Contrato atualizado com sucesso',
+               'data' => $contract
+           ]);
+
         } else {
             return response()->json([
                 'exec' => true,

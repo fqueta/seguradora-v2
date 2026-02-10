@@ -60,7 +60,7 @@ class AircraftService extends BaseApiService {
    * @param id - ID da aeronave
    */
   async deleteAircraft(id: string): Promise<void> {
-    await this.delete<void>(`${this.endpoint}/${id}`);
+    await super.delete<void>(`${this.endpoint}/${id}`);
   }
 
   // Métodos genéricos para compatibilidade com useGenericApi
@@ -80,7 +80,7 @@ class AircraftService extends BaseApiService {
     return this.updateAircraft(id, data);
   }
 
-  async delete(id: string): Promise<void> {
+  async deleteById(id: string): Promise<void> {
     return this.deleteAircraft(id);
   }
 }

@@ -51,7 +51,7 @@ class SuppliersService extends BaseApiService {
    * @param id - ID do fornecedor
    */
   async deleteSupplier(id: string): Promise<any> {
-    await this.delete(`/fornecedores/${id}`);
+    return super.delete<any>(`/fornecedores/${id}`);
   }
 
   // Métodos de conveniência para compatibilidade com useGenericApi
@@ -69,10 +69,6 @@ class SuppliersService extends BaseApiService {
 
   async update(id: string, data: UpdateSupplierInput): Promise<SupplierRecord> {
     return this.updateSupplier(id, data);
-  }
-
-  async delete(id: string): Promise<any> {
-    return this.deleteSupplier(id);
   }
 
   async deleteById(id: string): Promise<any> {

@@ -52,8 +52,11 @@ class AuthController extends Controller
         }
 
         $user = Auth::user();
+        //ser o usuario estiver deleta ou na lixiera retorna erro 401
+        if($user->excluido=='s' || $user->deletado=='s'){
+            return response()->json(['message' => 'Usuário sem permissão para acessar'], 401);
+        }
         $user->load('organization');
-        // dd($user);
         // Impede login de usuário inativo (ativo != 's')
         if (($user->ativo ?? null) !== 's') {
             return response()->json(['error' => 'Usuário inativo'], 405);
@@ -70,7 +73,7 @@ class AuthController extends Controller
         // Lista de permissões do grupo
         // $allowedPermissions = json_decode($group->id_menu, true) ?? [];
         // Menu base (estrutura completa)
-        $menu = $this->getMenuStructure();
+        // $menu = $this->getMenuStructure();
 
         // Filtra o menu conforme as permissões do grupo
         // $filteredMenu = $this->filterMenuByPermissions($menu, $allowedPermissions);

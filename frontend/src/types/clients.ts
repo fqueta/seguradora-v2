@@ -96,6 +96,7 @@ export interface CreateClientInput {
    * en-US: Primary phone of the client (optional)
    */
   telefone?: string;
+  celular?: string;
   name: string;
   cpf?: string;
   cnpj?: string;
@@ -113,6 +114,7 @@ export interface CreateClientInput {
 
 export interface UpdateClientInput {
   tipo_pessoa?: "pf" | "pj";
+  celular?: string;
   email?: string;
   name?: string;
   cpf?: string;

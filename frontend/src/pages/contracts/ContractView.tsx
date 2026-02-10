@@ -330,12 +330,12 @@ export default function ContractView() {
                     </CardContent>
                 </Card>
 
-                {/* Resumo da Integração */}
+                {/* Resumo da Integração SulAmérica */}
                 {integrationData && (
                     <Card className="md:col-span-2">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <Badge variant="outline" className="bg-blue-600/10 text-blue-700 border-0">Integração</Badge>
+                                <Badge variant="outline" className="bg-blue-600/10 text-blue-700 border-0">Integração SulAmérica</Badge>
                                 Resumo da Integração
                             </CardTitle>
                         </CardHeader>
@@ -357,6 +357,58 @@ export default function ContractView() {
                         </CardContent>
                     </Card>
                 )}
+
+                {/* Resumo da Integração LSX Medical */}
+                {(() => {
+                    const lsxData = (contract as any)?.integration_lsx_medical;
+                    if (!lsxData) return null;
+
+                    const isSuccess = lsxData.exec === true;
+                    // Tenta extrair ID ou dados relevantes do payload de resposta
+                    const remoteId = lsxData.data?.id || lsxData.data?.patient_id || '-';
+                    const message = lsxData.message || '-';
+                    
+                    return (
+                        <Card className="md:col-span-2 border-l-4 border-l-teal-500">
+                             <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-teal-700">
+                                    <Package className="h-5 w-5" />
+                                    Integração LSX Medical
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-sm font-medium text-muted-foreground">Status</label>
+                                        <div className="mt-1">
+                                            <Badge variant={isSuccess ? "default" : "destructive"} className={isSuccess ? "bg-teal-600 hover:bg-teal-700" : ""}>
+                                                {isSuccess ? 'Sucesso' : 'Falha'}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-muted-foreground">ID do Paciente (Remoto)</label>
+                                        <p className="font-medium text-lg">{remoteId}</p>
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="text-sm font-medium text-muted-foreground">Mensagem de Retorno</label>
+                                        <p className="font-medium text-sm mt-1 p-2 bg-muted rounded border">
+                                            {message}
+                                        </p>
+                                    </div>
+                                     {user?.permission_id == '1' && lsxData.data && (
+                                        <div className="md:col-span-2">
+                                             <label className="text-sm font-medium text-muted-foreground mb-1 block">Detalhes da Resposta</label>
+                                              <pre className="p-2 bg-slate-950 text-slate-50 rounded text-xs overflow-x-auto max-h-40">
+                                                 {JSON.stringify(lsxData.data, null, 2)}
+                                              </pre>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    );
+                })()}
 
                 {/* Observações */}
                 {contract.description && (

@@ -354,6 +354,7 @@ export default function ClientEdit() {
     
     const clientData: UpdateClientInput = {
       tipo_pessoa: data.tipo_pessoa,
+      celular: data.config.celular,
       email: data.email,
       ...(data.password && data.password.trim() !== '' && { password: data.password }),
       name: data.name,
@@ -367,6 +368,7 @@ export default function ClientEdit() {
     };
     
     // console.log('Dados enviados para API:', clientData);
+console.log(clientData);
 
   updateClientMutation.mutate(
       {

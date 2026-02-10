@@ -4,68 +4,19 @@ namespace App\Http\Controllers\api;
 
 use App\Http\Controllers\Controller;
 use App\Services\PermissionService;
+use App\Services\LsxMedicalService; // Import Service
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
+use App\Models\User;
 
 class LsxMedicalController extends Controller
 {
     protected PermissionService $permissionService;
-    protected string $baseUrl = '';
-    protected string $token = '';
-    protected bool $integrationActive = false;
+    protected LsxMedicalService $lsxMedicalService;
 
-    public function __construct()
+    public function __construct(LsxMedicalService $lsxMedicalService)
     {
         $this->permissionService = new PermissionService();
-        $this->loadCredentialsFromApi('integracao-lsxmedical');
-        if (!$this->integrationActive) {
-            $envUrl = (string) (env('LSX_MEDICAL_BASE_URL') ?? '');
-            $envToken = (string) (env('LSX_MEDICAL_TOKEN') ?? '');
-            if ($envUrl !== '' && $envToken !== '') {
-                $this->baseUrl = rtrim($envUrl, '/');
-                $this->token = $envToken;
-                $this->integrationActive = true;
-            }
-        }
-    }
-
-    /**
-     * Carrega credenciais da ApiCredential pelo post_name (slug).
-     * pt-BR: Define baseUrl, token e flag de integração ativa a partir do registro.
-     * en-US: Sets baseUrl, token and active flag from stored ApiCredential record.
-     *
-     * @param string $slug
-     * @return void
-     */
-    private function loadCredentialsFromApi(string $slug): void
-    {
-        try {
-            $collector = new ApiCredentialController();
-            $cred = $collector->get($slug);
-            if (is_array($cred) && !empty($cred)) {
-                $this->integrationActive = (bool)($cred['active'] ?? false);
-                $cfg = isset($cred['config']) && is_array($cred['config']) ? $cred['config'] : [];
-                $url = (string)($cfg['url'] ?? '');
-                $pass = (string)($cfg['pass'] ?? '');
-                if ($url !== '' && $pass !== '') {
-                    $this->baseUrl = rtrim($url, '/');
-                    $this->token = $pass;
-                }
-            }
-        } catch (\Throwable $e) {
-            // keep defaults
-        }
-    }
-
-    /**
-     * Verifica se a integração está ativa.
-     * Checks if integration is active.
-     *
-     * @return bool
-     */
-    private function isIntegrationActive(): bool
-    {
-        return $this->integrationActive && $this->baseUrl !== '' && $this->token !== '';
+        $this->lsxMedicalService = $lsxMedicalService;
     }
 
     /**
@@ -76,11 +27,7 @@ class LsxMedicalController extends Controller
      */
     public function credentialsResolved()
     {
-        $data = [
-            'active' => $this->isIntegrationActive(),
-            'base_url' => $this->baseUrl,
-            'token_set' => $this->token !== '',
-        ];
+        $data = $this->lsxMedicalService->getCredentialsResolved();
         return response()->json(['exec' => true, 'data' => $data], 200);
     }
 
@@ -100,9 +47,8 @@ class LsxMedicalController extends Controller
         if (!$this->permissionService->isHasPermission('create')) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
-        if (!$this->isIntegrationActive()) {
-            return response()->json(['exec' => false, 'message' => 'Integração LSX Medical inativa'], 503);
-        }
+
+        // Validate basic input usually expected
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'cpf' => 'required|string|max:20',
@@ -115,29 +61,22 @@ class LsxMedicalController extends Controller
             'extra_fields' => 'nullable|array',
         ]);
 
-        $headers = [
-            'Authorization' => 'Bearer ' . $this->token,
-            'Content-Type' => 'application/json',
-        ];
-        $url = $this->baseUrl . '/create-patient/';
-        try {
-            $response = Http::withHeaders($headers)->post($url, $validated);
-            $status = $response->status();
-            $body = $response->json();
-            $ok = $status >= 200 && $status < 300;
-            return response()->json([
-                'exec' => $ok,
-                'message' => $ok ? 'Paciente criado com sucesso' : ($body['message'] ?? 'Falha ao criar paciente'),
-                'data' => $body,
-                'status' => $status,
-            ], $ok ? 201 : $status);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'exec' => false,
-                'message' => 'Erro ao comunicar com LSX Medical',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
+        // Create a temporary User object or use the validated data directly?
+        // The service expects a User object as the first argument mostly for extraction
+        // But here we are calling it directly from an API endpoint, potentially without a saved User yet?
+        // Or maybe this endpoint is used to test?
+        // Let's create a dummy object to satisfy the signature if needed or adapt the service.
+        // Actually, looking at the service, it extracts from $client->field OR $extraData['field'].
+        // So passing a bare new User and the $validated array works.
+        
+        $dummyUser = new User(); 
+        // We can populate attributes if we want, or rely on $validated passed as $extraData
+        
+        $result = $this->lsxMedicalService->createPatient($dummyUser, $validated);
+        
+        $status = $result['status'] ?? ($result['exec'] ? 201 : 400);
+
+        return response()->json($result, $status);
     }
 
     /**
@@ -157,12 +96,10 @@ class LsxMedicalController extends Controller
         if (!$this->permissionService->isHasPermission('edit')) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
-        if (!$this->isIntegrationActive()) {
-            return response()->json(['exec' => false, 'message' => 'Integração LSX Medical inativa'], 503);
-        }
+        
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'cpf' => 'required|string|max:20',
+            'cpf' => 'required|string|max:20', // Although passed in URL, validating body too is fine
             'email' => 'required|email|max:255',
             'birth_date' => 'required|date',
             'phone' => 'required|string|max:20',
@@ -171,30 +108,26 @@ class LsxMedicalController extends Controller
             'plan_expiry_date' => 'required|date',
             'extra_fields' => 'nullable|array',
         ]);
-        $headers = [
-            'Authorization' => 'Bearer ' . $this->token,
-            'Content-Type' => 'application/json',
-        ];
-        $cpfSanitized = preg_replace('/\D/', '', $cpf ?? '');
-        $url = $this->baseUrl . '/update-patient/' . $cpfSanitized . '/';
-        try {
-            $response = Http::withHeaders($headers)->put($url, $validated);
-            $status = $response->status();
-            $body = $response->json();
-            $ok = $status >= 200 && $status < 300;
-            return response()->json([
-                'exec' => $ok,
-                'message' => $ok ? 'Paciente atualizado com sucesso' : ($body['message'] ?? 'Falha ao atualizar paciente'),
-                'data' => $body,
-                'status' => $status,
-            ], $ok ? 200 : $status);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'exec' => false,
-                'message' => 'Erro ao comunicar com LSX Medical',
-                'error' => $e->getMessage(),
-            ], 500);
+
+        // Ensure CPF from URL is used or matches
+        $validated['cpf'] = $cpf;
+
+        // Tenta encontrar o usuário pelo CPF para carregar as configurações (endereço, etc)
+        $client = User::where('cpf', $cpf)->first();
+        
+        // Se não encontrar por CPF exato, tenta apenas números
+        if (!$client) {
+             $cpfOnlyNumbers = preg_replace('/\D/', '', $cpf);
+             $client = User::whereRaw("regexp_replace(cpf, '[^0-9]', '') = ?", [$cpfOnlyNumbers])->first();
         }
+
+        $client = $client ?? new User();
+
+        $result = $this->lsxMedicalService->updatePatient($client, $validated);
+
+        $status = $result['status'] ?? ($result['exec'] ? 200 : 400);
+
+        return response()->json($result, $status);
     }
 }
 

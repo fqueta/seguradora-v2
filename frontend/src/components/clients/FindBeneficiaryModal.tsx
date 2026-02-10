@@ -110,15 +110,14 @@ export function FindBeneficiaryModal({ open, onOpenChange }: FindBeneficiaryModa
 
         <form onSubmit={handleSearch} className="p-6 space-y-6">
           <div className="space-y-4">
-            <h3 className="text-sm font-bold text-slate-700">Consultar por</h3>
-            
-            <div className="flex flex-col sm:flex-row gap-0 rounded-md border border-slate-200 overflow-hidden">
-              <div className="w-full sm:w-1/3 border-b sm:border-b-0 sm:border-r border-slate-200">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700">Atributo</label>
                 <Select value={searchBy} onValueChange={(value: any) => {
                   setSearchBy(value);
                   setSearchTerm(''); // Clear when switching
                 }}>
-                  <SelectTrigger className="border-none focus:ring-0 h-12 rounded-none bg-slate-50 shadow-none">
+                  <SelectTrigger className="h-10 bg-slate-50 border-slate-200">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
@@ -128,20 +127,22 @@ export function FindBeneficiaryModal({ open, onOpenChange }: FindBeneficiaryModa
                 </Select>
               </div>
               
-              <div className="flex-1 flex items-center relative">
-                <Input
-                  value={searchTerm}
-                  onChange={handleInputChange}
-                  placeholder={searchBy === 'cpf' ? "000.000.000-00" : "Informe o Nome"}
-                  className="border-none focus-visible:ring-0 h-12 rounded-none shadow-none text-slate-600 placeholder:text-slate-400"
-                  maxLength={searchBy === 'cpf' ? 14 : undefined}
-                />
-                <button 
-                  type="submit"
-                  className="absolute right-0 top-0 h-full w-12 flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                >
-                  <Search className="h-5 w-5" />
-                </button>
+              <div className="md:col-span-2 space-y-2">
+                <label className="text-sm font-semibold text-slate-700">
+                  {searchBy === 'cpf' ? "Digite o CPF" : "Digite o Nome"}
+                </label>
+                <div className="relative">
+                  <Input
+                    value={searchTerm}
+                    onChange={handleInputChange}
+                    placeholder={searchBy === 'cpf' ? "000.000.000-00" : "Informe o Nome completo"}
+                    className="h-10 pr-10 border-slate-200 focus-visible:ring-primary/20"
+                    maxLength={searchBy === 'cpf' ? 14 : undefined}
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Search className="h-4 w-4" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -71,12 +71,12 @@ class InstallmentsService extends BaseApiService {
   }
 
   /**
-   * delete
+   * deleteById
    * pt-BR: Remove um registro por ID.
    * en-US: Deletes a record by ID.
    */
-  async delete(id: string | number): Promise<void> {
-    await this.delete<void>(`${this.endpoint}/${id}`);
+  async deleteById(id: string | number): Promise<void> {
+    await super.delete<void>(`${this.endpoint}/${id}`);
   }
 }
 

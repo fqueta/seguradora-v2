@@ -51,7 +51,7 @@ class ServiceObjectsService extends BaseApiService {
    * @param id - ID do objeto de serviço
    */
   async deleteServiceObject(id: string): Promise<void> {
-    return this.delete<void>(`/service-objects/${id}`);
+    return super.delete<void>(`/service-objects/${id}`);
   }
 
   // Métodos para compatibilidade com o hook genérico
@@ -71,7 +71,7 @@ class ServiceObjectsService extends BaseApiService {
     return this.updateServiceObject(id, data);
   }
 
-  async delete(id: string): Promise<void> {
+  async deleteById(id: string): Promise<void> {
     return this.deleteServiceObject(id);
   }
 }
