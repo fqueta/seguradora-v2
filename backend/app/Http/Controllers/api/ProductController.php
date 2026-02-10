@@ -81,8 +81,23 @@ class ProductController extends Controller
         $order_by = $request->input('order_by', 'created_at');
         $order = $request->input('order', 'desc');
 
-        $query = Product::query()
-            ->orderBy($order_by, $order);
+        $query = Product::query();
+
+        if ($permission_id > 2) {
+            $organization = $user->organization;
+            if ($organization) {
+                $allowedProducts = $organization->config['allowed_products'] ?? null;
+                if (is_array($allowedProducts) && !empty($allowedProducts)) {
+                    $query->whereIn('ID', $allowedProducts);
+                } else {
+                    $query->where('ID', 0); // No products allowed
+                }
+            } else {
+                $query->where('ID', 0); // No organization, no products
+            }
+        }
+
+        $query->orderBy($order_by, $order);
 
         // Filtros opcionais
         if ($request->filled('name')) {
