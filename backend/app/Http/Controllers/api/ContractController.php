@@ -178,7 +178,7 @@ class ContractController extends Controller
                      }
                  }
              }
-       
+
              // Lógica para LSX Medical
              elseif ($supplier && (stripos($supplier, 'LSX') !== false)) {
                  // Debug: Logar tentativa
@@ -204,7 +204,7 @@ class ContractController extends Controller
                                 // Sucesso: Aprovar contrato automaticamente
                                 $oldStatus = $contract->status;
                                 $contract->update(['status' => 'approved']);
-                                
+
                                 // Logar mudança de status
                                 \App\Services\ContractEventLogger::logStatusChange(
                                     $contract,
@@ -280,7 +280,7 @@ class ContractController extends Controller
             }
 
         }
-        
+
         // LSX Medical Integration Data
         $contract['integration_lsx_medical'] = [];
         $lsx_integration = Qlib::get_contract_meta($contract->id, 'integration_lsx_medical');
@@ -391,12 +391,12 @@ class ContractController extends Controller
                         $clientFn = Client::find($contract->client_id ?? 0);
                         if($clientFn){
                             $retLsx = $this->lsxMedicalService->createPatient($clientFn, $request->all());
-
+                            // dd($retLsx);
                             Qlib::update_contract_meta($contract->id, 'integration_lsx_medical', json_encode($retLsx));
-
+                            $mens = $retLsx['message'] ?? $retLsx['error'] ?? 'Contrato atualizado com sucesso.';
                             $ret = [
                                 'exec' => true,
-                                'mens' => 'Contrato atualizado com sucesso.',
+                                'mens' => 'Contrato atualizado com sucesso. LSX: ' . $mens,
                                 'data' => $contract
                             ];
 
@@ -404,7 +404,7 @@ class ContractController extends Controller
                                 // Sucesso: Aprovar contrato automaticamente
                                 $oldStatus = $contract->status;
                                 $contract->update(['status' => 'approved']);
-                                
+
                                 // Logar mudança de status
                                 // Logar mudança de status
                                 \App\Services\ContractEventLogger::logStatusChange(
@@ -439,17 +439,22 @@ class ContractController extends Controller
                         }
                      }
                  } catch (\Throwable $e) {
+                    $erro = 'Exceção na integração LSX (Update): ' . $e->getMessage();
                      \App\Services\ContractEventLogger::log(
                          $contract,
                          'integration_exception_update',
-                         'Exceção na integração LSX (Update): ' . $e->getMessage(),
+                         $erro,
                          ['trace' => $e->getTraceAsString()],
                          null,
                          auth()->id()
                      );
+                    return response()->json([
+                        'exec' => false,
+                        'mens' => $erro
+                    ], 500);
                 }
             }
-            
+
             // Fallback padrão se não for nenhuma das integrações acima
            return response()->json([
                'exec' => true,

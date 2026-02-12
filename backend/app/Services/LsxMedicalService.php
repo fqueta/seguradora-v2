@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Http\Controllers\api\ApiCredentialController;
 use Illuminate\Support\Facades\Http;
 use App\Models\User;
+use App\Models\Contract;
+use App\Services\ContractEventLogger;
 
 class LsxMedicalService
 {
@@ -60,6 +62,7 @@ class LsxMedicalService
             'active' => $this->isIntegrationActive(),
             'base_url' => $this->baseUrl,
             'token_set' => $this->token !== '',
+            'clinic_base_url' => $this->getClinicBaseUrl(),
         ];
     }
 
@@ -67,7 +70,7 @@ class LsxMedicalService
      * Tenta extrair dados do cliente para o payload da LSX Medical.
      * Prioriza dados passados explicitamente em $extraData, depois tenta extrair de User e config.
      */
-    private function buildPayload(User $client, array $extraData = []): array
+    public function buildPayload(User $client, array $extraData = []): array
     {
         // 1. Base data
         $name = $extraData['name'] ?? $client->name;
@@ -93,7 +96,7 @@ class LsxMedicalService
         $planAdherenceDate = $extraData['plan_adherence_date'] ?? $config['plan_adherence_date'] ?? date('Y-m-d');
         $planExpiryDate = $extraData['plan_expiry_date'] ?? $config['plan_expiry_date'] ?? date('Y-m-d', strtotime('+1 year'));
         $extraFields = $extraData['extra_fields'] ?? $config['lsx_extra_fields'] ?? [];
-        
+
         $genderRaw = $extraData['gender'] ?? $config['genero'] ?? $extraData['genero'] ?? $client->gender ?? $client->sexo ?? null;
         $gender = null;
         if ($genderRaw) {
@@ -161,16 +164,17 @@ class LsxMedicalService
             'Authorization' => 'Bearer ' . $this->token,
             'Content-Type' => 'application/json',
         ];
-        $url = $this->baseUrl . '/create-patient/';
+        $url = $this->getClinicBaseUrl() . '/create-patient/';
 
         try {
             $response = Http::withHeaders($headers)->post($url, $payload);
             $status = $response->status();
-            $body = $response->body();
-            // dd($body);
+            $body = $response->json();
+            // dd($payload, $body);
             $ok = $status >= 200 && $status < 300;
-            //gravar um metacampo da requisição 
+            //gravar um metacampo da requisição
             $salv = Qlib::update_contract_meta($client->id, 'lsx_medical_create_patient', $body);
+            // dd($salv);
             return [
                 'exec' => $ok,
                 'message' => $ok ? 'Paciente criado na LSX Medical com sucesso' : ($body['message'] ?? 'Falha ao criar paciente na LSX Medical'),
@@ -209,7 +213,7 @@ class LsxMedicalService
             'Content-Type' => 'application/json',
         ];
         $cpfSanitized = preg_replace('/\D/', '', $payload['cpf']);
-        $url = $this->baseUrl . '/update-patient/' . $cpfSanitized . '/';
+        $url = $this->getClinicBaseUrl() . '/update-patient/' . $cpfSanitized . '/';
 
         try {
             $response = Http::withHeaders($headers)->put($url, $payload);
@@ -229,6 +233,60 @@ class LsxMedicalService
                 'error' => $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * Consulta pacientes na LSX Medical pelo CPF.
+     */
+    public function filterPatientsByCpf(string $cpf): array
+    {
+        if (!$this->isIntegrationActive()) {
+            return ['exec' => false, 'message' => 'Integração LSX Medical inativa'];
+        }
+        $cpfOnly = preg_replace('/\D/', '', $cpf);
+        if (empty($cpfOnly)) {
+            return ['exec' => false, 'message' => 'CPF inválido para consulta'];
+        }
+        $headers = [
+            'Authorization' => 'Bearer ' . $this->token,
+        ];
+        $url = $this->getClinicBaseUrl() . '/filter-patients';
+        try {
+            $response = Http::withHeaders($headers)->get($url, ['cpf' => $cpfOnly]);
+            $status = $response->status();
+            $body = $response->json();
+            $ok = $status >= 200 && $status < 300;
+            return [
+                'exec' => $ok,
+                'message' => $ok ? 'Consulta realizada com sucesso' : ($body['message'] ?? 'Falha na consulta'),
+                'data' => $body,
+                'status' => $status,
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'exec' => false,
+                'message' => 'Erro ao consultar pacientes na LSX Medical',
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Retorna a base dos endpoints de clínica da LSX, normalizando credenciais.
+     */
+    private function getClinicBaseUrl(): string
+    {
+        $base = rtrim($this->baseUrl, '/');
+        // Se já contém /api/clinic, retorna como está
+        if (preg_match('#/api/clinic$#', $base)) {
+            return $base;
+        }
+        // Se termina com /api, acrescente /clinic
+        if (preg_match('#/api$#', $base)) {
+            return $base . '/clinic';
+        }
+        // Caso contrário, acrescente /api/clinic
+        return $base . '/api/clinic';
     }
     /**
      * Cancela/Inativa um paciente na LSX Medical pelo CPF usando PATCH.
@@ -252,28 +310,46 @@ class LsxMedicalService
         // Payload específico para cancelamento conforme exemplo do usuário
         $payload = [
             'extra_fields' => [
-                'department'  => $extraData['department'] ?? '',
-                'employee_id' => $extraData['employee_id'] ?? '',
+                'department'  => $extraData['department'] ?? 'RH',
+                'employee_id' => $extraData['employee_id'] ?? 'EMP456',
                 'status'      => 'inativo',
                 'notes'       => $extraData['notes'] ?? 'Cancelado pelo sistema da Yellow',
             ]
         ];
 
-        $url = $this->baseUrl . '/update-patient-by-cpf/' . $cpf . '/';
+        $url = $this->getClinicBaseUrl() . '/update-patient/' . $cpf . '/';
 
         try {
             $response = Http::withHeaders($headers)->patch($url, $payload);
             $status = $response->status();
             $body = $response->json();
             $ok = $status >= 200 && $status < 300;
-
-            return [
+            $ret = [
                 'exec' => $ok,
                 'message' => $ok ? 'Paciente inativado na LSX Medical com sucesso' : ($body['message'] ?? 'Falha ao inativar paciente na LSX Medical'),
                 'data' => $body,
                 'status' => $status,
                 'payload' => $payload
             ];
+            if ($ok && isset($extraData['contract_id'])) {
+                $contract = Contract::find($extraData['contract_id']);
+                if ($contract) {
+                    $oldStatus = $contract->status;
+                    $contract->update(['status' => 'cancelled']);
+                    Qlib::update_contract_meta($contract->id, 'integration_lsx_medical', json_encode($ret));
+                    ContractEventLogger::logStatusChange(
+                        $contract,
+                        $oldStatus,
+                        'cancelled',
+                        'Contrato cancelado automaticamente via ação LSX Medical.',
+                        ['integration_response' => $ret],
+                        json_encode($ret),
+                        auth()->id()
+                    );
+                    $ret['contract'] = $contract->refresh();
+                }
+            }
+            return $ret;
         } catch (\Throwable $e) {
             return [
                 'exec' => false,

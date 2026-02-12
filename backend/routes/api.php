@@ -201,10 +201,14 @@ Route::name('api.')->prefix('v1')->middleware([
         // LSX Medical: credenciais resolvidas e operações de paciente
         Route::get('lsxmedical/credentials-resolved', [LsxMedicalController::class, 'credentialsResolved'])
             ->name('lsxmedical.credentials-resolved');
+        Route::get('lsxmedical/filter-patients', [LsxMedicalController::class, 'filterPatients'])
+            ->name('lsxmedical.filter-patients');
         Route::post('lsxmedical/patients', [LsxMedicalController::class, 'createPatient'])
             ->name('lsxmedical.patients.create');
         Route::put('lsxmedical/patients/{cpf}', [LsxMedicalController::class, 'updatePatient'])
             ->name('lsxmedical.patients.update');
+        Route::patch('lsxmedical/patients/{cpf}/cancel', [LsxMedicalController::class, 'cancelPatient'])
+            ->name('lsxmedical.patients.cancel');
 
         // Rotas para product-units
         Route::apiResource('product-units', ProductUnitController::class,['parameters' => [

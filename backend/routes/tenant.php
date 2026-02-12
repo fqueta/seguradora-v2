@@ -620,6 +620,13 @@ Route::name('api.')->prefix('api/v1')->middleware([
         ]]);
         Route::post('dashboard-metrics/import-aeroclube', [MetricasController::class, 'importFromAeroclube'])->name('dashboard-metrics.import-aeroclube');
 
+        // Importação de clientes/contratos via Excel (wizard 2 etapas)
+        Route::prefix('imports/clients-contracts')->group(function () {
+            Route::post('upload', [\App\Http\Controllers\api\ImportController::class, 'upload'])->name('imports.clients-contracts.upload');
+            Route::get('{token}/preview', [\App\Http\Controllers\api\ImportController::class, 'preview'])->name('imports.clients-contracts.preview');
+            Route::post('{token}/commit', [\App\Http\Controllers\api\ImportController::class, 'commit'])->name('imports.clients-contracts.commit');
+        });
+
         // Route::apiResource('clients', ClientController::class,['parameters' => [
         //     'clients' => 'id'
         // ]]);

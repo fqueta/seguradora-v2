@@ -105,6 +105,7 @@ import CertificateGenerate from "./pages/school/CertificateGenerate";
 import CertificateView from "./pages/school/CertificateView";
 import CertificateValidate from "./pages/school/CertificateValidate";
 import RelatorioGeral from "./pages/reports/RelatorioGeral";
+import ClientsContractsImport from "./pages/imports/ClientsContractsImport";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -240,6 +241,15 @@ const App = () => {
                 <AdminProtectedRoute>
                   <AppLayout>
                     <RelatorioGeral />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              
+              {/* Importação (Excel) */}
+              <Route path="/admin/imports/clients-contracts" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <ClientsContractsImport />
                   </AppLayout>
                 </AdminProtectedRoute>
               } />

@@ -13,6 +13,8 @@ import { useFunnel, useStagesList } from '@/hooks/funnels';
 import { phoneApplyMask } from '@/lib/masks/phone-apply-mask';
 import { useContractsList } from '@/hooks/contracts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 
 
@@ -54,6 +56,11 @@ export default function ClientView() {
   if (process.env.NODE_ENV === 'development') {
     console.log('Client data:', client);
   }
+  const { toast } = useToast();
+  const [showIntegrationDialog, setShowIntegrationDialog] = useState(false);
+  const handleIntegrate = () => {
+    setShowIntegrationDialog(true);
+  };
 
   /**
    * Busca dados do Funil e Etapa para exibição no card "Atendimento".
@@ -440,10 +447,107 @@ export default function ClientView() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
+        {/* Integração ao Clube */}
+        <Card className="md:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center">
+              <Building className="mr-2 h-5 w-5" />
+              Integração ao Clube
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Badge
+                variant="outline"
+                className={`flex items-center gap-1 ${client.is_alloyal && (client.is_alloyal.active ?? true) ? 'bg-green-600 text-white border-transparent' : 'bg-red-600 text-white border-transparent'}`}
+              >
+                <Building className="h-3 w-3" />
+                Integrado ao clube
+              </Badge>
+              {(!client.is_alloyal || !(client.is_alloyal.active ?? true)) && (
+                <Button size="sm" onClick={handleIntegrate}>
+                  Integrar ao clube
+                </Button>
+              )}
+            </div>
+            <Dialog open={showIntegrationDialog} onOpenChange={setShowIntegrationDialog}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Como integrar ao clube</DialogTitle>
+                  <DialogDescription>
+                    Para integrar ao clube você precisa acessar a página de edição do cadastro e apertar o botão de salvar.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <Button variant="outline" onClick={() => setShowIntegrationDialog(false)}>
+                    Fechar
+                  </Button>
+                  <Button onClick={() => { setShowIntegrationDialog(false); handleEdit(); }}>
+                    Ir para edição
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+            {client.is_alloyal && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">ID</label>
+                  <p className="text-sm">{client.is_alloyal.id}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Situação</label>
+                  <p className="text-sm">
+                    <Badge variant={client.is_alloyal.active ? 'default' : 'destructive'}>
+                      {client.is_alloyal.active ? 'Ativado' : 'Desativado'}
+                    </Badge>
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">ID da Empresa</label>
+                  <p className="text-sm">{client.is_alloyal.business_id}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Data de Ativação</label>
+                  <p className="text-sm">{formatDate(client.is_alloyal.activated_at)}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Email</label>
+                  <p className="text-sm flex items-center">
+                    <Mail className="mr-2 h-4 w-4" />
+                    {client.is_alloyal.email}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">CPF</label>
+                  <p className="text-sm">{formatCPF(client.is_alloyal.cpf)}</p>
+                </div>
+                {client.points !== undefined && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Pontos</label>
+                    <p className="text-sm flex items-center">
+                      <DollarSign className="mr-2 h-4 w-4" />
+                      {client.points}
+                    </p>
+                  </div>
+                )}
+                {client.is_alloyal?.wallet && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Saldo da Carteira</label>
+                    <p className="text-sm flex items-center">
+                      <DollarSign className="mr-2 h-4 w-4" />
+                      R$ {client.is_alloyal.wallet.balance.toFixed(2)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
         {/* Informações Básicas */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
+              <User className="mr-2 h-5 w-5" />
               <User className="mr-2 h-5 w-5" />
               Informações Básicas
             </CardTitle>
@@ -809,79 +913,6 @@ export default function ClientView() {
             </div>
           </CardContent>
         </Card>
-        {/* Integração Alloyal */}
-        {client.is_alloyal && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Building className="mr-2 h-5 w-5" />
-                Integração Clube
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">ID</label>
-                <p className="text-sm">{client.is_alloyal.id}</p>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Situação</label>
-                <p className="text-sm">
-                  <Badge variant={client.is_alloyal.active ? 'default' : 'destructive'}>
-                    {client.is_alloyal.active ? 'Ativado' : 'Desativado'}
-                  </Badge>
-                </p>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">ID da Empresa</label>
-                <p className="text-sm">{client.is_alloyal.business_id}</p>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Data de Ativação</label>
-                <p className="text-sm">{formatDate(client.is_alloyal.activated_at)}</p>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Email</label>
-                <p className="text-sm flex items-center">
-                  <Mail className="mr-2 h-4 w-4" />
-                  {client.is_alloyal.email}
-                </p>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">CPF</label>
-                <p className="text-sm">{formatCPF(client.is_alloyal.cpf)}</p>
-              </div>
-              {client.points !== undefined && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Pontos</label>
-                  <p className="text-sm flex items-center">
-                    <DollarSign className="mr-2 h-4 w-4" />
-                    {client.points}
-                  </p>
-                </div>
-              )}
-
-              {client.is_alloyal?.wallet && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Saldo da Carteira</label>
-                  <p className="text-sm flex items-center">
-                    <DollarSign className="mr-2 h-4 w-4" />
-                    R$ {client.is_alloyal.wallet.balance.toFixed(2)}
-                  </p>
-                </div>
-              )}
-              {/* <div className="pt-3 border-t border-gray-200">
-                <Button className="w-full" variant="outline">
-                  Gerenciar Integração
-                </Button>
-              </div> */}
-            </CardContent>
-          </Card>
-        )}
 
         {/* Informações Profissionais/Acadêmicas */}
         {(client.config?.escolaridade || client.config?.profissao) && (

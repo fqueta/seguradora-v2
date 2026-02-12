@@ -3,10 +3,12 @@ import { useContract, useCancelContract } from '@/hooks/contracts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, FileText, User, Calendar, DollarSign, Package, XCircle } from 'lucide-react';
+import { ArrowLeft, Edit, FileText, User, Calendar, DollarSign, Package, XCircle, Search } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useMemo } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { getApiUrl } from '@/lib/qlib';
 import EditFooterBar from '@/components/ui/edit-footer-bar';
 import {
   AlertDialog,
@@ -27,10 +29,29 @@ export default function ContractView() {
     const [searchParams] = useSearchParams();
     const clientIdParam = searchParams.get('client_id');
     const { user } = useAuth();
-    const { data: contract, isLoading, error } = useContract(id as string);
+    const { data: contract, isLoading, error, refetch } = useContract(id as string);
     const { mutate: cancelContract, isPending: isCancelling } = useCancelContract();
     const [expandedEvents, setExpandedEvents] = useState<number[]>([]);
     const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+    const [lsxModalOpen, setLsxModalOpen] = useState(false);
+    const [lsxQueryResult, setLsxQueryResult] = useState<any>(null);
+    const [lsxActionLoading, setLsxActionLoading] = useState(false);
+    /**
+     * buildAuthHeaders
+     * pt-BR: Monta headers com Authorization Bearer conforme BaseApiService.
+     * en-US: Builds headers with Authorization Bearer per BaseApiService.
+     */
+    const buildAuthHeaders = (): HeadersInit => {
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        };
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+            (headers as any)['Authorization'] = `Bearer ${token}`;
+        }
+        return headers;
+    };
     const integrationData = useMemo(() => {
         const ci: any = (contract as any)?.contato_integrado;
         if (!ci) return null;
@@ -49,7 +70,11 @@ export default function ContractView() {
     };
 
     const handleCancel = () => {
-        cancelContract(id as string);
+        cancelContract(id as string, {
+            onSuccess: async () => {
+                try { await refetch(); } catch {}
+            }
+        });
     };
 
     // ... (rest of the code)
@@ -367,6 +392,24 @@ export default function ContractView() {
                     // Tenta extrair ID ou dados relevantes do payload de resposta
                     const remoteId = lsxData.data?.id || lsxData.data?.patient_id || '-';
                     const message = lsxData.message || '-';
+                    const remoteStatus = (() => {
+                        try {
+                            const r = lsxData?.data?.results?.[0]?.status;
+                            return typeof r === 'string' ? r.toUpperCase() : null;
+                        } catch { return null; }
+                    })();
+                    const remoteName = (() => {
+                        try {
+                            const r = lsxData?.data?.results?.[0]?.name;
+                            return typeof r === 'string' ? r : null;
+                        } catch { return null; }
+                    })();
+                    const remoteCpf = (() => {
+                        try {
+                            const r = lsxData?.data?.results?.[0]?.cpf;
+                            return typeof r === 'string' ? r : null;
+                        } catch { return null; }
+                    })();
                     
                     return (
                         <Card className="md:col-span-2 border-l-4 border-l-teal-500">
@@ -375,16 +418,55 @@ export default function ContractView() {
                                     <Package className="h-5 w-5" />
                                     Integração LSX Medical
                                 </CardTitle>
+                                {(user && Number(user.permission_id ?? (user as any).id_permission ?? 99) < 3) && (
+                                <div className="mt-2 flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={async () => {
+                                            try {
+                                                setLsxActionLoading(true);
+                                                const cpf = (contract.client?.cpf || '').replace(/\D/g, '');
+                                                const res = await fetch(`${getApiUrl()}/lsxmedical/filter-patients?cpf=${encodeURIComponent(cpf)}&contract_id=${encodeURIComponent(String(contract.id))}`, {
+                                                    method: 'GET',
+                                                    headers: buildAuthHeaders(),
+                                                    credentials: 'include',
+                                                });
+                                                const data = await res.json();
+                                                setLsxQueryResult(data);
+                                                setLsxModalOpen(true);
+                                                try { await refetch(); } catch {}
+                                            } finally {
+                                                setLsxActionLoading(false);
+                                            }
+                                        }}
+                                    >
+                                        <Search className="mr-2 h-4 w-4" />
+                                        Atualizar
+                                    </Button>
+                                </div>
+                                )}
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="text-sm font-medium text-muted-foreground">Status</label>
                                         <div className="mt-1">
-                                            <Badge variant={isSuccess ? "default" : "destructive"} className={isSuccess ? "bg-teal-600 hover:bg-teal-700" : ""}>
-                                                {isSuccess ? 'Sucesso' : 'Falha'}
+                                            <Badge
+                                                variant={(remoteStatus === 'ACTIVE' || isSuccess) ? "default" : "destructive"}
+                                                className={(remoteStatus === 'ACTIVE' || isSuccess) ? "bg-teal-600 hover:bg-teal-700" : ""}
+                                            >
+                                                {remoteStatus ? (remoteStatus === 'ACTIVE' ? 'Ativo' : remoteStatus) : (isSuccess ? 'Sucesso' : 'Falha')}
                                             </Badge>
                                         </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-muted-foreground">Nome (Remoto)</label>
+                                        <p className="font-medium">{remoteName || '-'}</p>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-muted-foreground">CPF (Remoto)</label>
+                                        <p className="font-medium">{remoteCpf || '-'}</p>
                                     </div>
                                     <div>
                                         <label className="text-sm font-medium text-muted-foreground">ID do Paciente (Remoto)</label>
@@ -409,6 +491,35 @@ export default function ContractView() {
                         </Card>
                     );
                 })()}
+
+                <Dialog open={lsxModalOpen} onOpenChange={setLsxModalOpen}>
+                    <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle>Resultado da Integração LSX</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-3">
+                            <div>
+                                <pre className="p-2 bg-slate-950 text-slate-50 rounded text-xs overflow-x-auto max-h-80">
+                                    {(() => {
+                                        try {
+                                            return JSON.stringify(lsxQueryResult, null, 2);
+                                        } catch {
+                                            return String(lsxQueryResult ?? '');
+                                        }
+                                    })()}
+                                </pre>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setLsxModalOpen(false)}>
+                                Fechar
+                            </Button>
+                            <Button disabled={lsxActionLoading} onClick={() => setLsxModalOpen(false)}>
+                                Ok
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
 
                 {/* Observações */}
                 {contract.description && (

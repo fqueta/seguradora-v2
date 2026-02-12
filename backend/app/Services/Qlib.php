@@ -1825,17 +1825,20 @@ class Qlib
         $ret = false;
         $tab = 'contract_meta';
         if($contract_id&&$meta_key&&$meta_value){
-            $verf = self::totalReg($tab,"WHERE contract_id='$contract_id' AND meta_key='$meta_key'");
+            $cid = (string)$contract_id;
+            $mkey = (string)$meta_key;
+            $mval = is_string($meta_value) ? $meta_value : json_encode($meta_value, JSON_UNESCAPED_UNICODE);
+            $verf = self::totalReg($tab,"WHERE contract_id='$cid' AND meta_key='$mkey'");
             if($verf){
-                $ret=DB::table($tab)->where('contract_id',$contract_id)->where('meta_key',$meta_key)->update([
-                    'meta_value'=>$meta_value,
+                $ret=DB::table($tab)->where('contract_id',$cid)->where('meta_key',$mkey)->update([
+                    'meta_value'=>$mval,
                     'updated_at'=>self::dataBanco(),
                 ]);
             }else{
                 $ret=DB::table($tab)->insert([
-                    'contract_id'=>$contract_id,
-                    'meta_value'=>$meta_value,
-                    'meta_key'=>$meta_key,
+                    'contract_id'=>$cid,
+                    'meta_value'=>$mval,
+                    'meta_key'=>$mkey,
                     'created_at'=>self::dataBanco(),
                 ]);
             }

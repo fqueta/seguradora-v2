@@ -288,7 +288,7 @@ class ClientController extends Controller
                 ->where('status', 'approved')
                 ->whereNull('deleted_at')
                 ->get();
-            
+
             $hasLsx = false;
             foreach ($contracts as $contract) {
                 $supplierTag = Qlib::getSupplier($contract->product_id);
@@ -300,15 +300,15 @@ class ClientController extends Controller
 
             if ($hasLsx) {
                 $retLsx = $lsxMedicalService->updatePatient($client, $request->all());
-                
+
                 $config = is_string($client->config)
                     ? (json_decode($client->config, true) ?? [])
                     : ($client->config ?? []);
-                
+
                 if (!is_array($config)) {
                     $config = [];
                 }
-                
+
                 $config['integration_lsx_medical_update'] = $retLsx;
                 $client->config = $config;
                 $client->save();
@@ -564,6 +564,37 @@ class ClientController extends Controller
             $author = User::find($client->autor);
             $client->autor_name = $author ? $author->name : null;
         }
+        try {
+            $rawMeta = Qlib::get_usermeta($client->id, 'is_alloyal', true);
+            $normalized = null;
+            if (is_string($rawMeta) && $rawMeta !== '') {
+                $decoded = json_decode($rawMeta, true);
+                if (is_array($decoded)) {
+                    if (isset($decoded['data']) && is_array($decoded['data'])) {
+                        $normalized = $decoded['data'];
+                    } else {
+                        $normalized = $decoded;
+                    }
+                }
+            }
+            if (is_array($normalized)) {
+                $normalized['id'] = isset($normalized['id']) ? (int)$normalized['id'] : ($normalized['id'] ?? null);
+                $normalized['active'] = (bool)($normalized['active'] ?? $normalized['activated'] ?? false);
+                if (isset($normalized['business_id'])) {
+                    $normalized['business_id'] = (int)$normalized['business_id'];
+                }
+                if (isset($normalized['wallet']) && is_array($normalized['wallet'])) {
+                    if (isset($normalized['wallet']['balance'])) {
+                        $normalized['wallet']['balance'] = (float)$normalized['wallet']['balance'];
+                    }
+                }
+                $client->is_alloyal = $normalized;
+            } else {
+                $client->is_alloyal = null;
+            }
+        } catch (\Throwable $e) {
+            $client->is_alloyal = null;
+        }
 
         return response()->json($client);
     }
@@ -755,7 +786,7 @@ class ClientController extends Controller
                 ];
                 $alloyalController = new \App\Http\Controllers\api\AlloyalController();
                 $retAlloyal = $alloyalController->create_user_atived($payloadAlloyal, $clientToUpdate->id);
-                
+
                 // Anexar retorno no config para auditoria
                 $clientToUpdate->config = is_string($clientToUpdate->config)
                     ? (json_decode($clientToUpdate->config, true) ?? [])

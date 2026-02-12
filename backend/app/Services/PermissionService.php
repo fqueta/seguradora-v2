@@ -107,7 +107,7 @@ class PermissionService
             $url = '/school/enrollment-situation';
         }elseif($name=='api.metrics.index' || $name == 'api.metrics.update' || $name == 'api.metrics.show' || $name == 'api.metrics.store' || $name == 'api.metrics.destroy'){
             $url = '/settings/metrics';
-        }elseif($name=='api.clients.index' || $name == 'api.clients.convertToUser' || $name == 'api.clients.update' || $name == 'api.clients.show' || $name == 'api.clients.store' || $name == 'api.clients.destroy' || $name == 'api.clients.restore' || $name == 'api.clients.forceDelete' || $name == 'api.clients.attendances.store' || $name == 'api.lsxmedical.patients.create' || $name == 'api.lsxmedical.patients.update'){
+        }elseif($name=='api.clients.index' || $name == 'api.clients.convertToUser' || $name == 'api.clients.update' || $name == 'api.clients.show' || $name == 'api.clients.store' || $name == 'api.clients.destroy' || $name == 'api.clients.restore' || $name == 'api.clients.forceDelete' || $name == 'api.clients.attendances.store' || $name == 'api.lsxmedical.patients.create' || $name == 'api.lsxmedical.patients.update' || $name == 'api.lsxmedical.filter-patients' ){
             //api.clients.convertToUser para converter cliente em usuario
             $url = '/clients';
         }elseif($name=='api.api-credentials.index' || $name == 'api.api-credentials.update' || $name == 'api.api-credentials.show' || $name == 'api.api-credentials.store' || $name == 'api.api-credentials.destroy' || $name == 'api.api-credentials.restore' || $name == 'api.api-credentials.forceDelete' || $name == 'api.api-credentials.trash'){

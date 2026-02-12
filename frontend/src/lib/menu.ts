@@ -243,6 +243,20 @@ export const defaultMenu: MenuItemDTO[] = [
     ]
   },
   {
+    title: "Importação",
+    icon: "ClipboardList",
+    permission: "imports.view",
+    can_view: true,
+    items: [
+      {
+        title: "Clientes/Contratos (Excel)",
+        url: "/admin/imports/clients-contracts",
+        permission: "imports.view",
+        can_view: true
+      }
+    ]
+  },
+  {
     title: "Configurações",
     icon: "Settings",
     permission: "settings.view",

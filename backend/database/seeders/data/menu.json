@@ -10,7 +10,8 @@
     "icon": "Users",
     "submenu": [
         { "title": "Lista de clientes", "url": "/clients" },
-        { "title": "Lista de contratos", "url": "/contracts" }
+        { "title": "Lista de contratos", "url": "/contracts" },
+        { "title": "Importar clientes e contratos", "url": "/imports/clients-contracts" }
     ]
   },
   {
