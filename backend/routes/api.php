@@ -207,8 +207,8 @@ Route::name('api.')->prefix('v1')->middleware([
             ->name('lsxmedical.patients.create');
         Route::put('lsxmedical/patients/{cpf}', [LsxMedicalController::class, 'updatePatient'])
             ->name('lsxmedical.patients.update');
-        Route::patch('lsxmedical/patients/{cpf}/cancel', [LsxMedicalController::class, 'cancelPatient'])
-            ->name('lsxmedical.patients.cancel');
+        Route::post('lsxmedical/patients/{cpf}/toggle-status', [LsxMedicalController::class, 'toggleStatus'])
+            ->name('lsxmedical.patients.toggle-status');
 
         // Rotas para product-units
         Route::apiResource('product-units', ProductUnitController::class,['parameters' => [

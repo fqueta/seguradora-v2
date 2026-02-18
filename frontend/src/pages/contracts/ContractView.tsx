@@ -21,6 +21,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 
 export default function ContractView() {
     const { id } = useParams();
@@ -36,6 +39,9 @@ export default function ContractView() {
     const [lsxModalOpen, setLsxModalOpen] = useState(false);
     const [lsxQueryResult, setLsxQueryResult] = useState<any>(null);
     const [lsxActionLoading, setLsxActionLoading] = useState(false);
+    const [showLsxJson, setShowLsxJson] = useState(false);
+    const [lsxConfirmDialogOpen, setLsxConfirmDialogOpen] = useState(false);
+    const [pendingLsxStatus, setPendingLsxStatus] = useState<boolean | null>(null);
     /**
      * buildAuthHeaders
      * pt-BR: Monta headers com Authorization Bearer conforme BaseApiService.
@@ -98,6 +104,45 @@ export default function ContractView() {
     const handleEdit = () => {
         navigate(`/admin/contracts/${id}/edit`);
     };
+    /**
+     * handleToggleLsxStatus
+     * pt-BR: Aciona o modal de confirmação para alteração de status.
+     */
+    const handleToggleLsxStatus = (active: boolean) => {
+        setPendingLsxStatus(active);
+        setLsxConfirmDialogOpen(true);
+    };
+
+    /**
+     * executeToggleLsxStatus
+     * pt-BR: Executa a requisição após confirmação no modal.
+     */
+    const executeToggleLsxStatus = async () => {
+        if (!contract || pendingLsxStatus === null) return;
+        try {
+            setLsxActionLoading(true);
+            const cpf = (contract.client?.cpf || '').replace(/\D/g, '');
+            const response = await fetch(`${getApiUrl()}/lsxmedical/patients/${cpf}/toggle-status?contract_id=${contract.id}`, {
+                method: 'POST',
+                headers: buildAuthHeaders(),
+                body: JSON.stringify({ active: pendingLsxStatus }),
+            });
+            const data = await response.json();
+            if (data.exec) {
+                toast.success(data.message || 'Status atualizado com sucesso');
+                try { await refetch(); } catch {}
+            } else {
+                toast.error(data.message || 'Falha ao atualizar status');
+            }
+        } catch (err: any) {
+            toast.error('Erro de rede ao atualizar status: ' + err.message);
+        } finally {
+            setLsxActionLoading(false);
+            setLsxConfirmDialogOpen(false);
+            setPendingLsxStatus(null);
+        }
+    };
+
     /**
      * handleOpenCancel
      * pt-BR: Abre o modal de confirmação de cancelamento.
@@ -172,13 +217,32 @@ export default function ContractView() {
     };
 
     const getStatusLabel = (status: string) => {
-        switch (status) {
-            case 'pending': return 'Pendente';
-            case 'active': return 'Ativo';
-            case 'approved': return 'Aprovado';
-            case 'cancelled': return 'Cancelado';
-            default: return status;
-        }
+        const labels: Record<string, string> = {
+            'pending': 'Pendente',
+            'approved': 'Aprovado',
+            'cancelled': 'Cancelado',
+            'rejected': 'Rejeitado',
+            'active': 'Ativo',
+            'inactive': 'Inativo',
+        };
+        return labels[status.toLowerCase()] || status;
+    };
+
+    const getEventLabel = (type: string) => {
+        const labels: Record<string, string> = {
+            'status_update': 'Atualização de Status',
+            'integracao_sulamerica': 'Integração SulAmérica',
+            'contratacao_end': 'Integração SulAmérica (Fim)',
+            'debug_lsx_attempt': 'Início Integração LSX',
+            'integracao_lsx_medical': 'Retorno LSX Medical',
+            'lsx_medical_create_patient': 'Criação de Paciente LSX',
+            'reativacao': 'Reativação de Contrato',
+            'cancelamento': 'Cancelamento de Contrato',
+            'importacao': 'Importação de Dados',
+            'integration_consult': 'Consulta de Status',
+            'cancelamento_integracao': 'Cancelamento de Integração',
+        };
+        return labels[type] || type;
     };
 
     const getStatusVariant = (status: string) => {
@@ -384,32 +448,43 @@ export default function ContractView() {
                 )}
 
                 {/* Resumo da Integração LSX Medical */}
-                {(() => {
-                    const lsxData = (contract as any)?.integration_lsx_medical;
-                    if (!lsxData) return null;
+                {((contract as any)?.supplier_tag === 'LSX') && (() => {
+                    const lsxData = (contract as any)?.integration_lsx_medical || {};
 
                     const isSuccess = lsxData.exec === true;
                     // Tenta extrair ID ou dados relevantes do payload de resposta
-                    const remoteId = lsxData.data?.id || lsxData.data?.patient_id || '-';
+                    const remoteId = lsxData.data?.id || lsxData.data?.patient_id || lsxData.data?.patient?.id || '-';
                     const message = lsxData.message || '-';
                     const remoteStatus = (() => {
                         try {
-                            const r = lsxData?.data?.results?.[0]?.status;
-                            return typeof r === 'string' ? r.toUpperCase() : null;
+                            const r = lsxData?.data?.results?.[0]?.status || lsxData?.data?.patient?.status;
+                            if (typeof r === 'string') return r.toUpperCase();
+                            // Fallback se não houver status explícito mas for sucesso de criação ou mensagem indica atividade
+                            if (isSuccess && (
+                                lsxData.data?.success === true || 
+                                message.toLowerCase().includes('criado') || 
+                                message.toLowerCase().includes('sucesso') ||
+                                message.toLowerCase().includes('criar')
+                            )) {
+                                return 'ACTIVE';
+                            }
+                            return null;
                         } catch { return null; }
                     })();
                     const remoteName = (() => {
                         try {
-                            const r = lsxData?.data?.results?.[0]?.name;
+                            const r = lsxData?.data?.results?.[0]?.name || lsxData?.data?.patient?.name;
                             return typeof r === 'string' ? r : null;
                         } catch { return null; }
                     })();
                     const remoteCpf = (() => {
                         try {
-                            const r = lsxData?.data?.results?.[0]?.cpf;
+                            const r = lsxData?.data?.results?.[0]?.cpf || lsxData?.data?.patient?.cpf;
                             return typeof r === 'string' ? r : null;
                         } catch { return null; }
                     })();
+
+                    const displayPatient = lsxData?.data?.patient || lsxData?.data?.results?.[0];
                     
                     return (
                         <Card className="md:col-span-2 border-l-4 border-l-teal-500">
@@ -448,45 +523,128 @@ export default function ContractView() {
                                 )}
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-sm font-medium text-muted-foreground">Status</label>
-                                        <div className="mt-1">
+                                <div className="space-y-6">
+                                    <div className="flex items-center justify-between bg-teal-50/50 p-3 rounded-lg border border-teal-100">
+                                        <div className="space-y-0.5">
+                                            <Label htmlFor="lsx-status-toggle" className="text-sm font-semibold text-teal-900">
+                                                Status na LSX Medical
+                                            </Label>
+                                            <p className={`text-xs ${remoteStatus === 'INACTIVE' ? 'text-destructive font-medium' : 'text-teal-600'}`}>
+                                                {remoteStatus === 'ACTIVE' ? 'Paciente está ativo' : (remoteStatus === 'INACTIVE' ? 'Paciente está inativado' : 'Paciente está inativo')}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
                                             <Badge
-                                                variant={(remoteStatus === 'ACTIVE' || isSuccess) ? "default" : "destructive"}
-                                                className={(remoteStatus === 'ACTIVE' || isSuccess) ? "bg-teal-600 hover:bg-teal-700" : ""}
+                                                variant={(remoteStatus === 'INACTIVE' || (!isSuccess && !remoteStatus)) ? "destructive" : "default"}
+                                                className={(remoteStatus === 'ACTIVE' || (isSuccess && remoteStatus !== 'INACTIVE')) ? "bg-teal-600 hover:bg-teal-700 h-6" : "h-6"}
                                             >
-                                                {remoteStatus ? (remoteStatus === 'ACTIVE' ? 'Ativo' : remoteStatus) : (isSuccess ? 'Sucesso' : 'Falha')}
+                                                {(() => {
+                                                    if (remoteStatus === 'ACTIVE') return 'Ativo';
+                                                    if (remoteStatus === 'INACTIVE') return 'Inativado';
+                                                    return remoteStatus || (isSuccess ? 'Sucesso' : 'Falha');
+                                                })()}
                                             </Badge>
+                                            <Switch
+                                                id="lsx-status-toggle"
+                                                checked={remoteStatus === 'ACTIVE'}
+                                                disabled={lsxActionLoading}
+                                                onCheckedChange={handleToggleLsxStatus}
+                                                className="data-[state=checked]:bg-teal-600"
+                                            />
                                         </div>
                                     </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-muted-foreground">Nome (Remoto)</label>
-                                        <p className="font-medium">{remoteName || '-'}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-muted-foreground">CPF (Remoto)</label>
-                                        <p className="font-medium">{remoteCpf || '-'}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-muted-foreground">ID do Paciente (Remoto)</label>
-                                        <p className="font-medium text-lg">{remoteId}</p>
-                                    </div>
-                                    <div className="md:col-span-2">
+
+                                    {/* Tabela de Dados do Paciente */}
+                                    {displayPatient && (
+                                        <div className="rounded-md border">
+                                            <table className="w-full text-sm">
+                                                <tbody className="divide-y">
+                                                    <tr>
+                                                        <td className="px-4 py-2 font-medium bg-muted/50 w-1/3 text-muted-foreground">Nome (Remoto)</td>
+                                                        <td className="px-4 py-2">{displayPatient.name}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">CPF (Remoto)</td>
+                                                        <td className="px-4 py-2">{displayPatient.cpf}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Email</td>
+                                                        <td className="px-4 py-2">{displayPatient.email || '-'}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">ID do Paciente</td>
+                                                        <td className="px-4 py-2 font-bold">{displayPatient.id || '-'}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Nascimento</td>
+                                                        <td className="px-4 py-2">{formatDate(displayPatient.birth_date)}</td>
+                                                    </tr>
+                                                    {displayPatient.plan_expiry_date && (
+                                                        <tr>
+                                                            <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Vencimento do Plano</td>
+                                                            <td className="px-4 py-2">{formatDate(displayPatient.plan_expiry_date)}</td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-2">
                                         <label className="text-sm font-medium text-muted-foreground">Mensagem de Retorno</label>
-                                        <p className="font-medium text-sm mt-1 p-2 bg-muted rounded border">
+                                        <div className="font-medium text-sm p-2 bg-muted rounded border flex items-center gap-2">
+                                            {isSuccess ? 
+                                                <Badge className="bg-teal-600 h-5 px-1.5 pointer-events-none">Sucesso</Badge> : 
+                                                <Badge variant="destructive" className="h-5 px-1.5 pointer-events-none">Algo aconteceu</Badge>
+                                            }
                                             {message}
-                                        </p>
+                                        </div>
                                     </div>
-                                     {user?.permission_id == '1' && lsxData.data && (
-                                        <div className="md:col-span-2">
-                                             <label className="text-sm font-medium text-muted-foreground mb-1 block">Detalhes da Resposta</label>
-                                              <pre className="p-2 bg-slate-950 text-slate-50 rounded text-xs overflow-x-auto max-h-40">
-                                                 {JSON.stringify(lsxData.data, null, 2)}
-                                              </pre>
+
+                                    {/* Controle de JSON para Super Admin */}
+                                    {user?.permission_id == '1' && (
+                                        <div className="pt-4 border-t">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label className="text-sm font-medium text-muted-foreground">Dados Técnicos (JSON)</label>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    onClick={() => setShowLsxJson(!showLsxJson)}
+                                                    className="h-8 text-xs text-primary underline-offset-4 hover:underline"
+                                                >
+                                                    {showLsxJson ? 'Ocultar JSON' : 'Ver JSON'}
+                                                </Button>
+                                            </div>
+                                            {showLsxJson && (
+                                                <pre className="p-3 bg-slate-950 text-slate-50 rounded text-xs overflow-x-auto max-h-60 border border-slate-800">
+                                                    {JSON.stringify(lsxData.data, null, 2)}
+                                                </pre>
+                                            )}
                                         </div>
                                     )}
                                 </div>
+
+                                <AlertDialog open={lsxConfirmDialogOpen} onOpenChange={setLsxConfirmDialogOpen}>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Confirmar alteração de status?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Você está prestes a {pendingLsxStatus ? 'ATIVAR' : 'INATIVAR'} o paciente na LSX Medical. 
+                                                Esta ação pode afetar o status deste contrato no sistema. Deseja continuar?
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel disabled={lsxActionLoading}>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction 
+                                                onClick={executeToggleLsxStatus}
+                                                disabled={lsxActionLoading}
+                                                className={pendingLsxStatus ? 'bg-teal-600 hover:bg-teal-700' : 'bg-destructive hover:bg-destructive/90'}
+                                            >
+                                                {lsxActionLoading ? 'Processando...' : 'Confirmar'}
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             </CardContent>
                         </Card>
                     );
@@ -560,7 +718,7 @@ export default function ContractView() {
                                             </div>
                                             <div className="font-medium flex items-center gap-2 flex-wrap">
                                                 <Badge variant="outline" className="bg-primary/10 text-primary border-0">
-                                                    {event.event_type}
+                                                    {getEventLabel(event.event_type)}
                                                 </Badge>
                                                 {event.from_status && event.to_status && (
                                                     <span className="text-sm">
@@ -628,7 +786,7 @@ export default function ContractView() {
                                             </div>
                                             <div className="font-medium mb-1">
                                                 <Badge className="bg-blue-600 hover:bg-blue-700">
-                                                    {event.event_type === 'contratacao_end' ? 'Integração SulAmérica' : event.event_type}
+                                                    {getEventLabel(event.event_type)}
                                                 </Badge>
                                             </div>
                                             <div className="mt-2 p-3 bg-muted/50 rounded-md text-sm">

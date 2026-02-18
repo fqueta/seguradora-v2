@@ -254,7 +254,6 @@ class ContractController extends Controller
     public function show($id): JsonResponse
     {
         $contract = Contract::with(['client', 'owner', 'events.user', 'product'])->find($id);
-        //dados do metacampo envio_fornecedor_sucesso deve ser enviado no campo events
         if (!$contract) {
             return response()->json([
                 'exec' => false,
@@ -262,7 +261,8 @@ class ContractController extends Controller
                 'color' => 'danger'
             ], 404);
         }
-        $contract['contato_integrado'] = [];
+        $contract->setAttribute('supplier_tag', Qlib::getSupplier($contract->product_id));
+        $contract->setAttribute('contato_integrado', []);
         $envio_fornecedor_sucesso = Qlib::get_contract_meta($contract->id, 'envio_fornecedor_sucesso');
         if ($envio_fornecedor_sucesso) {
             $successo_integra = is_array($envio_fornecedor_sucesso) ? $envio_fornecedor_sucesso : json_decode($envio_fornecedor_sucesso, true);
@@ -270,7 +270,7 @@ class ContractController extends Controller
             //     $successo_integra = json_decode($successo_integra, true);
             // }
             if(isset($successo_integra['exec'])){
-                $contract['contato_integrado'] =  $successo_integra;
+                $contract->setAttribute('contato_integrado', $successo_integra);
             }
             if (!is_array($successo_integra)) {
                 $successo_integra = ['mens' => (string) $envio_fornecedor_sucesso];
@@ -282,12 +282,12 @@ class ContractController extends Controller
         }
 
         // LSX Medical Integration Data
-        $contract['integration_lsx_medical'] = [];
+        $contract->setAttribute('integration_lsx_medical', []);
         $lsx_integration = Qlib::get_contract_meta($contract->id, 'integration_lsx_medical');
         if ($lsx_integration) {
             $lsx_data = is_array($lsx_integration) ? $lsx_integration : json_decode($lsx_integration, true);
             if(isset($lsx_data['exec'])){
-                 $contract['integration_lsx_medical'] = $lsx_data;
+                 $contract->setAttribute('integration_lsx_medical', $lsx_data);
             }
         }
 
@@ -308,8 +308,8 @@ class ContractController extends Controller
 
         $oldStatus = $contract->status;
         $data = $request->all();
-         // Verifica se cliente ja tem contrato para este produto (excluindo este próprio) com vigencia valida
-         if(isset($data['client_id']) && isset($data['product_id'])){
+        // Verifica se cliente ja tem contrato para este produto (excluindo este próprio) com vigencia valida
+        if(isset($data['client_id']) && isset($data['product_id'])){
             $exists = Contract::where('client_id', $data['client_id'])
                ->where('product_id', $data['product_id'])
                ->where('id', '!=', $id)
@@ -322,7 +322,7 @@ class ContractController extends Controller
                    'mens' => 'Este cliente já possui um contrato válido para este produto.'
                 ], 400);
             }
-       }
+        }
 
         // Backfill owner/organization if missing
         $user = auth()->user();
@@ -387,13 +387,13 @@ class ContractController extends Controller
 
                 // Integration LSX Medical
                 try {
-                     if ($this->lsxMedicalService->isIntegrationActive()) {
+                    if ($this->lsxMedicalService->isIntegrationActive()) {
                         $clientFn = Client::find($contract->client_id ?? 0);
                         if($clientFn){
                             $retLsx = $this->lsxMedicalService->createPatient($clientFn, $request->all());
-                            // dd($retLsx);
                             Qlib::update_contract_meta($contract->id, 'integration_lsx_medical', json_encode($retLsx));
                             $mens = $retLsx['message'] ?? $retLsx['error'] ?? 'Contrato atualizado com sucesso.';
+                            // dd($mens);
                             $ret = [
                                 'exec' => true,
                                 'mens' => 'Contrato atualizado com sucesso. LSX: ' . $mens,
@@ -710,10 +710,7 @@ class ContractController extends Controller
                         return $ret;
                     }
                     // Tenta obter dados do cliente, verificando config se necessário
-                    $clientConfig = is_array($client->config) ? $client->config : [];
-                    if(Qlib::isJson($client->config)){
-                        $clientConfig = json_decode($client->config, true);
-                    }
+                    $clientConfig = is_array($client->config) ? $client->config : (is_string($client->config) ? json_decode($client->config, true) : []);
                     // Mapeamento de Gênero
                     $sexo = strtoupper($client->genero ?? 'M'); // m -> M
                     if ($sexo == 'NI') $sexo = 'M';
@@ -892,7 +889,7 @@ class ContractController extends Controller
             null,
             auth()->id()
         );
-
+        $message = 'Contrato cancelado com sucesso.';
         if($supplier == 'SulAmerica'){
             //Verificar o metadata do envio_fornecedor_sucesso
             $metadata = Qlib::get_contract_meta($contract->id, 'envio_fornecedor_sucesso');
@@ -940,6 +937,14 @@ class ContractController extends Controller
                     ], 400);
                 }
             }
+        }elseif($supplier == 'LSX'){
+            $client = Client::find($contract->client_id);
+            $response = (new LsxMedicalService())->toggleStatus($client->cpf, ['contract_id' => $contract->id, 'status' => false]);
+            $integrationResult = $response;
+            $message = $response['message']??'Contrato cancelado com sucesso.';
+            if (!isset($response['exec']) || $response['exec'] !== true) {
+                $integrationSuccess = false;
+            }
         }
         else {
             // Fornecedor não é SulAmérica: registrar skip para auditoria
@@ -956,10 +961,11 @@ class ContractController extends Controller
                 auth()->id()
             );
         }
-
         if ($integrationSuccess) {
             $oldStatus = $contract->status;
-            $contract->update(['status' => 'cancelled']);
+            if($oldStatus!='cancelled'){
+                $contract->update(['status' => 'cancelled']);
+            }
 
             // Log de sucesso da integração antes da mudança de status
             \App\Services\ContractEventLogger::log(
@@ -984,8 +990,8 @@ class ContractController extends Controller
 
             return response()->json([
                 'exec' => true,
-                'mens' => 'Contrato cancelado com sucesso.',
-                'message' => 'Contrato cancelado com sucesso.',
+                'mens' => $message,
+                'message' => $message,
                 'color' => 'success',
                 'data' => $contract
             ]);

@@ -153,7 +153,6 @@ class LsxMedicalService
         if (!isset($payload['extra_fields']['status'])) {
             $payload['extra_fields']['status'] = 'ATIVO';
         }
-
         // Validar campos obrigatórios mínimos para a integração
         // (A validação forte deve ser feita antes, mas aqui garantimos que não envia lixo)
         if (empty($payload['cpf']) || empty($payload['name'])) {
@@ -170,19 +169,19 @@ class LsxMedicalService
             $response = Http::withHeaders($headers)->post($url, $payload);
             $status = $response->status();
             $body = $response->json();
-            // dd($payload, $body);
             $ok = $status >= 200 && $status < 300;
+            $completMensage = $ok ? ($body['message'] ?? 'Paciente criado na LSX Medical com sucesso') : ($body['error'] ?? $body['data']['error'] ?? 'Falha ao criar paciente na LSX Medical');
             //gravar um metacampo da requisição
             $salv = Qlib::update_contract_meta($client->id, 'lsx_medical_create_patient', $body);
-            // dd($salv);
-            return [
+            $ret = [
                 'exec' => $ok,
-                'message' => $ok ? 'Paciente criado na LSX Medical com sucesso' : ($body['message'] ?? 'Falha ao criar paciente na LSX Medical'),
+                'message' => $completMensage,
                 'data' => $body,
                 'payload' => $payload, // Incluindo payload para log
                 'status' => $status,
                 'save' => $salv,
             ];
+            return $ret;
         } catch (\Throwable $e) {
             return [
                 'exec' => false,
@@ -238,7 +237,7 @@ class LsxMedicalService
     /**
      * Consulta pacientes na LSX Medical pelo CPF.
      */
-    public function filterPatientsByCpf(string $cpf): array
+    public function filterPatientsByCpf(string $cpf, $contractId = null): array
     {
         if (!$this->isIntegrationActive()) {
             return ['exec' => false, 'message' => 'Integração LSX Medical inativa'];
@@ -256,12 +255,14 @@ class LsxMedicalService
             $status = $response->status();
             $body = $response->json();
             $ok = $status >= 200 && $status < 300;
-            return [
+            $ret =  [
                 'exec' => $ok,
                 'message' => $ok ? 'Consulta realizada com sucesso' : ($body['message'] ?? 'Falha na consulta'),
                 'data' => $body,
                 'status' => $status,
             ];
+            Qlib::update_contract_meta($contractId, 'integration_lsx_medical', json_encode($ret));
+            return $ret;
         } catch (\Throwable $e) {
             return [
                 'exec' => false,
@@ -289,71 +290,108 @@ class LsxMedicalService
         return $base . '/api/clinic';
     }
     /**
-     * Cancela/Inativa um paciente na LSX Medical pelo CPF usando PATCH.
+     * Altera o status do paciente na LSX Medical pelo CPF usando toggle-patient-status.
+     * $extraData['status'] pode ser true (para ativar) ou false (para inativar).
      */
-    public function cancelPatient(User $client, array $extraData = []): array
+    public function toggleStatus($cpf, $extraData = []): array
     {
         if (!$this->isIntegrationActive()) {
             return ['exec' => false, 'message' => 'Integração LSX Medical inativa'];
         }
 
-        $cpf = preg_replace('/\D/', '', $extraData['cpf'] ?? $client->cpf);
+        $cpf = preg_replace('/\D/', '', $cpf);
         if (empty($cpf)) {
-             return ['exec' => false, 'message' => 'CPF obrigatório para cancelamento'];
+             return ['exec' => false, 'message' => 'CPF obrigatório'];
         }
+
+        $active = isset($extraData['status']) ? (bool)$extraData['status'] : false;
 
         $headers = [
             'Authorization' => 'Bearer ' . $this->token,
             'Content-Type' => 'application/json',
         ];
 
-        // Payload específico para cancelamento conforme exemplo do usuário
+        // Payload novo conforme solicitado pelo usuário
         $payload = [
-            'extra_fields' => [
-                'department'  => $extraData['department'] ?? 'RH',
-                'employee_id' => $extraData['employee_id'] ?? 'EMP456',
-                'status'      => 'inativo',
-                'notes'       => $extraData['notes'] ?? 'Cancelado pelo sistema da Yellow',
-            ]
+            'cpf'    => $cpf,
+            'active' => $active
         ];
 
-        $url = $this->getClinicBaseUrl() . '/update-patient/' . $cpf . '/';
+        $url = $this->getClinicBaseUrl() . '/toggle-patient-status/';
 
         try {
-            $response = Http::withHeaders($headers)->patch($url, $payload);
+            $response = Http::withHeaders($headers)->post($url, $payload);
             $status = $response->status();
             $body = $response->json();
             $ok = $status >= 200 && $status < 300;
+
+            // Condição solicitada: status retornado pela API
+            $targetStatus = $active ? 'ACTIVE' : 'INACTIVE';
+            $confirmStatus = (isset($body['patient']['status']) && $body['patient']['status'] === $targetStatus);
             $ret = [
                 'exec' => $ok,
-                'message' => $ok ? 'Paciente inativado na LSX Medical com sucesso' : ($body['message'] ?? 'Falha ao inativar paciente na LSX Medical'),
+                'message' => $ok ? ($active ? 'Paciente ativado com sucesso' : 'Paciente inativado com sucesso') : ($body['message'] ?? 'Falha na operação'),
                 'data' => $body,
                 'status' => $status,
-                'payload' => $payload
+                'payload' => $payload,
+                'confirm_status' => $confirmStatus
             ];
-            if ($ok && isset($extraData['contract_id'])) {
-                $contract = Contract::find($extraData['contract_id']);
+            $contractId = $extraData['contract_id'] ?? null;
+            Qlib::update_contract_meta($contractId, 'integration_lsx_medical', json_encode($ret));
+            // Se a operação foi bem sucedida e temos um ID de contrato, atualizamos o meta e o status se necessário
+            if ($ok && $contractId) {
+                $contract = Contract::find($contractId);
                 if ($contract) {
                     $oldStatus = $contract->status;
-                    $contract->update(['status' => 'cancelled']);
-                    Qlib::update_contract_meta($contract->id, 'integration_lsx_medical', json_encode($ret));
-                    ContractEventLogger::logStatusChange(
-                        $contract,
-                        $oldStatus,
-                        'cancelled',
-                        'Contrato cancelado automaticamente via ação LSX Medical.',
-                        ['integration_response' => $ret],
-                        json_encode($ret),
-                        auth()->id()
-                    );
+                    $statusLsx = $body['patient']['status'] ?? ($active ? 'ACTIVE' : 'INACTIVE');
+                    
+                    if ($statusLsx === 'INACTIVE' && $oldStatus !== 'cancelled') {
+                        $contract->update(['status' => 'cancelled']);
+                    } elseif ($statusLsx === 'ACTIVE' && $oldStatus !== 'approved') {
+                        $contract->update(['status' => 'approved']);
+                    }
+                    // dd($body,$ret);
+           
+                    // Sempre atualiza o meta quando a operação LSX tem sucesso
+
+                    if ($oldStatus !== $contract->status) {
+                        ContractEventLogger::logStatusChange(
+                            $contract,
+                            $oldStatus,
+                            $contract->status,
+                            'Contrato ' . ($statusLsx === 'ACTIVE' ? 'aprovado' : 'cancelado') . ' automaticamente via ação LSX Medical.',
+                            ['integration_response' => $ret],
+                            json_encode($ret),
+                            auth()->id()
+                        );
+                    } else {
+                        // Se o status não mudou, registra apenas o evento de integração
+                        ContractEventLogger::log(
+                            $contract,
+                            'integracao_lsx_medical',
+                            'Status do paciente atualizado na LSX Medical para: ' . $statusLsx,
+                            ['integration_response' => $ret],
+                            json_encode($ret),
+                            auth()->id()
+                        );
+                    }
                     $ret['contract'] = $contract->refresh();
+                }
+            }else{
+                if(isset($ret['status']) && $ret['status'] == 404){
+                    $ret['message'] = 'Paciente não encontrado na LSX Medical';
+                }elseif(isset($ret['status']) && $ret['status'] == 400){
+                    $message = $ret['data']['error'] ?? 'Paciente já inativado na LSX Medical';
+                    $ret['message'] = $message;
+                }else{
+                    $ret['message'] = $ret['data']['error'] ?? 'Contrato não encontrado';
                 }
             }
             return $ret;
         } catch (\Throwable $e) {
             return [
                 'exec' => false,
-                'message' => 'Erro ao comunicar com LSX Medical para cancelamento',
+                'message' => 'Erro ao comunicar com LSX Medical',
                 'error' => $e->getMessage(),
             ];
         }

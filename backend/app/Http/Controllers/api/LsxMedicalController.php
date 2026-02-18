@@ -159,7 +159,7 @@ class LsxMedicalController extends Controller
         }
         $cpf = (string)($request->query('cpf') ?? '');
         $contractId = $request->query('contract_id');
-        $result = $this->lsxMedicalService->filterPatientsByCpf($cpf);
+        $result = $this->lsxMedicalService->filterPatientsByCpf($cpf, $contractId);
 
         // Registrar evento de consulta se houver contrato
         if ($contractId) {
@@ -223,9 +223,9 @@ class LsxMedicalController extends Controller
     }
 
     /**
-     * Cancela/Inativa um paciente na LSX Medical pelo CPF.
+     * Altera o status do paciente na LSX Medical pelo CPF.
      */
-    public function cancelPatient(Request $request, string $cpf)
+    public function toggleStatus(Request $request, string $cpf)
     {
         $user = $request->user();
         if (!$user) {
@@ -238,14 +238,15 @@ class LsxMedicalController extends Controller
         if (!$this->permissionService->isHasPermission('edit')) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
-        $client = User::where('cpf', $cpf)->first();
-        if (!$client) {
-            $cpfOnly = preg_replace('/\D/', '', $cpf);
-            $client = User::whereRaw("regexp_replace(cpf, '[^0-9]', '') = ?", [$cpfOnly])->first();
-        }
-        $client = $client ?? new User();
+
         $contractId = $request->query('contract_id');
-        $result = $this->lsxMedicalService->cancelPatient($client, ['cpf' => $cpf, 'contract_id' => $contractId]);
+        $active = filter_var($request->input('active'), FILTER_VALIDATE_BOOLEAN); // Garante que seja boolean
+        
+        $result = $this->lsxMedicalService->toggleStatus($cpf, [
+            'contract_id' => $contractId,
+            'status' => $active
+        ]);
+
         $status = $result['status'] ?? ($result['exec'] ? 200 : 400);
         return response()->json($result, $status);
     }
