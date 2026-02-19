@@ -108,7 +108,7 @@ class ImportController extends Controller
         if (!$user) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
-        if ((int)($user->permission_id ?? 0) !== 1) {
+        if ((int)($user->permission_id ?? 0)  > 2) {
             return response()->json(['error' => 'Permissão insuficiente'], 403);
         }
 
@@ -255,7 +255,7 @@ class ImportController extends Controller
         if (!$user) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
-        if ((int)($user->permission_id ?? 0) !== 1) {
+        if ((int)($user->permission_id ?? 0) > 2) {
             return response()->json(['error' => 'Permissão insuficiente'], 403);
         }
         $payload = $this->loadSession($token);
