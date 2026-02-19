@@ -25,8 +25,16 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('/react') || id.includes('scheduler')) return 'vendor-react';
-            if (id.includes('react-router-dom') || id.includes('@remix-run')) return 'vendor-router';
+            // Group all React core and essential navigation/state libs together
+            if (
+              id.includes('/react/') || 
+              id.includes('scheduler') || 
+              id.includes('react-dom') ||
+              id.includes('react-router') ||
+              id.includes('@remix-run')
+            ) {
+              return 'vendor-react-core';
+            }
             if (id.includes('lucide-react')) return 'vendor-icons';
             if (id.includes('recharts')) return 'vendor-charts';
             if (id.includes('xlsx')) return 'vendor-xlsx';
