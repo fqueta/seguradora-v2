@@ -297,13 +297,15 @@ class ClientController extends Controller
                     break;
                 }
             }
-
             if ($hasLsx) {
+                //Atualiza o paciente na LSX Medical
                 $retLsx = $lsxMedicalService->updatePatient($client, $request->all());
-
-                $config = is_string($client->config)
-                    ? (json_decode($client->config, true) ?? [])
-                    : ($client->config ?? []);
+                //atualizar o card do contrato local com a tag LSX Medical
+                // Qlib::update_contract_meta($contract->id, 'integration_lsx_medical', json_encode($retLsx));
+                $config = $client->config;
+                if (is_string($config)) {
+                    $config = json_decode($config, true) ?? [];
+                }
 
                 if (!is_array($config)) {
                     $config = [];
@@ -323,7 +325,10 @@ class ClientController extends Controller
                     $result['retLsx'] = $retLsx;
                 }
             }
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+            $result['extraMsg'] = $e->getMessage();
+        }
+        // dd($result);
         return $result;
     }
 
@@ -502,25 +507,7 @@ class ClientController extends Controller
         // dd($validated);
         $client = Client::create($validated);
         // Envio para integração Alloyal (quando aplicável)
-        try {
-            $cpfPlain = $request->get('cpf');
-            if (!empty($cpfPlain)) {
-                $plainPassword = $request->get('password');
-                if (!$plainPassword || !is_string($plainPassword) || $plainPassword === '') {
-                    $plainPassword = (string)$cpfPlain;
-                    Qlib::update_usermeta($client->id, 'alloyal_initial_password', $plainPassword);
-                }
-                $payloadAlloyal = [
-                    'name' => (string)($request->get('name') ?? $client->name ?? ''),
-                    'cpf' => (string)$cpfPlain,
-                    'email' => (string)($request->get('email') ?? $client->email ?? ''),
-                    'password' => (string)$plainPassword,
-                ];
-                $alloyalController = new \App\Http\Controllers\api\AlloyalController();
-                $retAlloyal = $alloyalController->create_user_atived($payloadAlloyal, $client->id);
-                $client->config = is_array($client->config) ? $client->config : [];
-            }
-        } catch (\Throwable $e) {}
+        $this->processAlloyalIntegration($client, $request);
 
         // converter o client->config para array (decodificando JSON quando necessário)
         if (is_string($client->config)) {
@@ -754,55 +741,12 @@ class ClientController extends Controller
             'status' => 200
         ];
         $extraMsg = null;
-
         // Envio/atualização na integração Alloyal (quando aplicável)
-        try {
-            $cpfPlain = $request->get('cpf') ?: $clientToUpdate->cpf;
-            if (!empty($cpfPlain)) {
-                // Determinar a senha "plain" para integração
-                $plainPassword = null;
-                if ($request->filled('password') && is_string($request->get('password'))) {
-                    $plainPassword = $request->get('password');
-                } else {
-                    $cpfDefault = $cpfPlain;
-                    if (!empty($cpfDefault)) {
-                        $plainPassword = (string)$cpfDefault;
-                        Qlib::update_usermeta($clientToUpdate->id, 'alloyal_initial_password', $plainPassword);
-                    } else {
-                        $saved = Qlib::get_usermeta($clientToUpdate->id, 'alloyal_initial_password', true);
-                        if (is_string($saved) && $saved !== '') {
-                            $plainPassword = $saved;
-                        } else {
-                            $plainPassword = bin2hex(random_bytes(6));
-                            Qlib::update_usermeta($clientToUpdate->id, 'alloyal_initial_password', $plainPassword);
-                        }
-                    }
-                }
-                $payloadAlloyal = [
-                    'name' => (string)($request->get('name') ?? $clientToUpdate->name ?? ''),
-                    'cpf' => (string)$cpfPlain,
-                    'email' => (string)($request->get('email') ?? $clientToUpdate->email ?? ''),
-                    'password' => (string)$plainPassword,
-                ];
-                $alloyalController = new \App\Http\Controllers\api\AlloyalController();
-                $retAlloyal = $alloyalController->create_user_atived($payloadAlloyal, $clientToUpdate->id);
-
-                // Anexar retorno no config para auditoria
-                $clientToUpdate->config = is_string($clientToUpdate->config)
-                    ? (json_decode($clientToUpdate->config, true) ?? [])
-                    : ($clientToUpdate->config ?? []);
-                if (!is_array($clientToUpdate->config)) {
-                    $clientToUpdate->config = [];
-                }
-                $clientToUpdate->config['integration_alloyal_update'] = $retAlloyal;
-                $clientToUpdate->save();
-
-                if (isset($retAlloyal['exec']) && !$retAlloyal['exec']) {
-                    $extraMsg = (string)($retAlloyal['message'] ?? 'Erro na integração com o Clube');
-                    $ret['retAlloyal'] = $retAlloyal;
-                }
-            }
-        } catch (\Throwable $e) {}
+        $resAlloyal = $this->processAlloyalIntegration($clientToUpdate, $request);
+        if (isset($resAlloyal['exec']) && !$resAlloyal['exec']) {
+            $extraMsg = $resAlloyal['extraMsg'];
+            $ret['retAlloyal'] = $resAlloyal['retAlloyal'] ?? null;
+        }
 
         // Envio/atualização na integração LSX Medical (quando aplicável)
         $resLsx = $this->processLsxMedicalUpdate($clientToUpdate, $request, $lsxMedicalService);
@@ -1684,5 +1628,74 @@ class ClientController extends Controller
             'found' => false,
             'message' => 'CPF não encontrado na base de dados.'
         ]);
+    }
+
+    /**
+     * Processa a integração com a Alloyal
+     * PT: Centraliza a lógica de envio/atualização para o Clube Alloyal
+     */
+    private function processAlloyalIntegration(Client $client, Request $request): array
+    {
+        $res = ['exec' => true, 'extraMsg' => null, 'retAlloyal' => null];
+        
+        try {
+            $cpfPlain = $request->get('cpf') ?: $client->cpf;
+            if (empty($cpfPlain)) {
+                return $res;
+            }
+
+            // Determinar a senha "plain" para integração
+            $plainPassword = null;
+            if ($request->filled('password') && is_string($request->get('password'))) {
+                $plainPassword = $request->get('password');
+            } else {
+                $cpfDefault = $cpfPlain;
+                if (!empty($cpfDefault)) {
+                    $plainPassword = (string)$cpfDefault;
+                    Qlib::update_usermeta($client->id, 'alloyal_initial_password', $plainPassword);
+                } else {
+                    $saved = Qlib::get_usermeta($client->id, 'alloyal_initial_password', true);
+                    if (is_string($saved) && $saved !== '') {
+                        $plainPassword = $saved;
+                    } else {
+                        $plainPassword = bin2hex(random_bytes(6));
+                        Qlib::update_usermeta($client->id, 'alloyal_initial_password', $plainPassword);
+                    }
+                }
+            }
+
+            $payloadAlloyal = [
+                'name' => (string)($request->get('name') ?? $client->name ?? ''),
+                'cpf' => (string)$cpfPlain,
+                'email' => (string)($request->get('email') ?? $client->email ?? ''),
+                'password' => (string)$plainPassword,
+            ];
+            $alloyalController = new \App\Http\Controllers\api\AlloyalController();
+            $retAlloyal = $alloyalController->create_user_atived($payloadAlloyal, $client->id);
+            // Anexar retorno no config para auditoria
+            $clientConfig = $client->config;
+            if (is_string($clientConfig)) {
+                $clientConfig = json_decode($clientConfig, true) ?? [];
+            }
+                
+            if (!is_array($clientConfig)) {
+                $clientConfig = [];
+            }
+            
+            $clientConfig['integration_alloyal_update'] = $retAlloyal;
+            $client->config = $clientConfig;
+            $client->save();
+
+            if (isset($retAlloyal['exec']) && !$retAlloyal['exec']) {
+                $res['exec'] = false;
+                $res['extraMsg'] = (string)($retAlloyal['message'] ?? 'Erro na integração com o Clube');
+                $res['retAlloyal'] = $retAlloyal;
+            }
+        } catch (\Throwable $e) {
+            $res['exec'] = false;
+            $res['extraMsg'] = 'Erro interno ao processar Alloyal: ' . $e->getMessage();
+        }
+
+        return $res;
     }
 }

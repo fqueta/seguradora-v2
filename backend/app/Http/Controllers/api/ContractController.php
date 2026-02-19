@@ -4,6 +4,7 @@ namespace App\Http\Controllers\api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
+use App\Models\Organization;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -196,6 +197,12 @@ class ContractController extends Controller
                      if ($this->lsxMedicalService->isIntegrationActive()) {
                         $clientFn = Client::find($data['client_id'] ?? 0);
                         if($clientFn){
+                            //adiciona que é o nome da organização o usuario logado cadastrando
+                            $user = auth()->user();
+                            $organization = Organization::find($user->organization_id ?? 0);
+                            $request->merge([
+                                'tags' => $organization->name ?? ''
+                            ]);
                             $retLsx = $this->lsxMedicalService->createPatient($clientFn, $request->all());
 
                             Qlib::update_contract_meta($contract->id, 'integration_lsx_medical', json_encode($retLsx));
@@ -367,7 +374,6 @@ class ContractController extends Controller
             // Verificar o Fornecedor do Produto
             $product_id = $contract->product_id;
             $supplier = Qlib::getSupplier($product_id);
-
             // Lógica para SulAmérica
             if ($supplier && (stripos($supplier, 'SulAmerica') !== false)) {
                 $ret = $this->processSulamericaIntegration($contract);
@@ -390,6 +396,12 @@ class ContractController extends Controller
                     if ($this->lsxMedicalService->isIntegrationActive()) {
                         $clientFn = Client::find($contract->client_id ?? 0);
                         if($clientFn){
+                            //adiciona que é o nome da organização o usuario logado cadastrando
+                            $user = auth()->user();
+                            $organization = Organization::find($user->organization_id ?? 0);
+                            $request->merge([
+                                'tags' => $organization->name ?? ''
+                            ]);
                             $retLsx = $this->lsxMedicalService->createPatient($clientFn, $request->all());
                             Qlib::update_contract_meta($contract->id, 'integration_lsx_medical', json_encode($retLsx));
                             $mens = $retLsx['message'] ?? $retLsx['error'] ?? 'Contrato atualizado com sucesso.';

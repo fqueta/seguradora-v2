@@ -6,9 +6,11 @@ use App\Http\Controllers\api\PointController;
 use App\Http\Controllers\api\ApiCredentialController;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
+use App\Models\Organization;
 use App\Models\User;
 use App\Services\Qlib;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 
 class AlloyalController extends Controller
@@ -56,13 +58,52 @@ class AlloyalController extends Controller
                 $this->clientEmployeeToken = $cfg['pass'] ?? $this->clientEmployeeToken;
                 // Buscar business_id nos metacampos com chaves comuns
                 $meta = isset($cred['meta']) && is_array($cred['meta']) ? $cred['meta'] : [];
-                $businessId = $this->findMetaValue($meta, ['bussness_id', 'business_id', 'business_id_alloyal']);
-                if ($businessId) {
-                    $this->business_id_alloyal = (string)$businessId;
+                //buscar os dados da organização do usuario logado
+                $organization_id = Auth::user()->organization_id ?? null;
+                if ($organization_id) {
+                    $organization_data = Organization::find($organization_id);
+                    if (isset($organization_data->config['alloyal_business_id'])) {
+                        $this->business_id_alloyal = (string)$organization_data->config['alloyal_business_id'];
+                    }else{
+                        $businessId = $this->findMetaValue($meta, ['bussness_id', 'business_id']);
+                        if ($businessId) {
+                            $this->business_id_alloyal = (string)$businessId;
+                        }
+                    }
+                }else{
+                    $businessId = $this->findMetaValue($meta, ['bussness_id', 'business_id']);
+                    if ($businessId) {
+                        $this->business_id_alloyal = (string)$businessId;
+                    }
                 }
             }
+            $this->applyOrganizationSettings();
         } catch (\Throwable $e) {
             // Silencioso: mantém valores padrão
+        }
+    }
+
+    /**
+     * Aplica configurações específicas da organização do usuário autenticado.
+     * Prioriza o business_id definido na organização.
+     *
+     * @return void
+     */
+    private function applyOrganizationSettings(): void
+    {
+        if (auth()->check()) {
+            $user = auth()->user();
+            if ($user && $user->organization_id) {
+                $org = $user->organization ?? \App\Models\Organization::find($user->organization_id);
+                if ($org) {
+                    // Tenta do config (novo local) ou do campo direto (fallback/antigo)
+                    $businessId = $org->config['alloyal_business_id'] ?? $org->alloyal_business_id;
+                    if ($businessId) {
+                        $this->business_id_alloyal = (string)$businessId;
+                        $this->endpoint = '/client/v2/businesses/' . $this->business_id_alloyal;
+                    }
+                }
+            }
         }
     }
     /**
@@ -199,7 +240,6 @@ class AlloyalController extends Controller
             'X-ClientEmployee-Token' => $this->clientEmployeeToken,
             'Content-Type' => 'application/json'
         ];
-
         //se não tiver os dados para preencher o body, retornar erro
         if(!isset($d_send['name']) || !isset($d_send['cpf']) || !isset($d_send['email'])){
             //tiver o id do cliente busca os dados através dele
@@ -223,18 +263,15 @@ class AlloyalController extends Controller
         try {
             $endpoint = $this->endpoint . '/users';
             $url = $this->url_api_aloyall . $endpoint;
-            // dd($headers,$url,$body);
             $response = Http::withHeaders($headers)->post($url, $body);
-            // dd($url,$headers,$response->json(),$body);
             $ret['exec'] = true;
             $ret['message'] = 'Usuário criado com sucesso';
             $data = $response->json();
             $ret['data'] = $data;
             $ret['message'] = 'Usuário criado com sucesso, status: ' . $response->status();
             if($response->status() != 201 && $response->status() != 200){
-                $ret['message'] = 'Erro ou Integrar com o Clube:'. ($response['data']['error'] ?? $response['message'] ?? $response['error'] ?? '').', status: ' . $response->status();
+                $ret['message'] = 'Erro ao Integrar com o Clube:'. ($response['data']['error'] ?? $response['message'] ?? $response['error'] ?? '').', status: ' . $response->status();
                 $ret['exec'] = false;
-                // dd($ret,$response);
             }
             if(!$client_id){
                 $client_id = Client::where('cpf',$d_send['cpf'])->value('id');
@@ -251,13 +288,11 @@ class AlloyalController extends Controller
                 }
                 $ret['redirect'] = $this->redirect_url_login;
             }
-            // dd($ret);
             return $ret;
         } catch (\Throwable $th) {
             $ret['exec'] = false;
             //throw $th;
             $ret['message'] = 'Erro ao criar usuário, status: ' . $th->getMessage();
-            // $ret['message'] .= $th->getMessage();
             $ret['error'] = $th->getMessage();
             $ret['data'] = $d_send;
             return $ret;

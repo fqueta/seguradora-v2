@@ -16,6 +16,7 @@ import { useCep } from '@/hooks/useCep';
 interface AddressInputsProps {
   form: any;
   showCep?: boolean;
+  children?: React.ReactNode;
 }
 
 interface ViaCepResponse {
@@ -33,7 +34,7 @@ interface ViaCepResponse {
  * pt-BR: Renderiza campos de endereço com máscara de CEP e auto-preenchimento via useCep.
  * en-US: Renders address fields with CEP mask and auto-fill using useCep.
  */
-export function AddressInputs({form, showCep = true}: AddressInputsProps){
+export function AddressInputs({form, showCep = true, children}: AddressInputsProps){
   const [isLoadingCep, setIsLoadingCep] = useState(false);
   const numeroInputRef = useRef<HTMLInputElement>(null);
   const { fetchCep, isValidCep, clearAddressData } = useCep();
@@ -226,6 +227,7 @@ export function AddressInputs({form, showCep = true}: AddressInputsProps){
           </FormItem>
         )}
       />
+      {children}
     </div>
   );
 }

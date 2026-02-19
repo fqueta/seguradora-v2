@@ -14,6 +14,7 @@ class Organization extends Model
         'address',
         'active',
         'config',
+        'alloyal_business_id',
     ];
 
     protected $casts = [

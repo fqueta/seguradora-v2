@@ -92,7 +92,7 @@ class LsxMedicalService
                 }
             }
         }
-        $insurancePlanCode = $extraData['insurance_plan_code'] ?? $config['insurance_plan_code'] ?? 'PLANO001'; // Default or required?
+        $beneficiaryPlanCode = $extraData['beneficiary_plan_code'] ?? $config['beneficiary_plan_code'] ?? $extraData['insurance_plan_code'] ?? $config['insurance_plan_code'] ?? 'PLAN0001'; // Default updated to match cURL
         $planAdherenceDate = $extraData['plan_adherence_date'] ?? $config['plan_adherence_date'] ?? date('Y-m-d');
         $planExpiryDate = $extraData['plan_expiry_date'] ?? $config['plan_expiry_date'] ?? date('Y-m-d', strtotime('+1 year'));
         $extraFields = $extraData['extra_fields'] ?? $config['lsx_extra_fields'] ?? [];
@@ -112,6 +112,7 @@ class LsxMedicalService
                 $gender = strtoupper(substr($genderRaw, 0, 1));
             }
         }
+        $tags = $extraData['tags'] ?? $config['tags'] ?? $extraData['tags'] ?? [];
 
         return [
             'name' => (string)$name,
@@ -120,10 +121,11 @@ class LsxMedicalService
             'birth_date' => $birthDate, // API expects Y-m-d usually
             'phone' => (string)$phone,
             'gender' => $gender,
-            'insurance_plan_code' => (string)$insurancePlanCode,
+            'beneficiary_plan_code' => (string)$beneficiaryPlanCode,
             'plan_adherence_date' => $planAdherenceDate,
             'plan_expiry_date' => $planExpiryDate,
             'extra_fields' => $extraFields,
+            'tags' => $tags,
             'address' => [
                 'zip_code' => $extraData['zip_code'] ?? $config['cep'] ?? $extraData['cep'] ?? null,
                 'street' => $extraData['street'] ?? $config['endereco'] ?? $extraData['endereco'] ?? null,
@@ -211,9 +213,9 @@ class LsxMedicalService
             'Authorization' => 'Bearer ' . $this->token,
             'Content-Type' => 'application/json',
         ];
-        $cpfSanitized = preg_replace('/\D/', '', $payload['cpf']);
-        $url = $this->getClinicBaseUrl() . '/update-patient/' . $cpfSanitized . '/';
-
+        // $cpfSanitized = preg_replace('/\D/', '', $payload['cpf']);
+        $url = $this->getClinicBaseUrl() . '/update-patient/';
+        // dd($url,$payload);
         try {
             $response = Http::withHeaders($headers)->put($url, $payload);
             $status = $response->status();

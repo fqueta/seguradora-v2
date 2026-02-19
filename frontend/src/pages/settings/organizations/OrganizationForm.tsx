@@ -38,6 +38,7 @@ const organizationSchema = z.object({
         cidade: z.string().optional().nullable(),
         uf: z.string().optional().nullable(),
         allowed_products: z.array(z.string()).optional().default([]),
+        alloyal_business_id: z.string().optional().nullable(),
     }).optional(),
 });
 
@@ -79,7 +80,8 @@ export default function OrganizationForm() {
                 cidade: '',
                 uf: '',
                 allowed_products: [],
-            }
+                alloyal_business_id: '',
+            },
         }
     });
 
@@ -101,6 +103,7 @@ export default function OrganizationForm() {
                     cidade: config.cidade || '',
                     uf: config.uf || '',
                     allowed_products: config.allowed_products?.map(String) || [],
+                    alloyal_business_id: config.alloyal_business_id || '',
                 },
             });
         }
@@ -264,6 +267,7 @@ export default function OrganizationForm() {
                                 )}
                             />
 
+
                              <FormField
                                 control={form.control}
                                 name="phone"
@@ -284,7 +288,21 @@ export default function OrganizationForm() {
                             />
 
                             <div className="md:col-span-2">
-                                <AddressInputs form={form} />
+                                <AddressInputs form={form}>
+                                     <FormField
+                                        control={form.control}
+                                        name="config.alloyal_business_id"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>ID Clube de Vantagens (Alloyal)</FormLabel>
+                                                <FormControl>
+                                                    <Input {...field} value={field.value || ''} placeholder="Ex: 12345" />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </AddressInputs>
                             </div>
 
                             <FormField
