@@ -25,32 +25,12 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            // Group EVERYTHING React-dependent together for safety
-            if (
-              id.includes('node_modules/react/') || 
-              id.includes('node_modules/react-dom/') ||
-              id.includes('node_modules/scheduler/') ||
-              id.includes('node_modules/react-router/') ||
-              id.includes('node_modules/react-router-dom/') ||
-              id.includes('node_modules/@radix-ui/') ||
-              id.includes('node_modules/react-hook-form/') ||
-              id.includes('node_modules/@hookform/') ||
-              id.includes('node_modules/lucide-react/') ||
-              id.includes('node_modules/@tanstack/') ||
-              id.includes('node_modules/recharts/') ||
-              id.includes('node_modules/embla-carousel-react/') ||
-              id.includes('node_modules/sonner/') ||
-              id.includes('node_modules/vaul/') ||
-              id.includes('node_modules/input-otp/') ||
-              id.includes('node_modules/date-fns/')
-            ) {
-              return 'vendor-react-core';
-            }
-            if (id.includes('xlsx')) return 'vendor-xlsx';
-            if (id.includes('jspdf')) return 'vendor-pdf';
-            if (id.includes('zod')) return 'vendor-validation';
-            if (id.includes('@supabase')) return 'vendor-supabase';
-            return 'vendor'; // All other node_modules
+            // ONLY separate these large, independent utilities
+            if (id.includes('xlsx')) return 'vendor-utils-xlsx';
+            if (id.includes('jspdf')) return 'vendor-utils-pdf';
+            
+            // EVERYTHING else stays in one chunk to guarantee a single React context
+            return 'vendor';
           }
         },
       },
