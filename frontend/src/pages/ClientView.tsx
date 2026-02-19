@@ -15,6 +15,7 @@ import { useContractsList } from '@/hooks/contracts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { EventTimeline } from '@/components/clients/EventTimeline';
 
 
 
@@ -962,6 +963,9 @@ export default function ClientView() {
           </CardContent>
         </Card>
       )}
+
+      {/* Linha do Tempo de Eventos */}
+      <EventTimeline events={client.events} />
 
       {/* Informações do Sistema */}
       <Card>

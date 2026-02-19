@@ -5,6 +5,7 @@ namespace App\Http\Controllers\api;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\UserEventLogger;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -71,6 +72,16 @@ class RegisterController extends Controller
             'permission_id'=>5, // Default permission for new users
             'token'=>uniqid(), // Default permission for new users
         ]);
+
+        UserEventLogger::log(
+            $user,
+            'user_registered',
+            "Novo usuário registrado via formulário público",
+            [],
+            $user->toArray(),
+            ['source' => 'RegisterController@store']
+        );
+
         event(new Registered($user));
         $ret['exec'] = false;
         if(isset($user['id'])){

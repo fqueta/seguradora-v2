@@ -17,6 +17,7 @@ use App\Models\Organization;
 use App\Models\Contract;
 use App\Models\Permission;
 use App\Services\LsxMedicalService;
+use App\Services\UserEventLogger;
 
 class ClientController extends Controller
 {
@@ -324,9 +325,29 @@ class ClientController extends Controller
                     $result['extraMsg'] = $msg;
                     $result['retLsx'] = $retLsx;
                 }
+
+                UserEventLogger::log(
+                    $client,
+                    'integration_lsx',
+                    isset($retLsx['exec']) && $retLsx['exec'] 
+                        ? "Atualização LSX Medical realizada com sucesso" 
+                        : "Falha na atualização LSX Medical: " . ($result['extraMsg'] ?? 'Erro desconhecido'),
+                    [],
+                    $retLsx,
+                    ['source' => 'ClientController@processLsxMedicalUpdate']
+                );
             }
         } catch (\Throwable $e) {
             $result['extraMsg'] = $e->getMessage();
+            
+            UserEventLogger::log(
+                $client,
+                'integration_lsx',
+                "Erro crítico na integração LSX Medical: " . $e->getMessage(),
+                [],
+                ['exception' => $e->getMessage(), 'trace' => $e->getTraceAsString()],
+                ['source' => 'ClientController@processLsxMedicalUpdate', 'type' => 'exception']
+            );
         }
         // dd($result);
         return $result;
@@ -507,7 +528,7 @@ class ClientController extends Controller
         // dd($validated);
         $client = Client::create($validated);
         // Envio para integração Alloyal (quando aplicável)
-        $this->processAlloyalIntegration($client, $request);
+        $alloyal_response = $this->processAlloyalIntegration($client, $request);
 
         // converter o client->config para array (decodificando JSON quando necessário)
         if (is_string($client->config)) {
@@ -519,6 +540,16 @@ class ClientController extends Controller
         $ret['data'] = $client;
         $ret['message'] = 'Cliente criado com sucesso';
         $ret['status'] = 201;
+        $ret['alloyal_response'] = $alloyal_response;
+
+        UserEventLogger::log(
+            $client,
+            'user_created',
+            "Cliente criado com sucesso por " . ($user->name ?? $user->id),
+            [],
+            $client->toArray(),
+            ['source' => 'ClientController@store']
+        );
 
         return response()->json($ret, 201);
     }
@@ -536,7 +567,7 @@ class ClientController extends Controller
             return response()->json(['error' => 'Acesso negado'], 403);
         }
 
-        $client = Client::findOrFail($id);
+        $client = Client::with(['events.author'])->findOrFail($id);
 
         // Converter config para array (decodifica se vier como string JSON)
         if (is_string($client->config)) {
@@ -772,6 +803,16 @@ class ClientController extends Controller
         if ($extraMsg) {
             $ret['message'] .= ' | ' . $extraMsg;
         }
+        $ret['status'] = 200;
+
+        UserEventLogger::log(
+            $clientToUpdate,
+            'user_updated',
+            "Cadastro de cliente atualizado por " . ($user->name ?? $user->id),
+            $clientToUpdate->getOriginal(),
+            $clientToUpdate->getChanges(),
+            ['source' => 'ClientController@update']
+        );
 
         return response()->json($ret);
     }
@@ -798,6 +839,15 @@ class ClientController extends Controller
                 $contract->delete();
             }
         }
+
+        UserEventLogger::log(
+            $client,
+            'user_deleted',
+            "Cliente movido para a lixeira por " . ($user->name ?? $user->id),
+            $client->toArray(),
+            ['excluido' => 's', 'deletado' => 's'],
+            ['source' => 'ClientController@destroy']
+        );
 
         // Mover para lixeira em vez de excluir permanentemente
         $client->update([
@@ -1691,9 +1741,29 @@ class ClientController extends Controller
                 $res['extraMsg'] = (string)($retAlloyal['message'] ?? 'Erro na integração com o Clube');
                 $res['retAlloyal'] = $retAlloyal;
             }
+
+            UserEventLogger::log(
+                $client,
+                'integration_alloyal',
+                isset($retAlloyal['exec']) && $retAlloyal['exec'] 
+                    ? "Sincronização Alloyal realizada com sucesso" 
+                    : "Falha na sincronização Alloyal: " . ($res['extraMsg'] ?? 'Erro desconhecido'),
+                [],
+                $retAlloyal,
+                ['source' => 'ClientController@processAlloyalIntegration']
+            );
         } catch (\Throwable $e) {
             $res['exec'] = false;
             $res['extraMsg'] = 'Erro interno ao processar Alloyal: ' . $e->getMessage();
+
+            UserEventLogger::log(
+                $client,
+                'integration_alloyal',
+                "Erro crítico na integração Alloyal: " . $e->getMessage(),
+                [],
+                ['exception' => $e->getMessage(), 'trace' => $e->getTraceAsString()],
+                ['source' => 'ClientController@processAlloyalIntegration', 'type' => 'exception']
+            );
         }
 
         return $res;

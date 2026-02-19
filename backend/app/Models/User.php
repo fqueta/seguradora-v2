@@ -7,6 +7,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Notifications\ResetPasswordNotification;
+use App\Models\UserEvent;
 
 class User extends Authenticatable
 {
@@ -106,5 +107,21 @@ class User extends Authenticatable
     public function sendPasswordResetNotification($token)
     {
         $this->notify(new ResetPasswordNotification($token));
+    }
+
+    /**
+     * Historical events related to this user.
+     */
+    public function events()
+    {
+        return $this->hasMany(UserEvent::class, 'user_id');
+    }
+
+    /**
+     * Actions performed by this user on others.
+     */
+    public function authoredEvents()
+    {
+        return $this->hasMany(UserEvent::class, 'author_id');
     }
 }

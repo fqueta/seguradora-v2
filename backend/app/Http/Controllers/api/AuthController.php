@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use App\Services\UserEventLogger;
 
 class AuthController extends Controller
 {
@@ -22,6 +23,16 @@ class AuthController extends Controller
         $user = $request->user();
         // $user = Auth::user();
         // dd($user);
+
+        UserEventLogger::log(
+            $user,
+            'logout_success',
+            "Logout realizado com sucesso",
+            [],
+            [],
+            ['source' => 'AuthController@logout']
+        );
+
         $user->tokens()->delete();
         return response()->json([
             'status'  => 200,
@@ -48,6 +59,14 @@ class AuthController extends Controller
         $credentials = $request->only('email', 'password');
 
         if (!Auth::attempt($credentials)) {
+            UserEventLogger::log(
+                $request->input('email'),
+                'login_failed',
+                "Tentativa de login falhou para o email: " . $request->input('email'),
+                [],
+                [],
+                ['ip' => $request->ip(), 'source' => 'AuthController@login']
+            );
             return response()->json(['message' => 'Credenciais inválidas'], 401);
         }
 
@@ -79,6 +98,16 @@ class AuthController extends Controller
         // $filteredMenu = $this->filterMenuByPermissions($menu, $allowedPermissions);
         $filteredMenu = (new MenuController)->getMenus($pid);
         $token = $user->createToken('developer')->plainTextToken;
+
+        UserEventLogger::log(
+            $user,
+            'login_success',
+            "Login realizado com sucesso",
+            [],
+            [],
+            ['source' => 'AuthController@login']
+        );
+
         return response()->json([
             'user' => $user,
             // 'permissions' => $allowedPermissions,

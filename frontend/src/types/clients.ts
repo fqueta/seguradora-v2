@@ -1,3 +1,5 @@
+import { UserEvent } from './user-events';
+
 export interface ClientConfig {
   nome_fantasia?: string | null;
   celular?: string | null;
@@ -82,6 +84,7 @@ export interface ClientRecord {
   reg_excluido?: string | null;
   deletado?: "s" | "n";
   reg_deletado?: string | null;
+  events?: UserEvent[];
   organization?: {
     id: string;
     name: string;

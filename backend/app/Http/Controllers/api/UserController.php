@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Sanctum\PersonalAccessToken;
+use App\Services\UserEventLogger;
 
 class UserController extends Controller
 {
@@ -279,8 +280,18 @@ class UserController extends Controller
             $validated['organization_id'] = $user->organization_id;
         }
 
-        $user = User::create($validated);
-        $ret['data'] = $user;
+        $userCreated = User::create($validated);
+        
+        UserEventLogger::log(
+            $userCreated,
+            'user_created',
+            "Usuário criado com sucesso por " . ($user->name ?? $user->id),
+            [],
+            $userCreated->toArray(),
+            ['source' => 'UserController@store']
+        );
+
+        $ret['data'] = $userCreated;
         $ret['message'] = 'Usuário criado com sucesso';
         $ret['status'] = 201;
         return response()->json($ret, 201);
@@ -384,6 +395,15 @@ class UserController extends Controller
         $authUser->fill($data);
         $authUser->save();
 
+        UserEventLogger::log(
+            $authUser,
+            'profile_updated',
+            "Informações de perfil atualizadas pelo próprio usuário",
+            $authUser->getOriginal(),
+            $authUser->getChanges(),
+            ['source' => 'UserController@updateProfile']
+        );
+
         return response()->json($authUser);
     }
 
@@ -404,6 +424,16 @@ class UserController extends Controller
         $authUser->update([
             'password' => Hash::make($validated['password']),
         ]);
+
+        UserEventLogger::log(
+            $authUser,
+            'password_change',
+            "Senha alterada pelo próprio usuário",
+            [],
+            [],
+            ['source' => 'UserController@changePassword']
+        );
+
         return response()->json(['message' => 'Senha atualizada com sucesso']);
     }
 
@@ -610,7 +640,17 @@ class UserController extends Controller
         }
 
         // dd($validated);
+        $oldData = $userToUpdate->getOriginal();
         $userToUpdate->update($validated);
+
+        UserEventLogger::log(
+            $userToUpdate,
+            'user_updated',
+            "Usuário atualizado por " . ($user->name ?? $user->id),
+            $oldData,
+            $userToUpdate->getChanges(),
+            ['source' => 'UserController@update']
+        );
 
         return response()->json([
             'exec' => true,
@@ -671,8 +711,18 @@ class UserController extends Controller
             ], 400);
         }
 
+        $oldOwnerId = $userToUpdate->autor;
         $userToUpdate->autor = $newOwnerId;
         $userToUpdate->save();
+
+        UserEventLogger::log(
+            $userToUpdate,
+            'owner_change',
+            "Proprietário do usuário alterado de $oldOwnerId para $newOwnerId por " . ($user->name ?? $user->id),
+            ['autor' => $oldOwnerId],
+            ['autor' => $newOwnerId],
+            ['source' => 'UserController@changeOwner']
+        );
 
         return response()->json([
             'exec' => true,
@@ -706,6 +756,16 @@ class UserController extends Controller
             'deletado'     => 's',
             'reg_deletado' =>['data'=>now()->toDateTimeString(),'user_id'=>request()->user()->id] ,
         ]);
+
+        UserEventLogger::log(
+            $userToDelete,
+            'user_deleted',
+            "Usuário movido para a lixeira por " . ($user->name ?? $user->id),
+            $userToDelete->toArray(),
+            ['excluido' => 's', 'deletado' => 's'],
+            ['source' => 'UserController@destroy']
+        );
+
         return response()->json([
             'message' => 'Usuário marcado como deletado com sucesso'
         ], 200);
@@ -744,6 +804,15 @@ class UserController extends Controller
             'deletado' => 'n',
         ]);
 
+        UserEventLogger::log(
+            $userToRestore,
+            'user_restored',
+            "Usuário restaurado da lixeira por " . ($user->name ?? $user->id),
+            ['excluido' => 's', 'deletado' => 's'],
+            ['excluido' => 'n', 'deletado' => 'n'],
+            ['source' => 'UserController@restore']
+        );
+
         return response()->json(['message' => 'Usuário restaurado com sucesso']);
     }
 
@@ -778,6 +847,15 @@ class UserController extends Controller
             } else {
                 $userToDelete->delete();
             }
+
+            UserEventLogger::log(
+                $id, // Use string ID since model is deleted
+                'user_force_deleted',
+                "Usuário excluído permanentemente por " . ($user->name ?? $user->id),
+                [],
+                [],
+                ['source' => 'UserController@forceDelete']
+            );
         } catch (\Exception $e) {
              return response()->json(['error' => 'Não é possível excluir este usuário pois ele possui registros vinculados.'], 422);
         }
