@@ -25,13 +25,16 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            // Group all React core and essential navigation/state libs together
+            // Group React core and tightly coupled UI/Form libs together
             if (
-              id.includes('/react/') || 
-              id.includes('scheduler') || 
-              id.includes('react-dom') ||
-              id.includes('react-router') ||
-              id.includes('@remix-run')
+              id.includes('node_modules/react/') || 
+              id.includes('node_modules/react-dom/') ||
+              id.includes('node_modules/scheduler/') ||
+              id.includes('node_modules/react-router/') ||
+              id.includes('node_modules/react-router-dom/') ||
+              id.includes('node_modules/@radix-ui/') ||
+              id.includes('node_modules/react-hook-form/') ||
+              id.includes('node_modules/@hookform/')
             ) {
               return 'vendor-react-core';
             }
@@ -40,8 +43,6 @@ export default defineConfig(({ mode }) => ({
             if (id.includes('xlsx')) return 'vendor-xlsx';
             if (id.includes('jspdf')) return 'vendor-pdf';
             if (id.includes('zod')) return 'vendor-validation';
-            if (id.includes('@hookform')) return 'vendor-forms';
-            if (id.includes('@radix-ui')) return 'vendor-ui';
             if (id.includes('@tanstack')) return 'vendor-tanstack';
             if (id.includes('@supabase')) return 'vendor-supabase';
             return 'vendor'; // All other node_modules
