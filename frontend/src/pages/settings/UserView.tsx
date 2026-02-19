@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Separator } from '@/components/ui/separator';
 import { cpfApplyMask } from '@/lib/masks/cpf-apply-mask';
 import { FormActionBar } from '@/components/common/FormActionBar';
+import { EventTimeline } from '@/components/clients/EventTimeline';
 
 export default function UserView() {
   const { id } = useParams<{ id: string }>();
@@ -551,6 +552,11 @@ export default function UserView() {
         </div>
       </div>
       
+      {/* Linha do Tempo de Eventos */}
+      <div className="md:col-span-3 space-y-6">
+        <EventTimeline events={user.events} />
+      </div>
+
       <FormActionBar
         mode="edit"
         fixed={true}

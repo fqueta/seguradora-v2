@@ -4,13 +4,18 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { History, User, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { UserEvent } from '@/types/user-events';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface EventTimelineProps {
   events?: UserEvent[];
 }
 
 export const EventTimeline: React.FC<EventTimelineProps> = ({ events = [] }) => {
+  const { user } = useAuth();
   const [expandedEvents, setExpandedEvents] = useState<Set<string | number>>(new Set());
+  
+  // Detalhes técnicos apenas para Super Admin (permission_id = 1)
+  const canSeeTechnicalDetails = Number(user?.permission_id) === 1;
 
   const toggleExpand = (id: string | number) => {
     const newExpanded = new Set(expandedEvents);
@@ -38,6 +43,8 @@ export const EventTimeline: React.FC<EventTimelineProps> = ({ events = [] }) => 
       'user_registered': 'Novo Registro',
       'integration_alloyal': 'Integração Alloyal',
       'integration_lsx': 'Integração LSX Medical',
+      'organization_change': 'Troca de Organização',
+      'owner_change': 'Troca de Proprietário',
     };
     return labels[type] || type;
   };
@@ -113,7 +120,7 @@ export const EventTimeline: React.FC<EventTimelineProps> = ({ events = [] }) => 
                     <div className="bg-muted/30 rounded-lg p-3 border border-muted/50 hover:bg-muted/50 transition-colors">
                       <p className="text-sm font-medium">{event.description || 'Nenhuma descrição disponível.'}</p>
                       
-                      {(event.from_data || event.to_data || event.payload || event.metadata) && (
+                      {canSeeTechnicalDetails && (event.from_data || event.to_data || event.payload || event.metadata) && (
                         <div className="mt-2">
                           <Button 
                             variant="ghost" 

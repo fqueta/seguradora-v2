@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Sanctum\PersonalAccessToken;
+use App\Models\Organization;
 use App\Services\UserEventLogger;
 
 class UserController extends Controller
@@ -309,7 +310,7 @@ class UserController extends Controller
         if (!$this->permissionService->isHasPermission('view')) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
-        $user = User::with(['organization', 'permission'])->findOrFail($id);
+        $user = User::with(['organization', 'permission', 'events.author'])->findOrFail($id);
 
         // Security: visualiza apenas dados de permission_id >= ao seu
         if ($currentUser->permission_id && $user->permission_id < $currentUser->permission_id) {
@@ -639,16 +640,46 @@ class UserController extends Controller
             }
         }
 
+        $userOrgName = $user->organization->name ?? ($user->organization_id ?? 'N/A');
+
         // dd($validated);
         $oldData = $userToUpdate->getOriginal();
         $userToUpdate->update($validated);
 
+        $changes = $userToUpdate->getChanges();
+        if (isset($changes['organization_id'])) {
+            $oldOrgName = Organization::find($userToUpdate->getOriginal('organization_id'))->name ?? $userToUpdate->getOriginal('organization_id');
+            $newOrgName = Organization::find($changes['organization_id'])->name ?? $changes['organization_id'];
+            
+            UserEventLogger::log(
+                $userToUpdate,
+                'organization_change',
+                "Organização do usuário alterada de \"{$oldOrgName}\" para \"{$newOrgName}\" por " . ($user->name ?? $user->id) . " ({$userOrgName})",
+                ['organization_id' => $userToUpdate->getOriginal('organization_id')],
+                ['organization_id' => $changes['organization_id']],
+                ['source' => 'UserController@update']
+            );
+        }
+        if (isset($changes['autor'])) {
+            $oldOwnerName = User::find($userToUpdate->getOriginal('autor'))->name ?? $userToUpdate->getOriginal('autor');
+            $newOwnerName = User::find($changes['autor'])->name ?? $changes['autor'];
+
+            UserEventLogger::log(
+                $userToUpdate,
+                'owner_change',
+                "Proprietário do usuário alterado de \"{$oldOwnerName}\" para \"{$newOwnerName}\" por " . ($user->name ?? $user->id) . " ({$userOrgName})",
+                ['autor' => $userToUpdate->getOriginal('autor')],
+                ['autor' => $changes['autor']],
+                ['source' => 'UserController@update']
+            );
+        }
+
         UserEventLogger::log(
             $userToUpdate,
             'user_updated',
-            "Usuário atualizado por " . ($user->name ?? $user->id),
+            "Usuário atualizado por " . ($user->name ?? $user->id) . " ({$userOrgName})",
             $oldData,
-            $userToUpdate->getChanges(),
+            $changes,
             ['source' => 'UserController@update']
         );
 
@@ -669,6 +700,8 @@ class UserController extends Controller
     public function changeOwner(Request $request, string $id)
     {
         $user = $request->user();
+        $userOrgName = $user->organization->name ?? ($user->organization_id ?? 'N/A');
+
         if (!$user) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
@@ -712,13 +745,16 @@ class UserController extends Controller
         }
 
         $oldOwnerId = $userToUpdate->autor;
+        $oldOwnerName = User::find($oldOwnerId)->name ?? $oldOwnerId;
+        $newOwnerName = $newOwner->name ?? $newOwnerId;
+
         $userToUpdate->autor = $newOwnerId;
         $userToUpdate->save();
 
         UserEventLogger::log(
             $userToUpdate,
             'owner_change',
-            "Proprietário do usuário alterado de $oldOwnerId para $newOwnerId por " . ($user->name ?? $user->id),
+            "Proprietário do usuário alterado de \"{$oldOwnerName}\" para \"{$newOwnerName}\" por " . ($user->name ?? $user->id) . " ({$userOrgName})",
             ['autor' => $oldOwnerId],
             ['autor' => $newOwnerId],
             ['source' => 'UserController@changeOwner']

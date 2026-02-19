@@ -362,6 +362,8 @@ class ClientController extends Controller
     public function store(Request $request)
     {
         $user = request()->user();
+        $userOrgName = $user->organization->name ?? ($user->organization_id ?? 'N/A');
+
         if (!$user) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
@@ -545,7 +547,7 @@ class ClientController extends Controller
         UserEventLogger::log(
             $client,
             'user_created',
-            "Cliente criado com sucesso por " . ($user->name ?? $user->id),
+            "Cliente criado com sucesso por " . ($user->name ?? $user->id) . " ({$userOrgName})",
             [],
             $client->toArray(),
             ['source' => 'ClientController@store']
@@ -635,6 +637,8 @@ class ClientController extends Controller
     public function update(Request $request, string $id, LsxMedicalService $lsxMedicalService)
     {
         $user = $request->user();
+        $userOrgName = $user->organization->name ?? ($user->organization_id ?? 'N/A');
+
         if (!$user) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
@@ -805,12 +809,40 @@ class ClientController extends Controller
         }
         $ret['status'] = 200;
 
+        $changes = $clientToUpdate->getChanges();
+        if (isset($changes['organization_id'])) {
+            $oldOrgName = Organization::find($clientToUpdate->getOriginal('organization_id'))->name ?? $clientToUpdate->getOriginal('organization_id');
+            $newOrgName = Organization::find($changes['organization_id'])->name ?? $changes['organization_id'];
+            
+            UserEventLogger::log(
+                $clientToUpdate,
+                'organization_change',
+                "Organização do cliente alterada de \"{$oldOrgName}\" para \"{$newOrgName}\" por " . ($user->name ?? $user->id) . " ({$userOrgName})",
+                ['organization_id' => $clientToUpdate->getOriginal('organization_id')],
+                ['organization_id' => $changes['organization_id']],
+                ['source' => 'ClientController@update']
+            );
+        }
+        if (isset($changes['autor'])) {
+            $oldOwnerName = User::find($clientToUpdate->getOriginal('autor'))->name ?? $clientToUpdate->getOriginal('autor');
+            $newOwnerName = User::find($changes['autor'])->name ?? $changes['autor'];
+
+            UserEventLogger::log(
+                $clientToUpdate,
+                'owner_change',
+                "Proprietário do cliente alterado de \"{$oldOwnerName}\" para \"{$newOwnerName}\" por " . ($user->name ?? $user->id) . " ({$userOrgName})",
+                ['autor' => $clientToUpdate->getOriginal('autor')],
+                ['autor' => $changes['autor']],
+                ['source' => 'ClientController@update']
+            );
+        }
+
         UserEventLogger::log(
             $clientToUpdate,
             'user_updated',
-            "Cadastro de cliente atualizado por " . ($user->name ?? $user->id),
+            "Cadastro de cliente atualizado por " . ($user->name ?? $user->id) . " ({$userOrgName})",
             $clientToUpdate->getOriginal(),
-            $clientToUpdate->getChanges(),
+            $changes,
             ['source' => 'ClientController@update']
         );
 
@@ -823,6 +855,8 @@ class ClientController extends Controller
     public function destroy(Request $request, string $id)
     {
         $user = $request->user();
+        $userOrgName = $user->organization->name ?? ($user->organization_id ?? 'N/A');
+
         if (!$user) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
@@ -843,7 +877,7 @@ class ClientController extends Controller
         UserEventLogger::log(
             $client,
             'user_deleted',
-            "Cliente movido para a lixeira por " . ($user->name ?? $user->id),
+            "Cliente movido para a lixeira por " . ($user->name ?? $user->id) . " ({$userOrgName})",
             $client->toArray(),
             ['excluido' => 's', 'deletado' => 's'],
             ['source' => 'ClientController@destroy']
@@ -878,6 +912,8 @@ class ClientController extends Controller
     public function transferOrganization(Request $request, string $id)
     {
         $user = $request->user();
+        $userOrgName = $user->organization->name ?? ($user->organization_id ?? 'N/A');
+
         if (!$user) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
@@ -908,8 +944,20 @@ class ClientController extends Controller
         }
 
         $fromOrgId = $client->organization_id;
+        $fromOrgName = Organization::find($fromOrgId)->name ?? $fromOrgId;
+        $targetOrgName = $targetOrg->name ?? $targetOrgId;
+        
         $client->organization_id = $targetOrgId;
         $client->save();
+
+        UserEventLogger::log(
+            $client,
+            'organization_change',
+            "Organização do cliente alterada de \"{$fromOrgName}\" para \"{$targetOrgName}\" por " . ($user->name ?? $user->id) . " ({$userOrgName})",
+            ['organization_id' => $fromOrgId],
+            ['organization_id' => $targetOrgId],
+            ['source' => 'ClientController@transferOrganization']
+        );
 
         // Atualiza todos os contratos do cliente para nova organização
         Contract::where('client_id', $client->id)->update(['organization_id' => $targetOrgId]);
@@ -934,6 +982,8 @@ class ClientController extends Controller
     public function changeOwner(Request $request, string $id)
     {
         $user = $request->user();
+        $userOrgName = $user->organization->name ?? ($user->organization_id ?? 'N/A');
+
         if (!$user) {
             return response()->json(['error' => 'Acesso negado'], 403);
         }
@@ -984,8 +1034,21 @@ class ClientController extends Controller
             ], 400);
         }
 
+        $oldOwnerId = $client->autor;
+        $oldOwnerName = User::find($oldOwnerId)->name ?? $oldOwnerId;
+        $newOwnerName = $newOwner->name ?? $newOwnerId;
+
         $client->autor = $newOwnerId;
         $client->save();
+
+        UserEventLogger::log(
+            $client,
+            'owner_change',
+            "Proprietário do cliente alterado de \"{$oldOwnerName}\" para \"{$newOwnerName}\" por " . ($user->name ?? $user->id) . " ({$userOrgName})",
+            ['autor' => $oldOwnerId],
+            ['autor' => $newOwnerId],
+            ['source' => 'ClientController@changeOwner']
+        );
 
         return response()->json([
             'exec' => true,
