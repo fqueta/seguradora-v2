@@ -1,9 +1,9 @@
-import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
 import { useContract, useCancelContract } from '@/hooks/contracts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, FileText, User, Calendar, DollarSign, Package, XCircle, Search } from 'lucide-react';
+import { ArrowLeft, Edit, FileText, User, Calendar, DollarSign, Package, XCircle, Search, Printer } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useMemo } from 'react';
@@ -152,6 +152,15 @@ export default function ContractView() {
         if (contract?.status === 'approved') {
             setIsCancelDialogOpen(true);
         }
+    };
+ 
+    /**
+     * handlePrint
+     * pt-BR: Aciona a visualização de impressão do navegador.
+     * en-US: Triggers the browser's print preview.
+     */
+    const handlePrint = () => {
+        window.print();
     };
 
     if (isLoading) {
@@ -305,7 +314,14 @@ export default function ContractView() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-4">
                                 <div>
                                     <label className="text-xs text-muted-foreground">Proprietário</label>
-                                    <p className="font-medium">{contract.owner?.name || 'Não identificado'}</p>
+                                    <p className="font-medium">
+                                        <Link 
+                                            to={`/admin/settings/users/${contract.owner?.id}/view`}
+                                            className="underline print:no-underline text-primary transition-colors"
+                                        >
+                                            {contract.owner?.name || 'Não identificado'}
+                                        </Link>
+                                    </p>
                                 </div>
                                 {contract.organization?.name && (
                                     <div>
@@ -332,7 +348,14 @@ export default function ContractView() {
                                         <>
                                             <div>
                                                 <label className="text-xs text-muted-foreground">Nome Completo</label>
-                                                <p className="font-medium">{contract.client?.name || 'Cliente não identificado'}</p>
+                                                <p className="font-medium">
+                                                    <Link 
+                                                        to={`/admin/clients/${contract.client?.id}/view`}
+                                                        className="underline print:no-underline text-primary transition-colors"
+                                                    >
+                                                        {contract.client?.name || 'Cliente não identificado'}
+                                                    </Link>
+                                                </p>
                                             </div>
                                             <div>
                                                 <label className="text-xs text-muted-foreground">CPF/CNPJ</label>
@@ -869,7 +892,11 @@ export default function ContractView() {
                 showContinue={true}
                 showFinish={contract.status === 'approved'}
                 fixed={true}
-            />
+            >
+                <Button type="button" variant="outline" onClick={handlePrint}>
+                    <Printer className="h-4 w-4 mr-2" /> Imprimir
+                </Button>
+            </EditFooterBar>
             {/* Dialog de confirmação de cancelamento acionado pela barra de rodapé */}
             {contract.status === 'approved' && (
                 <AlertDialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>

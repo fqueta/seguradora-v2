@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Save, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle, Printer } from 'lucide-react';
 
 export interface EditFooterBarProps {
   /**
@@ -81,6 +81,12 @@ export interface EditFooterBarProps {
    * en-US: Additional class for container customization.
    */
   className?: string;
+  /**
+   * children
+   * pt-BR: Elementos adicionais a serem renderizados na área de ações.
+   * en-US: Additional elements to be rendered in the actions area.
+   */
+  children?: React.ReactNode;
 }
 
 /**
@@ -104,10 +110,11 @@ export function EditFooterBar({
   showFinish = true,
   fixed = true,
   className = '',
+  children,
 }: EditFooterBarProps) {
   const containerClasses = fixed
-    ? 'fixed bottom-0 left-0 md:left-[var(--sidebar-width)] right-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'
-    : '';
+    ? 'fixed bottom-0 left-0 md:left-[var(--sidebar-width)] right-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden'
+    : 'print:hidden';
 
   return (
     <div className={`${containerClasses} ${className}`.trim()}>
@@ -126,6 +133,7 @@ export function EditFooterBar({
               <CheckCircle className="h-4 w-4 mr-2" /> {finishLabel}
             </Button>
           )}
+          {children}
         </div>
       </div>
     </div>
