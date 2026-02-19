@@ -237,12 +237,12 @@ const ClientsContractsImport: React.FC = () => {
 
   return (
     <div className="p-4 space-y-6">
-      {user && user.permission_id !== 1 && (
+      {user && Number(user.permission_id) >= 3 && (
         <div className="p-4 border rounded bg-yellow-50 text-yellow-800">
-          Esta área de importação está disponível apenas para usuários com permissão administrativa (permission_id = 1).
+          Esta área de importação está disponível apenas para usuários com permissão administrativa (permission_id &lt; 3).
         </div>
       )}
-      {user && user.permission_id !== 1 ? null : (
+      {user && Number(user.permission_id) >= 3 ? null : (
       <>
       <h1 className="text-2xl font-semibold">Importar Clientes/Contratos (Excel)</h1>
 
