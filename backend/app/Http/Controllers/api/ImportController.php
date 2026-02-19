@@ -18,6 +18,15 @@ use App\Services\ContractEventLogger;
 
 class ImportController extends Controller
 {
+    protected LsxMedicalService $lsxMedicalService;
+    protected \App\Services\SulAmericaService $sulAmericaService;
+
+    public function __construct(LsxMedicalService $lsxMedicalService, \App\Services\SulAmericaService $sulAmericaService)
+    {
+        $this->lsxMedicalService = $lsxMedicalService;
+        $this->sulAmericaService = $sulAmericaService;
+    }
+
     /**
      * Upload de arquivo e criação de sessão de importação.
      * Etapa 1: selecionar produto e enviar arquivo.
@@ -141,8 +150,19 @@ class ImportController extends Controller
             }
             $existsClient = false;
             $clientRef = null;
-            if ($cpf) {
+            if ($cpf) { // Tenta obter dados do cliente
                 $clientRef = Client::where('cpf', $cpf)->first();
+                if ($clientRef) {
+                    // Tenta obter dados do cliente
+                    $configVal = $clientRef->config;
+                    $clientConfig = is_array($configVal) ? $configVal : [];
+                    if (empty($clientConfig) && is_string($configVal)) {
+                        $decoded = json_decode($configVal, true);
+                        if (is_array($decoded)) {
+                            $clientConfig = $decoded;
+                        }
+                    }
+                }
                 $existsClient = (bool) $clientRef;
             } elseif ($email) {
                 $clientRef = Client::where('email', $email)->first();
@@ -440,7 +460,19 @@ class ImportController extends Controller
                     );
                 }
             }
-
+            // Integração SulAmérica quando aplicável
+            elseif (isset($this->sulAmericaService) && $supplier && stripos($supplier, 'SulAmerica') !== false) {
+                try {
+                    $resSa = $this->sulAmericaService->processIntegration($contract, $user->id);
+                    if ($resSa['exec']) {
+                        $mens .= ' | Integrado SulAmérica';
+                    } else {
+                        $mens .= ' | Falha SulAmérica: ' . ($resSa['mens'] ?? 'Erro desconhecido');
+                    }
+                } catch (\Throwable $e) {
+                    $mens .= ' | Exceção SulAmérica: ' . $e->getMessage();
+                }
+            }
             $results[] = [
                 'index' => $idx,
                 'exec' => true,

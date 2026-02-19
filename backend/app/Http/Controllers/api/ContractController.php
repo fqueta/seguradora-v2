@@ -17,10 +17,12 @@ use App\Services\LsxMedicalService;
 class ContractController extends Controller
 {
     protected LsxMedicalService $lsxMedicalService;
+    protected \App\Services\SulAmericaService $sulAmericaService;
 
-    public function __construct(LsxMedicalService $lsxMedicalService)
+    public function __construct(LsxMedicalService $lsxMedicalService, \App\Services\SulAmericaService $sulAmericaService)
     {
         $this->lsxMedicalService = $lsxMedicalService;
+        $this->sulAmericaService = $sulAmericaService;
     }
 
     public function index(Request $request): JsonResponse
@@ -165,7 +167,7 @@ class ContractController extends Controller
              $supplier = Qlib::getSupplier($product_id); // Retorna string|null
              // Lógica para SulAmérica
             if ($supplier && (stripos($supplier, 'SulAmerica') !== false)) {
-                 $integrationRet = $this->processSulamericaIntegration($contract);
+                 $integrationRet = $this->sulAmericaService->processIntegration($contract, auth()->id());
 
                  // Check integration result
                  if (isset($integrationRet['exec']) && $integrationRet['exec'] === true) {
@@ -376,7 +378,7 @@ class ContractController extends Controller
             $supplier = Qlib::getSupplier($product_id);
             // Lógica para SulAmérica
             if ($supplier && (stripos($supplier, 'SulAmerica') !== false)) {
-                $ret = $this->processSulamericaIntegration($contract);
+                $ret = $this->sulAmericaService->processIntegration($contract, auth()->id());
                 return response()->json($ret);
             }
             // Lógica para LSX Medical
@@ -681,191 +683,7 @@ class ContractController extends Controller
         ]);
     }
 
-    /**
-     * Processa a integração com a SulAmérica se aplicável.
-     * @param Contract $contract
-     */
-    private function processSulamericaIntegration(Contract $contract)
-    {
-        $ret['exec'] = false;
-        $ret['color'] = 'danger';
-        $ret['mens'] = '';
-        try {
-            $product_id = $contract['product_id'] ?? null;
-            // Verifica o fornecedor do produto
-            $supplier = Qlib::getSupplier($product_id);
-            // dd($supplier);
-            // Verifica se o fornecedor se identifica como SulAmérica
-            if ($supplier && (stripos($supplier, 'SulAmerica') !== false)) {
-                $client = $contract->client; // Relationship
-                // dd($client);
 
-                if ($client) {
-                    //Não deve integrar se o titular for Fornecedor
-                    $permission = $client->permission;
-                    // dd($permission);
-                    $permId = $permission ? $permission->id : null;
-                    $supplierPermission = Qlib::qoption('permission_supplier_id') ?? '6';
-                    if (!$permId || $permId == $supplierPermission) {
-                        \App\Services\ContractEventLogger::log(
-                            $contract,
-                            'integracao_sulamerica',
-                            'Integração não executada: titular é Fornecedor.',
-                            [
-                                'status' => 'skipped',
-                                'reason' => 'holder_not_cliente',
-                                'holder_permission' => $permId,
-                            ],
-                            null,
-                            auth()->id()
-                        );
-                        return $ret;
-                    }
-                    // Tenta obter dados do cliente, verificando config se necessário
-                    $clientConfig = is_array($client->config) ? $client->config : (is_string($client->config) ? json_decode($client->config, true) : []);
-                    // Mapeamento de Gênero
-                    $sexo = strtoupper($client->genero ?? 'M'); // m -> M
-                    if ($sexo == 'NI') $sexo = 'M';
-                    // Data Nascimento
-                    $nascimento = $clientConfig['nascimento'] ?? null;
-                    $product = Qlib::getProductById($contract->product_id);
-                    // Validação mínima antes de integrar
-                    $documento = str_replace(['.', '-', ' '], '', $client->cpf ?? $client->cnpj ?? '');
-                    $missing = [];
-                    if (empty($documento)) $missing[] = 'C.P.F';
-                    if (empty($nascimento)) $missing[] = 'data Nascimento';
-                    // dd($missing);
-                    if (!empty($missing)) {
-                        \App\Services\ContractEventLogger::log(
-                            $contract,
-                            'integracao_sulamerica',
-                            'Integração não executada: dados do titular insuficientes.',
-                            [
-                                'status' => 'skipped',
-                                'reason' => 'insufficient_client_data',
-                                'missing_fields' => $missing,
-                            ],
-                            null,
-                            auth()->id()
-                        );
-                        $mensMissing = 'Campos insuficientes: ' . implode(', ', $missing);
-                        $ret['mens'] = $mensMissing;
-                        // dd($ret);
-                        return $ret;
-                    }
-                    // dd($product);
-                    // Preparar config para API
-                    $apiConfig = [
-                        'token_contrato' => $contract->token,
-                        'nomeSegurado' => $client->name,
-                        'dataNascimento' => $nascimento,
-                        'inicioVigencia' => $contract->start_date ? Carbon::parse($contract->start_date)->format('Y-m-d') : null,
-                        'fimVigencia' => $contract->end_date ? Carbon::parse($contract->end_date)->format('Y-m-d') : null,
-                        'sexo' => $sexo,
-                        'uf' => isset($contract->address['state']) ? $contract->address['state'] : ($clientConfig['uf'] ?? ($clientConfig['state'] ?? 'SP')),
-                        //remover pontos e traços do cpf
-                        'documento' => $documento,
-                        'planoProduto' => (string)$product['plan'] ?? '1', //deve ser o plano do produto
-                        'operacaoParceiro' => $contract->token ?? null, //deve ser o plano do produto
-                        'premioSeguro' => $product['costPrice'] ?? null,
-                    ];
-                    // dd($apiConfig);
-
-                    // Instancia e chama o controller
-                    $saController = new SulAmericaController();
-                    $response = $saController->contratacao($apiConfig);
-
-                    // Log response to contract_meta
-                    $response_json = is_array($response) ? json_encode($response) : $response;
-                    Qlib::update_contract_meta($contract->id, 'ultimo_envio_fornecedor', $response_json);
-
-                    // Prepare full log payload (Request + Response)
-                    $fullLogPayload = json_encode([
-                        'request' => $apiConfig,
-                        'response' => $response
-                    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-
-                    // Verifica resposta e atualiza status, contract_number, c_number
-                    if (isset($response['exec']) && $response['exec'] === true) {
-                        $old = $contract->status;
-                        $contract->update(['status' => 'approved']);
-                        Qlib::update_contract_meta($contract->id, 'envio_fornecedor_sucesso', $response_json);
-                        $contract_number = $response['data']['apolice']['numApolice']??null;
-                        if($contract_number){
-                            $contract->update(['contract_number' => $contract_number]);
-                        }
-                        $c_number = $response['data']['numCertificado']??null;
-                        if($c_number){
-                            $contract->update(['c_number' => $c_number]);
-                        }
-
-                        // Log success event
-                        \App\Services\ContractEventLogger::log(
-                            $contract,
-                            'integracao_sulamerica',
-                            'Integração SulAmérica realizada com sucesso.',
-                            ['status' => 'success'],
-                            $fullLogPayload,
-                            auth()->id()
-                        );
-                        \App\Services\ContractEventLogger::logStatusChange(
-                            $contract,
-                            $old,
-                            'approved',
-                            'Status atualizado para aprovado via integração.',
-                            [],
-                            $fullLogPayload,
-                            auth()->id()
-                        );
-                    } else {
-                        // Log failure event
-                        $errorMsg = $response['mens'] ?? 'Erro desconhecido na integração';
-                        \App\Services\ContractEventLogger::log(
-                            $contract,
-                            'integracao_sulamerica',
-                            'Falha na integração SulAmérica: ' . $errorMsg,
-                            ['status' => 'error'],
-                            $fullLogPayload,
-                            auth()->id()
-                        );
-                    }
-                    $ret = $response;
-
-                } else {
-                    \App\Services\ContractEventLogger::log(
-                        $contract,
-                        'integracao_sulamerica',
-                        'Integração não executada: titular ausente no contrato.',
-                        [
-                            'status' => 'skipped',
-                            'reason' => 'holder_missing',
-                        ],
-                        null,
-                        auth()->id()
-                    );
-                }
-            } else {
-                // Fornecedor não é SulAmérica: registrar skip para auditoria
-                \App\Services\ContractEventLogger::log(
-                    $contract,
-                    'integracao_sulamerica',
-                    'Integração não aplicável: fornecedor do produto não é SulAmérica.',
-                    [
-                        'status' => 'skipped',
-                        'reason' => 'supplier_not_sulamerica',
-                        'supplier' => $supplier,
-                    ],
-                    null,
-                    auth()->id()
-                );
-            }
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Erro na automação SulAmerica: ' . $e->getMessage());
-            $ret['exec'] = false;
-            $ret['mens'] = $e->getMessage();
-        }
-        return $ret;
-    }
     public function cancelarContrato(Request $request, $id)
     {
         $contract = Contract::find($id);
