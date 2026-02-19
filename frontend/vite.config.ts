@@ -25,13 +25,18 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('/react')) return 'react';
-            if (id.includes('zod')) return 'validation';
-            if (id.includes('@hookform')) return 'forms';
-            if (id.includes('lucide-react')) return 'icons';
-            if (id.includes('@vimeo/player')) return 'player';
-            // Agrupa radix-ui/shadcn para reduzir bundle inicial da página
-            if (id.includes('@radix-ui')) return 'radix';
+            if (id.includes('/react') || id.includes('scheduler')) return 'vendor-react';
+            if (id.includes('react-router-dom') || id.includes('@remix-run')) return 'vendor-router';
+            if (id.includes('lucide-react')) return 'vendor-icons';
+            if (id.includes('recharts')) return 'vendor-charts';
+            if (id.includes('xlsx')) return 'vendor-xlsx';
+            if (id.includes('jspdf')) return 'vendor-pdf';
+            if (id.includes('zod')) return 'vendor-validation';
+            if (id.includes('@hookform')) return 'vendor-forms';
+            if (id.includes('@radix-ui')) return 'vendor-ui';
+            if (id.includes('@tanstack')) return 'vendor-tanstack';
+            if (id.includes('@supabase')) return 'vendor-supabase';
+            return 'vendor'; // All other node_modules
           }
         },
       },
