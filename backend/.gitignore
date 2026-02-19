@@ -28,3 +28,4 @@ yarn-error.log
 /database/factories/ClientFactory.php
 /database/factories/ContractFactory.php
 /database/seeders/PaginationTestSeeder.php
+modelo_importacao_clientes.csv

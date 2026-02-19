@@ -13,6 +13,8 @@ use App\Models\Client;
 use App\Models\Contract;
 use App\Models\User;
 use App\Services\LsxMedicalService;
+use App\Services\UserEventLogger;
+use App\Services\ContractEventLogger;
 
 class ImportController extends Controller
 {
@@ -61,7 +63,7 @@ class ImportController extends Controller
             'required_fields' => [
                 'name', 'cpf', 'email', 'celular', 'nascimento', 'genero',
                 'cep', 'endereco', 'numero', 'bairro', 'cidade', 'uf',
-                'insurance_plan_code', 'plan_adherence_date', 'plan_expiry_date'
+                'codigo_do_plano', 'data_de_inicio_do_plano', 'data_de_expiracao'
             ],
             'rows_preview' => $parsed['rows'],
             'created_at' => now()->toDateTimeString(),
@@ -177,9 +179,9 @@ class ImportController extends Controller
                         'bairro' => $row['bairro'] ?? null,
                         'cidade' => $row['cidade'] ?? null,
                         'uf' => $row['uf'] ?? null,
-                        'insurance_plan_code' => $row['insurance_plan_code'] ?? null,
-                        'plan_adherence_date' => $row['plan_adherence_date'] ?? null,
-                        'plan_expiry_date' => $row['plan_expiry_date'] ?? null,
+                        'codigo_do_plano' => $row['codigo_do_plano'] ?? $row['insurance_plan_code'] ?? null,
+                        'data_de_inicio_do_plano' => $row['data_de_inicio_do_plano'] ?? $row['plan_adherence_date'] ?? null,
+                        'data_de_expiracao' => $row['data_de_expiracao'] ?? $row['plan_expiry_date'] ?? null,
                     ],
                 ]);
                 $lsxPayload = $lsx->buildPayload($transientUser, [
@@ -302,6 +304,9 @@ class ImportController extends Controller
                         'bairro' => $row['bairro'] ?? null,
                         'cidade' => $row['cidade'] ?? null,
                         'uf' => $row['uf'] ?? null,
+                        'codigo_do_plano' => $row['codigo_do_plano'] ?? $row['insurance_plan_code'] ?? null,
+                        'data_de_inicio_do_plano' => $row['data_de_inicio_do_plano'] ?? $row['plan_adherence_date'] ?? null,
+                        'data_de_expiracao' => $row['data_de_expiracao'] ?? $row['plan_expiry_date'] ?? null,
                     ]),
                     'ativo' => 's',
                     'status' => 'actived',
@@ -312,6 +317,16 @@ class ImportController extends Controller
                     'password' => \Illuminate\Support\Facades\Hash::make($cpf),
                 ];
                 $client = Client::create($clientData);
+
+                // Log client creation
+                UserEventLogger::log(
+                    $client,
+                    'user_created',
+                    "Cliente criado com sucesso via importação por " . ($user->name ?? $user->id),
+                    [],
+                    $client->toArray(),
+                    ['source' => 'ImportController@commit']
+                );
 
                 // Integração Alloyal (sem falhar o commit caso haja erro)
                 try {
@@ -351,6 +366,17 @@ class ImportController extends Controller
             ];
             $contract = Contract::create($contractData);
 
+            // Log contract creation
+            ContractEventLogger::logStatusChange(
+                $contract,
+                null,
+                'pending',
+                'Contrato criado via importação.',
+                [],
+                null,
+                $user->id
+            );
+
             $mens = 'Cliente e contrato criados';
             // Integração LSX quando aplicável
             if ($supplier && stripos($supplier, 'LSX') !== false) {
@@ -369,9 +395,9 @@ class ImportController extends Controller
                             'neighborhood' => $row['bairro'] ?? null,
                             'city' => $row['cidade'] ?? null,
                             'state' => $row['uf'] ?? null,
-                            'insurance_plan_code' => $row['insurance_plan_code'] ?? null,
-                            'plan_adherence_date' => $row['plan_adherence_date'] ?? null,
-                            'plan_expiry_date' => $row['plan_expiry_date'] ?? null,
+                            'codigo_do_plano' => $row['codigo_do_plano'] ?? $row['insurance_plan_code'] ?? null,
+                            'data_de_inicio_do_plano' => $row['data_de_inicio_do_plano'] ?? $row['plan_adherence_date'] ?? null,
+                            'data_de_expiracao' => $row['data_de_expiracao'] ?? $row['plan_expiry_date'] ?? null,
                             'extra_fields' => [
                                 'tipo' => 'TITULAR',
                                 'status' => 'ATIVO',

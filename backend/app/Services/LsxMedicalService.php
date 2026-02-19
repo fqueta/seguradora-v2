@@ -92,9 +92,9 @@ class LsxMedicalService
                 }
             }
         }
-        $beneficiaryPlanCode = $extraData['beneficiary_plan_code'] ?? $config['beneficiary_plan_code'] ?? $extraData['insurance_plan_code'] ?? $config['insurance_plan_code'] ?? 'PLAN0001'; // Default updated to match cURL
-        $planAdherenceDate = $extraData['plan_adherence_date'] ?? $config['plan_adherence_date'] ?? date('Y-m-d');
-        $planExpiryDate = $extraData['plan_expiry_date'] ?? $config['plan_expiry_date'] ?? date('Y-m-d', strtotime('+1 year'));
+        $beneficiaryPlanCode = $extraData['beneficiary_plan_code'] ?? $config['beneficiary_plan_code'] ?? $extraData['codigo_do_plano'] ?? $config['codigo_do_plano'] ?? $extraData['insurance_plan_code'] ?? $config['insurance_plan_code'] ?? 'PLAN0001';
+        $planAdherenceDate = $extraData['plan_adherence_date'] ?? $config['plan_adherence_date'] ?? $extraData['data_de_inicio_do_plano'] ?? $config['data_de_inicio_do_plano'] ?? date('Y-m-d');
+        $planExpiryDate = $extraData['plan_expiry_date'] ?? $config['plan_expiry_date'] ?? $extraData['data_de_expiracao'] ?? $config['data_de_expiracao'] ?? date('Y-m-d', strtotime('+1 year'));
         $extraFields = $extraData['extra_fields'] ?? $config['lsx_extra_fields'] ?? [];
 
         $genderRaw = $extraData['gender'] ?? $config['genero'] ?? $extraData['genero'] ?? $client->gender ?? $client->sexo ?? null;
