@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            // Group React core and tightly coupled UI/Form libs together
+            // Group EVERYTHING React-dependent together for safety
             if (
               id.includes('node_modules/react/') || 
               id.includes('node_modules/react-dom/') ||
@@ -34,16 +34,21 @@ export default defineConfig(({ mode }) => ({
               id.includes('node_modules/react-router-dom/') ||
               id.includes('node_modules/@radix-ui/') ||
               id.includes('node_modules/react-hook-form/') ||
-              id.includes('node_modules/@hookform/')
+              id.includes('node_modules/@hookform/') ||
+              id.includes('node_modules/lucide-react/') ||
+              id.includes('node_modules/@tanstack/') ||
+              id.includes('node_modules/recharts/') ||
+              id.includes('node_modules/embla-carousel-react/') ||
+              id.includes('node_modules/sonner/') ||
+              id.includes('node_modules/vaul/') ||
+              id.includes('node_modules/input-otp/') ||
+              id.includes('node_modules/date-fns/')
             ) {
               return 'vendor-react-core';
             }
-            if (id.includes('lucide-react')) return 'vendor-icons';
-            if (id.includes('recharts')) return 'vendor-charts';
             if (id.includes('xlsx')) return 'vendor-xlsx';
             if (id.includes('jspdf')) return 'vendor-pdf';
             if (id.includes('zod')) return 'vendor-validation';
-            if (id.includes('@tanstack')) return 'vendor-tanstack';
             if (id.includes('@supabase')) return 'vendor-supabase';
             return 'vendor'; // All other node_modules
           }
