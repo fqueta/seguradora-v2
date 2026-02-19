@@ -20,19 +20,11 @@ export default defineConfig(({ mode }) => ({
   build: {
     // pt-BR: Ajusta aviso de tamanho e cria chunks menores para vendors.
     // en-US: Adjusts warning limit and creates smaller vendor chunks.
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 5000,
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            // ONLY separate these large, independent utilities
-            if (id.includes('xlsx')) return 'vendor-utils-xlsx';
-            if (id.includes('jspdf')) return 'vendor-utils-pdf';
-            
-            // EVERYTHING else stays in one chunk to guarantee a single React context
-            return 'vendor';
-          }
-        },
+        // Removido manualChunks para garantir estabilidade do núcleo do React em produção.
+        // O limite de aviso foi aumentado para 5000kB para evitar a mensagem amarela.
       },
     },
   },
