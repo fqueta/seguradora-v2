@@ -10,6 +10,7 @@ import { useRecentActivities } from "@/hooks/useDashboard";
 import { useRecentIntegrationEvents } from "@/hooks/useIntegrations";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEnrollmentsList } from "@/hooks/enrollments";
+import { Building2, Stethoscope, Gift } from "lucide-react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -341,6 +342,7 @@ export default function Dashboard() {
                   <option value="all">Todos</option>
                   <option value="sulamerica">SulAmérica</option>
                   <option value="lsx">LSX Medical</option>
+                  <option value="alloyal">Alloyal</option>
                 </select>
                 <select
                   className="border rounded-md px-2 py-1 text-xs"
@@ -373,25 +375,57 @@ export default function Dashboard() {
               ) : (
                 <div className="divide-y">
                   {recentIntegrationsQuery.data?.map((ev: any) => (
-                    <div key={ev.id} className="py-3">
-                      {ev.contract_id ? (
-                        <Link
-                          to={`/admin/contracts/${ev.contract_id}`}
-                          className="text-sm font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-ring rounded-sm"
-                          aria-label={`Abrir contrato ${ev.contract_id}`}
-                        >
-                          {ev.client_name || "Cliente"} {ev.contract_number ? `• Contrato ${ev.contract_number}` : `• #${ev.contract_id}`}
-                        </Link>
-                      ) : (
-                        <div className="text-sm font-medium">
-                          {ev.client_name || "Cliente"} {ev.contract_number ? `• Contrato ${ev.contract_number}` : ev.contract_id ? `• #${ev.contract_id}` : ""}
+                    <div key={ev.id} className="py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {ev.supplier === "sulamerica" ? (
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                        ) : ev.supplier === "lsx" ? (
+                          <Stethoscope className="h-4 w-4 text-muted-foreground" />
+                        ) : ev.supplier === "alloyal" ? (
+                          <Gift className="h-4 w-4 text-muted-foreground" />
+                        ) : null}
+                        <div>
+                          {ev.contract_id ? (
+                            <Link
+                              to={`/admin/contracts/${ev.contract_id}`}
+                              className="text-sm font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-ring rounded-sm"
+                              aria-label={`Abrir contrato ${ev.contract_id}`}
+                            >
+                              {ev.client_name || "Cliente"} {ev.contract_number ? `• Contrato ${ev.contract_number}` : `• #${ev.contract_id}`}
+                            </Link>
+                          ) : ev.supplier === "alloyal" && ev.client_id ? (
+                            <Link
+                              to={`/admin/clients/${ev.client_id}/view`}
+                              className="text-sm font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-ring rounded-sm"
+                              aria-label={`Abrir cliente ${ev.client_id}`}
+                            >
+                              {ev.client_name || "Cliente"}
+                            </Link>
+                          ) : (
+                            <div className="text-sm font-medium">
+                              {ev.client_name || "Cliente"} {ev.contract_number ? `• Contrato ${ev.contract_number}` : ev.contract_id ? `• #${ev.contract_id}` : ""}
+                            </div>
+                          )}
+                          <div className="text-xs text-muted-foreground">
+                            {(ev.supplier === "sulamerica" ? "SulAmérica" : ev.supplier === "lsx" ? "LSX Medical" : ev.supplier === "alloyal" ? "Alloyal" : "Integração")}
+                            {ev.created_at ? ` • ${new Date(ev.created_at).toLocaleDateString()}` : ""}
+                          </div>
                         </div>
-                      )}
-                      <div className="text-xs text-muted-foreground">
-                        {(ev.supplier === "sulamerica" ? "SulAmérica" : ev.supplier === "lsx" ? "LSX Medical" : "Integração")}
-                        {ev.created_at ? ` • ${new Date(ev.created_at).toLocaleDateString()}` : ""}
-                        {ev.status ? ` • ${ev.status === "success" ? "Sucesso" : ev.status === "error" ? "Erro" : "Ignorado"}` : ""}
                       </div>
+                      {ev.status && (
+                        <Badge
+                          className={
+                            "text-[11px] px-2 py-0.5 " +
+                            (ev.status === "success"
+                              ? "bg-green-100 text-green-700"
+                              : ev.status === "error"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-gray-100 text-gray-700")
+                          }
+                        >
+                          {ev.status === "success" ? "Sucesso" : ev.status === "error" ? "Erro" : "Ignorado"}
+                        </Badge>
+                      )}
                     </div>
                   ))}
                 </div>

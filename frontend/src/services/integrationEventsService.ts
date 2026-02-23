@@ -9,6 +9,9 @@ export interface IntegrationEvent {
   contract_number?: string | null;
   contract_token?: string | null;
   client_name?: string | null;
+  client_id?: number | null;
+  supplier?: string | null;
+  status?: string | null;
 }
 
 class IntegrationEventsService extends BaseApiService {
