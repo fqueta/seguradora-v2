@@ -111,7 +111,31 @@ export default function Dashboard() {
   });
 
   const recentActivitiesQuery = useRecentActivities(8);
-  const recentIntegrationsQuery = useRecentIntegrationEvents(8, { enabled: (user?.permission_id ?? 99) < 3 });
+  const [supplierFilter, setSupplierFilter] = useState<string>("all");
+  const [periodFilter, setPeriodFilter] = useState<string>("30d");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const computePeriod = () => {
+    const now = new Date();
+    if (periodFilter === "7d") {
+      const from = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      return { from: from.toISOString().slice(0, 10), to: now.toISOString().slice(0, 10) };
+    }
+    if (periodFilter === "30d") {
+      const from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      return { from: from.toISOString().slice(0, 10), to: now.toISOString().slice(0, 10) };
+    }
+    return {};
+  };
+  const periodParams = computePeriod();
+  const recentIntegrationsQuery = useRecentIntegrationEvents(
+    8,
+    {
+      supplier: supplierFilter === "all" ? undefined : supplierFilter,
+      status: statusFilter === "all" ? undefined : statusFilter,
+      ...(periodParams as any),
+    },
+    { enabled: (user?.permission_id ?? 99) < 3 }
+  );
 
   useEffect(() => {
     const charts = dashboardSummaryQuery.data?.data?.charts as any;
@@ -307,6 +331,39 @@ export default function Dashboard() {
               <CardDescription>Atualizações de credenciais e integrações</CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <select
+                  className="border rounded-md px-2 py-1 text-xs"
+                  value={supplierFilter}
+                  onChange={(e) => setSupplierFilter(e.target.value)}
+                  aria-label="Filtrar fornecedor"
+                >
+                  <option value="all">Todos</option>
+                  <option value="sulamerica">SulAmérica</option>
+                  <option value="lsx">LSX Medical</option>
+                </select>
+                <select
+                  className="border rounded-md px-2 py-1 text-xs"
+                  value={periodFilter}
+                  onChange={(e) => setPeriodFilter(e.target.value)}
+                  aria-label="Filtrar período"
+                >
+                  <option value="7d">7 dias</option>
+                  <option value="30d">30 dias</option>
+                  <option value="all">Todos</option>
+                </select>
+                <select
+                  className="border rounded-md px-2 py-1 text-xs"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  aria-label="Filtrar status"
+                >
+                  <option value="all">Status: Todos</option>
+                  <option value="success">Sucesso</option>
+                  <option value="error">Erro</option>
+                  <option value="skipped">Ignorado</option>
+                </select>
+              </div>
               {recentIntegrationsQuery.isLoading ? (
                 <div className="text-sm text-muted-foreground">Carregando…</div>
               ) : recentIntegrationsQuery.isError ? (
@@ -331,8 +388,9 @@ export default function Dashboard() {
                         </div>
                       )}
                       <div className="text-xs text-muted-foreground">
-                        {String(ev.event_type).includes("sulamerica") ? "SulAmérica" : String(ev.event_type).includes("lsx") ? "LSX Medical" : "Integração"}
+                        {(ev.supplier === "sulamerica" ? "SulAmérica" : ev.supplier === "lsx" ? "LSX Medical" : "Integração")}
                         {ev.created_at ? ` • ${new Date(ev.created_at).toLocaleDateString()}` : ""}
+                        {ev.status ? ` • ${ev.status === "success" ? "Sucesso" : ev.status === "error" ? "Erro" : "Ignorado"}` : ""}
                       </div>
                     </div>
                   ))}

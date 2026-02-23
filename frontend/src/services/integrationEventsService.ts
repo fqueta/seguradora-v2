@@ -12,8 +12,8 @@ export interface IntegrationEvent {
 }
 
 class IntegrationEventsService extends BaseApiService {
-  async listRecent(limit: number = 10): Promise<{ success: boolean; data: IntegrationEvent[] }> {
-    return this.get<{ success: boolean; data: IntegrationEvent[] }>("/contract-events/recent", { limit });
+  async listRecent(limit: number = 10, filters?: { supplier?: string; from?: string; to?: string; status?: string }): Promise<{ success: boolean; data: IntegrationEvent[] }> {
+    return this.get<{ success: boolean; data: IntegrationEvent[] }>("/contract-events/recent", { limit, ...(filters || {}) });
   }
 }
 

@@ -49,11 +49,11 @@ export function useRecentIntegrations(limit: number = 8, queryOptions?: any) {
   });
 }
 
-export function useRecentIntegrationEvents(limit: number = 8, queryOptions?: any) {
+export function useRecentIntegrationEvents(limit: number = 8, filters?: { supplier?: string; from?: string; to?: string; status?: string }, queryOptions?: any) {
   return useQuery({
-    queryKey: ["integrations", "events", "recent", limit],
+    queryKey: ["integrations", "events", "recent", limit, filters],
     queryFn: async () => {
-      const resp = await integrationEventsService.listRecent(limit);
+      const resp = await integrationEventsService.listRecent(limit, filters);
       return resp?.data || [];
     },
     staleTime: 5 * 60 * 1000,
