@@ -329,8 +329,8 @@ class ClientController extends Controller
                 UserEventLogger::log(
                     $client,
                     'integration_lsx',
-                    isset($retLsx['exec']) && $retLsx['exec'] 
-                        ? "Atualização LSX Medical realizada com sucesso" 
+                    isset($retLsx['exec']) && $retLsx['exec']
+                        ? "Atualização LSX Medical realizada com sucesso"
                         : "Falha na atualização LSX Medical: " . ($result['extraMsg'] ?? 'Erro desconhecido'),
                     [],
                     $retLsx,
@@ -339,7 +339,7 @@ class ClientController extends Controller
             }
         } catch (\Throwable $e) {
             $result['extraMsg'] = $e->getMessage();
-            
+
             UserEventLogger::log(
                 $client,
                 'integration_lsx',
@@ -813,7 +813,7 @@ class ClientController extends Controller
         if (isset($changes['organization_id'])) {
             $oldOrgName = Organization::find($clientToUpdate->getOriginal('organization_id'))->name ?? $clientToUpdate->getOriginal('organization_id');
             $newOrgName = Organization::find($changes['organization_id'])->name ?? $changes['organization_id'];
-            
+
             UserEventLogger::log(
                 $clientToUpdate,
                 'organization_change',
@@ -862,6 +862,14 @@ class ClientController extends Controller
         }
         if (!$this->permissionService->isHasPermission('delete')) {
             return response()->json(['error' => 'Acesso negado'], 403);
+        }
+        //Antes de aceitar mover para lixeira verificar se o cliente tem contrato com status de aprovado valido
+        $contract = Contract::where('client_id', $id)
+            ->where('status', 'approved')
+            // ->where('end_date', '>', now())
+            ->first();
+        if($contract){
+            return response()->json(['exec'=>false,'message' => 'Cliente possui contrato ativo com status de aprovado'], 403);
         }
 
         $client = Client::findOrFail($id);
@@ -946,7 +954,7 @@ class ClientController extends Controller
         $fromOrgId = $client->organization_id;
         $fromOrgName = Organization::find($fromOrgId)->name ?? $fromOrgId;
         $targetOrgName = $targetOrg->name ?? $targetOrgId;
-        
+
         $client->organization_id = $targetOrgId;
         $client->save();
 
@@ -1183,9 +1191,24 @@ class ClientController extends Controller
                 'status' => 'actived',
                 'reg_deletado' => null
             ]);
+
+            // Restaurar contratos do cliente que estejam na lixeira (soft-deleted)
+            $trashedContracts = \App\Models\Contract::withTrashed()
+                ->where('client_id', $client->id)
+                ->whereNotNull('deleted_at')
+                ->get();
+            foreach ($trashedContracts as $contract) {
+                try {
+                    $contract->restore();
+                } catch (\Throwable $e) {
+                    // falha individual não deve impedir a restauração do cliente
+                }
+            }
+
             return response()->json([
                 'message' => 'Cliente restaurado com sucesso',
-                'status' => 200
+                'status' => 200,
+                'restored_contracts' => $trashedContracts->pluck('id')
             ]);
         }
 
@@ -1750,7 +1773,7 @@ class ClientController extends Controller
     private function processAlloyalIntegration(Client $client, Request $request): array
     {
         $res = ['exec' => true, 'extraMsg' => null, 'retAlloyal' => null];
-        
+
         try {
             $cpfPlain = $request->get('cpf') ?: $client->cpf;
             if (empty($cpfPlain)) {
@@ -1790,11 +1813,11 @@ class ClientController extends Controller
             if (is_string($clientConfig)) {
                 $clientConfig = json_decode($clientConfig, true) ?? [];
             }
-                
+
             if (!is_array($clientConfig)) {
                 $clientConfig = [];
             }
-            
+
             $clientConfig['integration_alloyal_update'] = $retAlloyal;
             $client->config = $clientConfig;
             $client->save();
@@ -1808,8 +1831,8 @@ class ClientController extends Controller
             UserEventLogger::log(
                 $client,
                 'integration_alloyal',
-                isset($retAlloyal['exec']) && $retAlloyal['exec'] 
-                    ? "Sincronização Alloyal realizada com sucesso" 
+                isset($retAlloyal['exec']) && $retAlloyal['exec']
+                    ? "Sincronização Alloyal realizada com sucesso"
                     : "Falha na sincronização Alloyal: " . ($res['extraMsg'] ?? 'Erro desconhecido'),
                 [],
                 $retAlloyal,

@@ -6,6 +6,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { coursesService } from "@/services/coursesService";
 import { dashboardChartsService } from "@/services/dashboardChartsService";
+import { useRecentActivities } from "@/hooks/useDashboard";
+import { useRecentIntegrationEvents } from "@/hooks/useIntegrations";
+import { useAuth } from "@/contexts/AuthContext";
 import { useEnrollmentsList } from "@/hooks/enrollments";
 import {
   ResponsiveContainer,
@@ -27,6 +30,7 @@ import {
  */
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   /**
    * KpiCardLink
@@ -105,6 +109,9 @@ export default function Dashboard() {
     queryFn: () => dashboardChartsService.getSummary({ year: selectedYear }),
     staleTime: 5 * 60 * 1000,
   });
+
+  const recentActivitiesQuery = useRecentActivities(8);
+  const recentIntegrationsQuery = useRecentIntegrationEvents(8, { enabled: (user?.permission_id ?? 99) < 3 });
 
   useEffect(() => {
     const charts = dashboardSummaryQuery.data?.data?.charts as any;
@@ -217,6 +224,8 @@ export default function Dashboard() {
 
       </div>
 
+      
+
       {/* Gráfico de Contratos: Realizados */}
       <div className="grid gap-6 lg:grid-cols-1">
         <Card>
@@ -245,6 +254,93 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Cards secundários: Atividades Recentes e Integrações Recentes */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="hover:shadow-sm transition-shadow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold">Atividades Recentes</CardTitle>
+            <CardDescription>Últimas ações de clientes</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {recentActivitiesQuery.isLoading ? (
+              <div className="text-sm text-muted-foreground">Carregando…</div>
+            ) : recentActivitiesQuery.isError ? (
+              <div className="text-sm text-destructive">Não foi possível carregar as atividades.</div>
+            ) : (recentActivitiesQuery.data?.length ?? 0) === 0 ? (
+              <div className="text-sm text-muted-foreground">Nenhuma atividade recente.</div>
+            ) : (
+              <div className="divide-y">
+                {recentActivitiesQuery.data?.map((activity: any) => (
+                  <div key={activity.id} className="flex items-center gap-3 py-3">
+                    <div
+                      className={
+                        "h-3 w-3 rounded-full mt-0.5 " +
+                        (activity.status === "actived"
+                          ? "bg-green-500"
+                          : activity.status === "pre_registred"
+                          ? "bg-blue-500"
+                          : activity.status === "inactived"
+                          ? "bg-red-500"
+                          : "bg-gray-400")
+                      }
+                      aria-hidden="true"
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">{activity.title || activity.client}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {(activity.cpf || activity.cnpj || activity.email) ?? ""} {activity.time ? `• ${activity.time}` : ""}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {(user?.permission_id ?? 99) < 3 && (
+          <Card className="hover:shadow-sm transition-shadow">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-semibold">Integrações Recentes</CardTitle>
+              <CardDescription>Atualizações de credenciais e integrações</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {recentIntegrationsQuery.isLoading ? (
+                <div className="text-sm text-muted-foreground">Carregando…</div>
+              ) : recentIntegrationsQuery.isError ? (
+                <div className="text-sm text-destructive">Não foi possível carregar integrações.</div>
+              ) : (recentIntegrationsQuery.data?.length ?? 0) === 0 ? (
+                <div className="text-sm text-muted-foreground">Nenhuma integração recente.</div>
+              ) : (
+                <div className="divide-y">
+                  {recentIntegrationsQuery.data?.map((ev: any) => (
+                    <div key={ev.id} className="py-3">
+                      {ev.contract_id ? (
+                        <Link
+                          to={`/admin/contracts/${ev.contract_id}`}
+                          className="text-sm font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-ring rounded-sm"
+                          aria-label={`Abrir contrato ${ev.contract_id}`}
+                        >
+                          {ev.client_name || "Cliente"} {ev.contract_number ? `• Contrato ${ev.contract_number}` : `• #${ev.contract_id}`}
+                        </Link>
+                      ) : (
+                        <div className="text-sm font-medium">
+                          {ev.client_name || "Cliente"} {ev.contract_number ? `• Contrato ${ev.contract_number}` : ev.contract_id ? `• #${ev.contract_id}` : ""}
+                        </div>
+                      )}
+                      <div className="text-xs text-muted-foreground">
+                        {String(ev.event_type).includes("sulamerica") ? "SulAmérica" : String(ev.event_type).includes("lsx") ? "LSX Medical" : "Integração"}
+                        {ev.created_at ? ` • ${new Date(ev.created_at).toLocaleDateString()}` : ""}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
     </div>

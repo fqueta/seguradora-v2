@@ -643,6 +643,9 @@ Route::name('api.')->prefix('api/v1')->middleware([
             'tracking' => 'id'
         ]]);
         Route::get('tracking-events', [TrackingEventController::class, 'index'])->name('tracking-events.index');
+        // Eventos recentes de integração
+        Route::get('contract-events/recent', [\App\Http\Controllers\api\ContractEventController::class, 'recent'])
+            ->name('contract-events.recent');
         // rota flexível de filtros
         Route::get('menus', [MenuController::class, 'getMenus']);
         Route::apiResource('permissions', PermissionController::class,['parameters' => [

@@ -494,6 +494,11 @@ export default function Clients() {
         onError: (error) => {
           // Função para determinar mensagem de erro específica
           const getErrorMessage = () => {
+            const e: any = error;
+            const b = e?.body ?? e?.response?.data;
+            const serverMsg = (b && (b.message || b.error)) ? (b.message || b.error) : null;
+            if (serverMsg) return serverMsg;
+            if (e?.message) return e.message;
             const errorWithStatus = error as Error & { status?: number };
             switch (errorWithStatus.status) {
               case 400:
@@ -509,7 +514,7 @@ export default function Clients() {
               case 401:
                 return "Sua sessão expirou. Faça login novamente.";
               default:
-                return error.message || "Ocorreu um erro inesperado ao excluir o cliente.";
+                return "Ocorreu um erro inesperado ao excluir o cliente.";
             }
           };
           
