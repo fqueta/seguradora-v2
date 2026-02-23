@@ -1191,7 +1191,6 @@ class ClientController extends Controller
                 'status' => 'actived',
                 'reg_deletado' => null
             ]);
-
             // Restaurar contratos do cliente que estejam na lixeira (soft-deleted)
             $trashedContracts = \App\Models\Contract::withTrashed()
                 ->where('client_id', $client->id)
@@ -1799,12 +1798,12 @@ class ClientController extends Controller
                     }
                 }
             }
-
+            // provisoriamente integrar apenas nome e cpf
             $payloadAlloyal = [
                 'name' => (string)($request->get('name') ?? $client->name ?? ''),
                 'cpf' => (string)$cpfPlain,
-                'email' => (string)($request->get('email') ?? $client->email ?? ''),
-                'password' => (string)$plainPassword,
+                // 'email' => (string)($request->get('email') ?? $client->email ?? ''),
+                // 'password' => (string)$plainPassword,
             ];
             $alloyalController = new \App\Http\Controllers\api\AlloyalController();
             $retAlloyal = $alloyalController->create_user_atived($payloadAlloyal, $client->id);

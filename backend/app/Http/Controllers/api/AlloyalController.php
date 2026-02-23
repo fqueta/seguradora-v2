@@ -252,16 +252,29 @@ class AlloyalController extends Controller
                 return ['exec'=>false,'message'=>'Dados incompletos'];
             }
         }
-        $body = [
-            "name" => $d_send['name'],
-            "cpf" => str_replace(['.','-'], '', $d_send['cpf']),
-            "email" => strtolower($d_send['email']),
-            "password" => $d_send['password'] ?? str_replace(['.','-'], '', $d_send['cpf']),
-        ];
+        //
+        if($this->business_id_alloyal==2675){
+            $body = [
+                "name" => $d_send['name'],
+                "cpf" => str_replace(['.','-'], '', $d_send['cpf']),
+                "email" => strtolower($d_send['email']),
+                "password" => $d_send['password'] ?? str_replace(['.','-'], '', $d_send['cpf']),
+            ];
+            $endpoint = $this->endpoint . '/users';
+        }else{
+            $body = [
+                "name" => $d_send['name'],
+                "cpf" => str_replace(['.','-'], '', $d_send['cpf']),
+                // "email" => strtolower($d_send['email']),
+                // "password" => $d_send['password'] ?? str_replace(['.','-'], '', $d_send['cpf']),
+            ];
+            $endpoint = $this->endpoint . '/authorized_users';
+        }
         $ret['exec'] = false;
         $ret['message'] = 'Erro ao criar usuário';
         try {
-            $endpoint = $this->endpoint . '/users';
+
+            // dd($body,$endpoint);
             $url = $this->url_api_aloyall . $endpoint;
             $response = Http::withHeaders($headers)->post($url, $body);
             $ret['exec'] = true;

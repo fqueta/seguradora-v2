@@ -682,6 +682,7 @@ export default function ClientView() {
                     <TableHead>Início</TableHead>
                     <TableHead>Fim</TableHead>
                     <TableHead>Valor</TableHead>
+                    <TableHead>Fornecedor</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -741,6 +742,11 @@ export default function ClientView() {
                             {contract.value 
                               ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(contract.value)
                               : '-'}
+                          </TableCell>
+                          <TableCell>
+                            {contract?.product?.supplierData?.name 
+                              || contract?.product?.supplier?.name 
+                              || '-'}
                           </TableCell>
                           <TableCell className="text-right space-x-2">
                              <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/contracts/${contract.id}?client_id=${client.id}`)}>
