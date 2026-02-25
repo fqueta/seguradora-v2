@@ -253,7 +253,7 @@ class AlloyalController extends Controller
             }
         }
         //
-        if($this->business_id_alloyal==2675){
+        if($this->business_id_alloyal==2675 || $this->business_id_alloyal==2908){
             $body = [
                 "name" => $d_send['name'],
                 "cpf" => str_replace(['.','-'], '', $d_send['cpf']),
