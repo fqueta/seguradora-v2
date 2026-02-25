@@ -329,24 +329,3 @@ Route::name('api.')->prefix('v1')->middleware([
     Route::any('webhook/{endp1}', [WebhookController::class, 'handleSingleEndpoint'])->name('webhook.single');
     Route::any('webhook/{endp1}/{endp2}', [WebhookController::class, 'handleDoubleEndpoint'])->name('webhook.double');
 });
-
-// Rota de teste sem middleware de tenancy
-Route::post('/v1/teste-json-simple', function(\Illuminate\Http\Request $request) {
-    \Log::info('Teste JSON Simple - request->all():', $request->all());
-    \Log::info('Teste JSON Simple - request->json()->all():', $request->json()->all() ?? []);
-    \Log::info('Teste JSON Simple - request->getContent():', [$request->getContent()]);
-    \Log::info('Teste JSON Simple - Content-Type:', [$request->header('Content-Type')]);
-
-    // Tratar codificação UTF-8
-    $rawContent = $request->getContent();
-    $cleanContent = mb_convert_encoding($rawContent, 'UTF-8', 'UTF-8');
-
-    return response()->json([
-        'request_all' => $request->all(),
-        'request_json' => $request->json()->all() ?? [],
-        'raw_content' => $cleanContent,
-        'content_type' => $request->header('Content-Type'),
-        'encoding_fixed' => true
-    ]);
-});
-Route::post('/v1/sulamerica/teste', [SulAmericaController::class,'testeConexao'])->name('sulamerica.teste');

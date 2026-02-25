@@ -480,6 +480,9 @@ export default function ContractView() {
                     const message = lsxData.message || '-';
                     const remoteStatus = (() => {
                         try {
+                            // Se o count for explicitamente 0, o paciente não foi encontrado/está inativo
+                            if (lsxData?.data?.count === 0) return 'NOT_FOUND';
+
                             const r = lsxData?.data?.results?.[0]?.status || lsxData?.data?.patient?.status;
                             if (typeof r === 'string') return r.toUpperCase();
                             // Fallback se não houver status explícito mas for sucesso de criação ou mensagem indica atividade
@@ -552,18 +555,19 @@ export default function ContractView() {
                                             <Label htmlFor="lsx-status-toggle" className="text-sm font-semibold text-teal-900">
                                                 Status na LSX Medical
                                             </Label>
-                                            <p className={`text-xs ${remoteStatus === 'INACTIVE' ? 'text-destructive font-medium' : 'text-teal-600'}`}>
+                                            <p className={`text-xs ${(remoteStatus === 'INACTIVE' || remoteStatus === 'NOT_FOUND') ? 'text-destructive font-medium' : 'text-teal-600'}`}>
                                                 {remoteStatus === 'ACTIVE' ? 'Paciente está ativo' : (remoteStatus === 'INACTIVE' ? 'Paciente está inativado' : 'Paciente está inativo')}
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Badge
-                                                variant={(remoteStatus === 'INACTIVE' || (!isSuccess && !remoteStatus)) ? "destructive" : "default"}
-                                                className={(remoteStatus === 'ACTIVE' || (isSuccess && remoteStatus !== 'INACTIVE')) ? "bg-teal-600 hover:bg-teal-700 h-6" : "h-6"}
+                                                variant={(remoteStatus === 'INACTIVE' || remoteStatus === 'NOT_FOUND' || (!isSuccess && !remoteStatus)) ? "destructive" : "default"}
+                                                className={(remoteStatus === 'ACTIVE' || (isSuccess && remoteStatus !== 'INACTIVE' && remoteStatus !== 'NOT_FOUND')) ? "bg-teal-600 hover:bg-teal-700 h-6" : "h-6"}
                                             >
                                                 {(() => {
                                                     if (remoteStatus === 'ACTIVE') return 'Ativo';
                                                     if (remoteStatus === 'INACTIVE') return 'Inativado';
+                                                    if (remoteStatus === 'NOT_FOUND') return 'Inativo';
                                                     return remoteStatus || (isSuccess ? 'Sucesso' : 'Falha');
                                                 })()}
                                             </Badge>
@@ -616,9 +620,11 @@ export default function ContractView() {
                                     <div className="space-y-2">
                                         <label className="text-sm font-medium text-muted-foreground">Mensagem de Retorno</label>
                                         <div className="font-medium text-sm p-2 bg-muted rounded border flex items-center gap-2">
-                                            {isSuccess ? 
+                                            {(isSuccess && remoteStatus !== 'NOT_FOUND') ? 
                                                 <Badge className="bg-teal-600 h-5 px-1.5 pointer-events-none">Sucesso</Badge> : 
-                                                <Badge variant="destructive" className="h-5 px-1.5 pointer-events-none">Algo aconteceu</Badge>
+                                                <Badge variant="destructive" className="h-5 px-1.5 pointer-events-none">
+                                                    {remoteStatus === 'NOT_FOUND' ? 'Inativo' : 'Algo aconteceu'}
+                                                </Badge>
                                             }
                                             {message}
                                         </div>
@@ -679,17 +685,24 @@ export default function ContractView() {
                             <DialogTitle>Resultado da Integração LSX</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-3">
-                            <div>
-                                <pre className="p-2 bg-slate-950 text-slate-50 rounded text-xs overflow-x-auto max-h-80">
-                                    {(() => {
-                                        try {
-                                            return JSON.stringify(lsxQueryResult, null, 2);
-                                        } catch {
-                                            return String(lsxQueryResult ?? '');
-                                        }
-                                    })()}
-                                </pre>
-                            </div>
+                            {lsxQueryResult?.exec && lsxQueryResult?.data?.count === 0 && (
+                                <div className="p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-md text-sm font-medium">
+                                    {lsxQueryResult.message} não foi encontrado na LSX
+                                </div>
+                            )}
+                            {user?.permission_id == '1' && (
+                                <div>
+                                    <pre className="p-2 bg-slate-950 text-slate-50 rounded text-xs overflow-x-auto max-h-80">
+                                        {(() => {
+                                            try {
+                                                return JSON.stringify(lsxQueryResult, null, 2);
+                                            } catch {
+                                                return String(lsxQueryResult ?? '');
+                                            }
+                                        })()}
+                                    </pre>
+                                </div>
+                            )}
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setLsxModalOpen(false)}>

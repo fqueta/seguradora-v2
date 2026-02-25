@@ -41,7 +41,6 @@ use App\Http\Controllers\api\CursoController;
 use App\Http\Controllers\TurmaController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\MenuController;
-use App\Http\Controllers\TesteController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
@@ -73,7 +72,6 @@ Route::middleware([
     // Route::get('/', function () {
     //     return Inertia::render('welcome');
     // })->name('home');
-    Route::get('/teste', [ TesteController::class,'index'])->name('teste.index');
     // // Route::get('/', function () {
     //     //     return 'This is your multi-tenant application. The id of the current tenant is ' . tenant('id');
     //     // });
