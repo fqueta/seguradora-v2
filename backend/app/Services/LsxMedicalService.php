@@ -147,7 +147,6 @@ class LsxMedicalService
         }
 
         $payload = $this->buildPayload($client, $extraData);
-// dd($payload);
         // Garantir campos extras obrigatórios com padrões se não enviados
         if (!isset($payload['extra_fields']['tipo'])) {
             $payload['extra_fields']['tipo'] = 'TITULAR';
