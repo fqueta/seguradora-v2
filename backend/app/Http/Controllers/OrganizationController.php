@@ -45,6 +45,15 @@ class OrganizationController extends Controller
             'address' => 'nullable|string|max:255',
             'active' => 'boolean',
             'config' => 'nullable|array',
+            'config.cep' => 'required|string',
+            'config.numero' => 'required|string',
+            'config.endereco' => 'nullable|string',
+            'config.complemento' => 'nullable|string',
+            'config.bairro' => 'nullable|string',
+            'config.cidade' => 'nullable|string',
+            'config.uf' => 'nullable|string',
+            'config.allowed_products' => 'nullable|array',
+            'config.alloyal_business_id' => 'nullable|string',
         ]);
 
         $organization = Organization::create($validated);
@@ -76,6 +85,15 @@ class OrganizationController extends Controller
             'address' => 'nullable|string|max:255',
             'active' => 'boolean',
             'config' => 'nullable|array',
+            'config.cep' => 'required|string',
+            'config.numero' => 'required|string',
+            'config.endereco' => 'nullable|string',
+            'config.complemento' => 'nullable|string',
+            'config.bairro' => 'nullable|string',
+            'config.cidade' => 'nullable|string',
+            'config.uf' => 'nullable|string',
+            'config.allowed_products' => 'nullable|array',
+            'config.alloyal_business_id' => 'nullable|string',
         ]);
 
         $organization->update($validated);

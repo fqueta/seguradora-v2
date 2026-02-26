@@ -39,9 +39,9 @@ const quickClientSchema = z.object({
     .refine((val) => val !== "", { message: "Sexo é obrigatório" }),
   notes: z.string().optional(),
   config: z.object({
-    cep: z.string().optional(),
+    cep: z.string().min(9, "CEP incompleto"),
     endereco: z.string().optional(),
-    numero: z.string().optional(),
+    numero: z.string().min(1, "Número é obrigatório"),
     complemento: z.string().optional(),
     bairro: z.string().optional(),
     cidade: z.string().optional(),
@@ -410,7 +410,7 @@ export default function QuickClientForm({
                 name="config.cep"
                 render={() => (
                   <FormItem>
-                    <FormLabel>CEP</FormLabel>
+                    <FormLabel>CEP *</FormLabel>
                     <FormControl>
                       <Controller
                         name="config.cep"

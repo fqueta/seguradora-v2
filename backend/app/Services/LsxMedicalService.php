@@ -125,7 +125,7 @@ class LsxMedicalService
             'plan_adherence_date' => $planAdherenceDate,
             'plan_expiry_date' => $planExpiryDate,
             'extra_fields' => $extraFields,
-            'tags' => $tags,
+            // 'tags' => $tags,
             'address' => [
                 'zip_code' => $extraData['zip_code'] ?? $config['cep'] ?? $extraData['cep'] ?? null,
                 'street' => $extraData['street'] ?? $config['endereco'] ?? $extraData['endereco'] ?? null,
@@ -147,7 +147,7 @@ class LsxMedicalService
         }
 
         $payload = $this->buildPayload($client, $extraData);
-
+// dd($payload);
         // Garantir campos extras obrigatórios com padrões se não enviados
         if (!isset($payload['extra_fields']['tipo'])) {
             $payload['extra_fields']['tipo'] = 'TITULAR';

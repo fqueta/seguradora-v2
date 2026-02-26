@@ -871,7 +871,7 @@ export function ClientForm({
                   <MaskedInputField 
                     name="config.cep"
                     control={form.control}
-                    label="CEP"
+                    label="CEP *"
                     mask="ddddd-ddd"
                     placeholder="00000-000"
                     onBlur={(e) => handleCepBlur(e.target.value)}
@@ -914,7 +914,7 @@ export function ClientForm({
                   name="config.numero"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-medium text-gray-700">Número</FormLabel>
+                      <FormLabel className="text-sm font-medium text-gray-700">Número *</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="123" 

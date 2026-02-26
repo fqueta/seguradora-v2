@@ -30,16 +30,16 @@ const organizationSchema = z.object({
     phone: z.string().optional().nullable(),
     active: z.boolean().default(true),
     config: z.object({
-        cep: z.string().optional().nullable(),
+        cep: z.string().min(9, "CEP incompleto"),
         endereco: z.string().optional().nullable(),
-        numero: z.string().optional().nullable(),
+        numero: z.string().min(1, "Número é obrigatório"),
         complemento: z.string().optional().nullable(),
         bairro: z.string().optional().nullable(),
         cidade: z.string().optional().nullable(),
         uf: z.string().optional().nullable(),
         allowed_products: z.array(z.string()).optional().default([]),
         alloyal_business_id: z.string().optional().nullable(),
-    }).optional(),
+    }),
 });
 
 type OrganizationFormData = z.infer<typeof organizationSchema>;

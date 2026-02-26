@@ -470,6 +470,17 @@ class ClientController extends Controller
             'genero'        => ['required', Rule::in(['ni','m','f'])],
             'autor'         => ['nullable','string','exists:users,id'],
             'config'        => 'array',
+            'config.cep'    => 'required|string',
+            'config.numero' => 'required|string',
+            'config.nascimento' => 'nullable|string',
+            'config.escolaridade' => 'nullable|string',
+            'config.profissao' => 'nullable|string',
+            'config.endereco' => 'nullable|string',
+            'config.complemento' => 'nullable|string',
+            'config.bairro' => 'nullable|string',
+            'config.cidade' => 'nullable|string',
+            'config.uf' => 'nullable|string',
+            'config.observacoes' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -673,7 +684,18 @@ class ClientController extends Controller
             'genero'        => ['sometimes', Rule::in(['ni','m','f'])],
             'verificado'    => ['sometimes', Rule::in(['n','s'])],
             'autor'         => ['sometimes','string','exists:users,id'],
-            'config'        => 'array'
+            'config'        => 'array',
+            'config.cep'    => 'required|string',
+            'config.numero' => 'required|string',
+            'config.nascimento' => 'nullable|string',
+            'config.escolaridade' => 'nullable|string',
+            'config.profissao' => 'nullable|string',
+            'config.endereco' => 'nullable|string',
+            'config.complemento' => 'nullable|string',
+            'config.bairro' => 'nullable|string',
+            'config.cidade' => 'nullable|string',
+            'config.uf' => 'nullable|string',
+            'config.observacoes' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {

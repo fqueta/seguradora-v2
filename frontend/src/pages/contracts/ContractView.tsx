@@ -3,7 +3,7 @@ import { useContract, useCancelContract } from '@/hooks/contracts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, FileText, User, Calendar, DollarSign, Package, XCircle, Search, Printer } from 'lucide-react';
+import { ArrowLeft, Edit, FileText, User, Calendar, DollarSign, Package, XCircle, Search, Printer, RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useMemo } from 'react';
@@ -542,8 +542,8 @@ export default function ContractView() {
                                             }
                                         }}
                                     >
-                                        <Search className="mr-2 h-4 w-4" />
-                                        Atualizar
+                                        <RefreshCw className="mr-2 h-4 w-4" />
+                                        Sincronizar
                                     </Button>
                                 </div>
                                 )}

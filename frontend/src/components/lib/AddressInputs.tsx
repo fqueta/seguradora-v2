@@ -80,7 +80,7 @@ export function AddressInputs({form, showCep = true, children}: AddressInputsPro
           name="config.cep"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>CEP {isLoadingCep && "(Buscando...)"}</FormLabel>
+              <FormLabel>CEP * {isLoadingCep && "(Buscando...)"}</FormLabel>
               <FormControl>
                 <InputMask
                   mask="ddddd-ddd"
@@ -121,7 +121,7 @@ export function AddressInputs({form, showCep = true, children}: AddressInputsPro
         name="config.numero"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Número</FormLabel>
+            <FormLabel>Número *</FormLabel>
             <FormControl>
               <Input 
                 placeholder="Número" 

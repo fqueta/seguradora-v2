@@ -164,11 +164,9 @@ const clientSchema = z.object({
     escolaridade: z.string().nullable().optional(),
     profissao: z.string().nullable().optional(),
     tipo_pj: z.string().nullable().optional(),
-    cep: z.string().nullable().optional().refine((val) => {
-      return isValidCEP(val || "");
-    }, "CEP deve ter 8 dígitos"),
+    cep: z.string().min(9, "CEP deve ter 8 dígitos"),
     endereco: z.string().nullable().optional(),
-    numero: z.string().nullable().optional(),
+    numero: z.string().min(1, "Número é obrigatório"),
     complemento: z.string().nullable().optional(),
     bairro: z.string().nullable().optional(),
     cidade: z.string().nullable().optional().refine((val) => {
