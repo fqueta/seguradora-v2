@@ -341,8 +341,8 @@ const ClientsContractsImport: React.FC = () => {
                     </div>
                   </th>
                   <th className="px-3 py-2 text-left">#</th>
-                  {preview.headers.map((h) => (
-                    <th key={h} className="px-3 py-2 text-left">{h}</th>
+                  {preview.headers.map((h, i) => (
+                    <th key={`${h}-${i}`} className="px-3 py-2 text-left">{h}</th>
                   ))}
                   <th className="px-3 py-2 text-left">CPF válido</th>
                   <th className="px-3 py-2 text-left">Cliente existe</th>
@@ -371,8 +371,8 @@ const ClientsContractsImport: React.FC = () => {
                       />
                     </td>
                     <td className="px-3 py-2">{r.index}</td>
-                    {preview.headers.map((h) => (
-                      <td key={h} className="px-3 py-2">{String(r.row[h] ?? "")}</td>
+                    {preview.headers.map((h, i) => (
+                      <td key={`${h}-${i}`} className="px-3 py-2">{String(r.row[h] ?? "")}</td>
                     ))}
                     <td className="px-3 py-2">{r.validations.cpf_valid ? "Sim" : "Não"}</td>
                     <td className="px-3 py-2">{r.validations.client_exists ? "Sim" : "Não"}</td>

@@ -28,8 +28,17 @@ class ExcelImportService
 
         // Cabeçalhos na primeira linha
         $headers = [];
+        $headerCounts = [];
         for ($col = 1; $col <= $highestColumnIndex; $col++) {
-            $headers[] = $this->normalizeHeader((string) $sheet->getCellByColumnAndRow($col, 1)->getValue());
+            $rawHeader = (string) $sheet->getCellByColumnAndRow($col, 1)->getValue();
+            $normalized = $this->normalizeHeader($rawHeader);
+            if (isset($headerCounts[$normalized])) {
+                $headerCounts[$normalized]++;
+                $normalized .= '_' . $headerCounts[$normalized];
+            } else {
+                $headerCounts[$normalized] = 1;
+            }
+            $headers[] = $normalized;
         }
 
         $rows = [];
@@ -49,7 +58,8 @@ class ExcelImportService
                         // fallback para string
                     }
                 }
-                $assoc[$headerKey] = is_scalar($value) ? (string) $value : ($value ?? '');
+                // Cast para string para lidar com objetos RichText
+                $assoc[$headerKey] = $value !== null ? (string)$value : '';
             }
             // Ignorar linhas completamente vazias
             if ($this->isEmptyRow($assoc)) {
@@ -58,9 +68,36 @@ class ExcelImportService
             $rows[] = $assoc;
         }
 
+        // Identificar colunas vazias em todas as linhas
+        $emptyColumns = array_fill_keys($headers, true);
+        foreach ($rows as $row) {
+            foreach ($row as $key => $val) {
+                if (trim((string)$val) !== '') {
+                    $emptyColumns[$key] = false;
+                }
+            }
+        }
+
+        // Filtrar headers e rows removendo colunas vazias
+        $filteredHeaders = [];
+        foreach ($headers as $h) {
+            if (!($emptyColumns[$h] ?? false)) {
+                $filteredHeaders[] = $h;
+            }
+        }
+
+        $filteredRows = [];
+        foreach ($rows as $row) {
+            $filteredRow = [];
+            foreach ($filteredHeaders as $h) {
+                $filteredRow[$h] = $row[$h] ?? '';
+            }
+            $filteredRows[] = $filteredRow;
+        }
+
         return [
-            'headers' => $headers,
-            'rows' => $rows,
+            'headers' => $filteredHeaders,
+            'rows' => $filteredRows,
         ];
     }
 
@@ -87,6 +124,7 @@ class ExcelImportService
             'email' => 'email',
             'celular' => 'celular',
             'telefone' => 'celular',
+            'whatsapp' => 'whatsapp',
             'nascimento' => 'nascimento',
             'data de nascimento' => 'nascimento',
             'birth_date' => 'nascimento',
@@ -104,6 +142,8 @@ class ExcelImportService
             'insurance_plan_code' => 'insurance_plan_code',
             'plan_adherence_date' => 'plan_adherence_date',
             'plan_expiry_date' => 'plan_expiry_date',
+            'expiração' => 'data_de_expiracao',
+            'data de expiração' => 'data_de_expiracao',
             'sobrenome' => 'sobrenome',
             'status de cadastro' => 'status_cadastro',
             'subdomínio da clínica' => 'subdominio',

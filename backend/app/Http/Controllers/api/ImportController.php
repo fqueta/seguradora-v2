@@ -70,9 +70,9 @@ class ImportController extends Controller
             'file_path' => $path,
             'headers' => $parsed['headers'],
             'required_fields' => [
-                'name', 'cpf', 'email', 'celular', 'nascimento', 'genero',
-                'cep', 'endereco', 'numero', 'bairro', 'cidade', 'uf',
-                'codigo_do_plano', 'data_de_inicio_do_plano', 'data_de_expiracao'
+                'name', 'cpf', 'email', 'celular', 'nascimento', 'genero','CPF','nome','sobrenome',
+                'cep', 'endereco', 'numero', 'bairro', 'cidade', 'uf','complemento',
+                'codigo_do_plano', 'data_de_inicio_do_plano', 'data_de_expiracao','organization_id'
             ],
             'rows_preview' => $parsed['rows'],
             'created_at' => now()->toDateTimeString(),
@@ -123,8 +123,10 @@ class ImportController extends Controller
         $supplier = $payload['supplier'];
 
         $resultRows = [];
+        // dd($rows);
         foreach ($rows as $i => $row) {
-            $cpf = isset($row['cpf']) ? preg_replace('/\D/', '', (string)$row['cpf']) : null;
+            $cpf = $row['cpf'] ?? $row['CPF'] ?? $row['document'] ?? null;
+            $cpf = preg_replace('/\D/', '', (string)$cpf);
             $nameFull = trim(((string)($row['name'] ?? '')) . ' ' . ((string)($row['sobrenome'] ?? '')));
             if ($nameFull === '') {
                 $nameFull = (string)($row['name'] ?? '');
@@ -281,7 +283,8 @@ class ImportController extends Controller
                 $results[] = ['index' => $idx, 'exec' => false, 'mens' => 'Linha não encontrada'];
                 continue;
             }
-            $cpf = isset($row['cpf']) ? preg_replace('/\D/', '', (string)$row['cpf']) : null;
+            $cpf = $row['cpf'] ?? $row['CPF'] ?? $row['document'] ?? null;
+            $cpf = preg_replace('/\D/', '', (string)$cpf);
             $email = isset($row['email']) ? trim((string)$row['email']) : null;
             $celular = isset($row['celular']) ? preg_replace('/\D/', '', (string)$row['celular']) : null;
             $name = trim(((string)($row['name'] ?? '')) . ' ' . ((string)($row['sobrenome'] ?? '')));
