@@ -49,12 +49,16 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        // Validate CAPTCHA first
-        if (!$this->verifyCaptcha($request, 'login')) {
-            return response()->json([
-                'message' => 'Falha na verificação de segurança (CAPTCHA).',
-                'errors' => ['captcha_token' => ['Invalid or low-score CAPTCHA token']],
-            ], 422);
+        //verficar qual local está solicitando o login
+        $local = $request->input('local') ?? null;
+        if($local!='api'){
+            // Validate CAPTCHA first
+            if (!$this->verifyCaptcha($request, 'login')) {
+                return response()->json([
+                    'message' => 'Falha na verificação de segurança (CAPTCHA).',
+                    'errors' => ['captcha_token' => ['Invalid or low-score CAPTCHA token']],
+                ], 422);
+            }
         }
         $credentials = $request->only('email', 'password');
 
@@ -96,7 +100,11 @@ class AuthController extends Controller
 
         // Filtra o menu conforme as permissões do grupo
         // $filteredMenu = $this->filterMenuByPermissions($menu, $allowedPermissions);
-        $filteredMenu = (new MenuController)->getMenus($pid);
+        if($local!='api'){
+            $filteredMenu = (new MenuController)->getMenus($pid);
+        }else{
+            $filteredMenu = [];
+        }
         $token = $user->createToken('developer')->plainTextToken;
 
         UserEventLogger::log(
@@ -113,7 +121,8 @@ class AuthController extends Controller
             // 'permissions' => $allowedPermissions,
             'token' => $token,
             'menu' => $filteredMenu,
-            'redirect' => $group->redirect_login ?? '/home',
+            'organization' => $user->organization_id,
+            // 'redirect' => $group->redirect_login ?? '/home',
         ]);
     }
 
@@ -316,7 +325,7 @@ class AuthController extends Controller
         }
 
         $token = (string) $request->input('captcha_token', '');
-        
+
         $secret = config('services.recaptcha.secret');
         $verifyUrl = config('services.recaptcha.verify_url', 'https://www.google.com/recaptcha/api/siteverify');
         $minScore = (float) config('services.recaptcha.min_score', 0.5);

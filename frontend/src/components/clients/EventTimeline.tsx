@@ -17,6 +17,21 @@ export const EventTimeline: React.FC<EventTimelineProps> = ({ events = [] }) => 
   // Detalhes técnicos apenas para Super Admin (permission_id = 1)
   const canSeeTechnicalDetails = Number(user?.permission_id) === 1;
 
+  const safeParse = (val: any) => {
+    if (val == null) return val;
+    if (typeof val === 'string') {
+      try {
+        const trimmed = val.trim();
+        if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+          return JSON.parse(trimmed);
+        }
+      } catch {
+        return val;
+      }
+    }
+    return val;
+  };
+
   const toggleExpand = (id: string | number) => {
     const newExpanded = new Set(expandedEvents);
     if (newExpanded.has(id)) {
@@ -137,27 +152,58 @@ export const EventTimeline: React.FC<EventTimelineProps> = ({ events = [] }) => 
                           
                           {isExpanded && (
                             <div className="mt-3 space-y-3">
-                              {event.from_data && (
+                              {(() => {
+                                const fromData = safeParse(event.from_data);
+                                const hasFrom = fromData !== null && fromData !== undefined && (typeof fromData === 'string' || (typeof fromData === 'object' && Object.keys(fromData).length > 0) || (Array.isArray(fromData) && fromData.length > 0));
+                                return hasFrom ? (
                                 <div className="space-y-1">
                                   <span className="text-[10px] uppercase font-bold text-muted-foreground">De:</span>
                                   <pre className="text-[11px] p-2 bg-slate-950 text-slate-50 rounded-md overflow-x-auto max-h-40 border border-slate-800">
-                                    {JSON.stringify(event.from_data, null, 2)}
+                                    {JSON.stringify(fromData, null, 2)}
                                   </pre>
                                 </div>
-                              )}
-                              {event.to_data && (
+                                ) : null;
+                              })()}
+                              {(() => {
+                                const toData = safeParse(event.to_data);
+                                const hasTo = toData !== null && toData !== undefined && (typeof toData === 'string' || (typeof toData === 'object' && Object.keys(toData).length > 0) || (Array.isArray(toData) && toData.length > 0));
+                                return hasTo ? (
                                 <div className="space-y-1">
                                   <span className="text-[10px] uppercase font-bold text-muted-foreground">Para:</span>
                                   <pre className="text-[11px] p-2 bg-slate-900 text-slate-50 rounded-md overflow-x-auto max-h-40 border border-slate-800">
-                                    {JSON.stringify(event.to_data, null, 2)}
+                                    {JSON.stringify(toData, null, 2)}
                                   </pre>
                                 </div>
-                              )}
-                              {!event.from_data && !event.to_data && (event.payload || event.metadata) && (
-                                <pre className="text-[11px] p-2 bg-slate-950 text-slate-50 rounded-md overflow-x-auto max-h-40 border border-slate-800">
-                                  {JSON.stringify(event.payload || event.metadata, null, 2)}
-                                </pre>
-                              )}
+                                ) : null;
+                              })()}
+                              {(() => {
+                                const payload = safeParse(event.payload);
+                                if (payload !== null && payload !== undefined && (typeof payload === 'string' || (typeof payload === 'object' && Object.keys(payload).length > 0))) {
+                                  return (
+                                    <div className="space-y-1">
+                                      <span className="text-[10px] uppercase font-bold text-muted-foreground">Payload:</span>
+                                      <pre className="text-[11px] p-2 bg-slate-950 text-slate-50 rounded-md overflow-x-auto max-h-40 border border-slate-800">
+                                        {JSON.stringify(payload, null, 2)}
+                                      </pre>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
+                              {(() => {
+                                const metadata = safeParse(event.metadata);
+                                if (metadata !== null && metadata !== undefined && (typeof metadata === 'string' || (typeof metadata === 'object' && Object.keys(metadata).length > 0))) {
+                                  return (
+                                    <div className="space-y-1">
+                                      <span className="text-[10px] uppercase font-bold text-muted-foreground">Metadados:</span>
+                                      <pre className="text-[11px] p-2 bg-slate-950 text-slate-50 rounded-md overflow-x-auto max-h-40 border border-slate-800">
+                                        {JSON.stringify(metadata, null, 2)}
+                                      </pre>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </div>
                           )}
                         </div>

@@ -549,7 +549,6 @@ export default function ClientView() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <User className="mr-2 h-5 w-5" />
-              <User className="mr-2 h-5 w-5" />
               Informações Básicas
             </CardTitle>
           </CardHeader>

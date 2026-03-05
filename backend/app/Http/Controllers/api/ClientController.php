@@ -181,6 +181,13 @@ class ClientController extends Controller
                     }
                 });
             }
+            // Ocultar detalhes sensíveis da integração Alloyal para usuários com permission_id > 2
+            try {
+                $authUser = auth()->user();
+                if ($authUser && intval($authUser->permission_id) > 2 && is_array($data['config'])) {
+                    unset($data['config']['integration_alloyal_update']);
+                }
+            } catch (\Throwable $e) {}
         }
 
         // Garantir estrutura de preferencias
@@ -580,7 +587,11 @@ class ClientController extends Controller
             return response()->json(['error' => 'Acesso negado'], 403);
         }
 
-        $client = Client::with(['events.author'])->findOrFail($id);
+        $clientQuery = Client::with(['events.author']);
+        if (intval($user->permission_id) >= 3) {
+            $clientQuery->where('organization_id', $user->organization_id);
+        }
+        $client = $clientQuery->where('id', $id)->firstOrFail();
 
         // Converter config para array (decodifica se vier como string JSON)
         if (is_string($client->config)) {
@@ -589,6 +600,13 @@ class ClientController extends Controller
         } elseif (!is_array($client->config)) {
             $client->config = [];
         }
+        // Ocultar detalhes sensíveis da integração Alloyal para usuários com permission_id > 2
+        try {
+            $authUser = auth()->user();
+            if ($authUser && intval($authUser->permission_id) > 2 && is_array($client->config)) {
+                unset($client->config['integration_alloyal_update']);
+            }
+        } catch (\Throwable $e) {}
 
         // Add autor_name manually
         if ($client->autor) {
@@ -1857,7 +1875,10 @@ class ClientController extends Controller
                     : "Falha na sincronização Alloyal: " . ($res['extraMsg'] ?? 'Erro desconhecido'),
                 [],
                 $retAlloyal,
-                ['source' => 'ClientController@processAlloyalIntegration']
+                [
+                    'source' => 'ClientController@processAlloyalIntegration',
+                ],
+                $payloadAlloyal
             );
         } catch (\Throwable $e) {
             $res['exec'] = false;
@@ -1869,7 +1890,8 @@ class ClientController extends Controller
                 "Erro crítico na integração Alloyal: " . $e->getMessage(),
                 [],
                 ['exception' => $e->getMessage(), 'trace' => $e->getTraceAsString()],
-                ['source' => 'ClientController@processAlloyalIntegration', 'type' => 'exception']
+                ['source' => 'ClientController@processAlloyalIntegration', 'type' => 'exception'],
+                isset($payloadAlloyal) ? $payloadAlloyal : []
             );
         }
 

@@ -262,7 +262,13 @@ class ContractController extends Controller
 
     public function show($id): JsonResponse
     {
-        $contract = Contract::with(['client', 'owner', 'events.user', 'product'])->find($id);
+        $query = Contract::with(['client', 'owner', 'events.user', 'product']);
+        $user = auth()->user();
+        if ($user && $user->permission_id > 2) {
+            $query->where('organization_id', $user->organization_id);
+        }
+        $contract = $query->find($id);
+
         if (!$contract) {
             return response()->json([
                 'exec' => false,
@@ -305,7 +311,12 @@ class ContractController extends Controller
 
     public function update(Request $request, $id): JsonResponse
     {
-        $contract = Contract::find($id);
+        $query = Contract::query();
+        $user = auth()->user();
+        if ($user && $user->permission_id > 2) {
+            $query->where('organization_id', $user->organization_id);
+        }
+        $contract = $query->find($id);
 
         if (!$contract) {
             return response()->json([
@@ -612,7 +623,12 @@ class ContractController extends Controller
      */
     public function destroy($id): JsonResponse
     {
-        $contract = Contract::find($id);
+        $query = Contract::query();
+        $user = auth()->user();
+        if ($user && $user->permission_id > 2) {
+            $query->where('organization_id', $user->organization_id);
+        }
+        $contract = $query->find($id);
 
         if (!$contract) {
             return response()->json([
@@ -644,7 +660,12 @@ class ContractController extends Controller
      */
     public function forceDelete($id): JsonResponse
     {
-        $contract = Contract::withTrashed()->find($id);
+        $query = Contract::withTrashed();
+        $user = auth()->user();
+        if ($user && $user->permission_id > 2) {
+            $query->where('organization_id', $user->organization_id);
+        }
+        $contract = $query->find($id);
 
         if (!$contract) {
             return response()->json([
@@ -668,7 +689,12 @@ class ContractController extends Controller
      */
     public function restore($id): JsonResponse
     {
-        $contract = Contract::withTrashed()->find($id);
+        $query = Contract::withTrashed();
+        $user = auth()->user();
+        if ($user && $user->permission_id > 2) {
+            $query->where('organization_id', $user->organization_id);
+        }
+        $contract = $query->find($id);
 
         if (!$contract) {
             return response()->json(['message' => 'Contrato não encontrado'], 404);
@@ -686,7 +712,12 @@ class ContractController extends Controller
 
     public function cancelarContrato(Request $request, $id)
     {
-        $contract = Contract::find($id);
+        $query = Contract::query();
+        $user = auth()->user();
+        if ($user && $user->permission_id > 2) {
+            $query->where('organization_id', $user->organization_id);
+        }
+        $contract = $query->find($id);
 
         if (!$contract) {
             return response()->json([

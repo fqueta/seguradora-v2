@@ -65,15 +65,16 @@ class AlloyalController extends Controller
                     if (isset($organization_data->config['alloyal_business_id'])) {
                         $this->business_id_alloyal = (string)$organization_data->config['alloyal_business_id'];
                     }else{
-                        $businessId = $this->findMetaValue($meta, ['bussness_id', 'business_id']);
-                        if ($businessId) {
-                            $this->business_id_alloyal = (string)$businessId;
-                        }
+                        // $businessId = $this->findMetaValue($meta, ['bussness_id', 'business_id']);
+                        // if ($businessId) {
+                        //     $this->business_id_alloyal = (string)$businessId;
+                        // }
+                        $this->business_id_alloyal = '';
                     }
                 }else{
                     $businessId = $this->findMetaValue($meta, ['bussness_id', 'business_id']);
                     if ($businessId) {
-                        $this->business_id_alloyal = (string)$businessId;
+                        $this->business_id_alloyal = '';
                     }
                 }
             }
@@ -253,15 +254,15 @@ class AlloyalController extends Controller
             }
         }
         //
-        if($this->business_id_alloyal==2675 || $this->business_id_alloyal==2908){
-            $body = [
-                "name" => $d_send['name'],
-                "cpf" => str_replace(['.','-'], '', $d_send['cpf']),
-                "email" => strtolower($d_send['email']),
-                "password" => $d_send['password'] ?? str_replace(['.','-'], '', $d_send['cpf']),
-            ];
-            $endpoint = $this->endpoint . '/users';
-        }else{
+        // if($this->business_id_alloyal==2675 || $this->business_id_alloyal==2908){
+        //     $body = [
+        //         "name" => $d_send['name'],
+        //         "cpf" => str_replace(['.','-'], '', $d_send['cpf']),
+        //         "email" => strtolower($d_send['email']),
+        //         "password" => $d_send['password'] ?? str_replace(['.','-'], '', $d_send['cpf']),
+        //     ];
+        //     $endpoint = $this->endpoint . '/users';
+        // }else{
             $body = [
                 "name" => $d_send['name'],
                 "cpf" => str_replace(['.','-'], '', $d_send['cpf']),
@@ -269,7 +270,7 @@ class AlloyalController extends Controller
                 // "password" => $d_send['password'] ?? str_replace(['.','-'], '', $d_send['cpf']),
             ];
             $endpoint = $this->endpoint . '/authorized_users';
-        }
+        // }
         $ret['exec'] = false;
         $ret['message'] = 'Erro ao criar usuário';
         try {
