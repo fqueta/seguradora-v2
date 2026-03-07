@@ -41,8 +41,16 @@ export function useDeleteContract(mutationOptions?: any) {
 
 export function useCancelContract(mutationOptions?: any) {
   const queryClient = useQueryClient();
-  return useMutation<any, Error, string | number>({
-    mutationFn: (id: string | number) => contractsService.cancelContract(id),
+  return useMutation<any, Error, any>({
+    mutationFn: (variables: any) => {
+        const id = typeof variables === 'object' ? variables.id : variables;
+        const payload = typeof variables === 'object' ? variables : {};
+        // Remove ID from payload to avoid sending it in body if unnecessary, though backend might ignore
+        if(typeof variables === 'object') {
+            delete payload.id;
+        }
+        return contractsService.cancelContract(id, payload);
+    },
     onSuccess: (data) => {
         if(data?.exec === false){
             toast.error(data?.mens || 'Erro ao cancelar contrato');

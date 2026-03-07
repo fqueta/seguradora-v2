@@ -727,13 +727,13 @@ class ContractController extends Controller
             ], 404);
         }
 
-        if ($contract->status !== 'approved') {
-            return response()->json([
-                'exec' => false,
-                'message' => 'Apenas contratos aprovados podem ser cancelados.',
-                'color' => 'danger'
-            ], 400);
-        }
+        // if ($contract->status !== 'approved') {
+        //     return response()->json([
+        //         'exec' => false,
+        //         'message' => 'Apenas contratos aprovados podem ser cancelados.',
+        //         'color' => 'danger'
+        //     ], 400);
+        // }
 
         //Verificar quem é o fornecedor do produto
         $supplier = Qlib::getSupplier($contract->product_id);
@@ -758,7 +758,7 @@ class ContractController extends Controller
             if(isset($metadata['exec']) && $metadata['exec'] == true && isset($metadata['data']['numOperacao'])){
                 $numeroOperacao = $metadata['data']['numOperacao']??null;
                 $canalVenda = $metadata['data']['canalVenda']??null;
-                $mesAnoFatura = $metadata['data']['mesAnoFatura']??null;
+                $mesAnoFatura = $request->input('mesAnoFatura') ?? $metadata['data']['mesAnoFatura'] ?? null;
                 $id_contrato = $contract->id;
 
                 $saController = new SulAmericaController();
@@ -768,12 +768,12 @@ class ContractController extends Controller
                     'mesAnoFatura' => $mesAnoFatura,
                     'id_contrato' => $id_contrato,
                 ];
-
                 $response = $saController->cancelamento($apiConfig);
                 $integrationResult = $response;
-
+                $message = isset($integrationResult['mens']) ? $integrationResult['mens'] : 'Cancelado com sucesso!';
+                // dd($integrationResult);
                 // Check if integration failed
-                if (!isset($response['exec']) || $response['exec'] !== true) {
+                if (!isset($integrationResult['exec']) || $integrationResult['exec'] !== true) {
                     $integrationSuccess = false;
                 }
             } else {
@@ -845,7 +845,7 @@ class ContractController extends Controller
                 'cancelled',
                 'Contrato cancelado com sucesso.',
                 ['integration_response' => $integrationResult],
-                null,
+                is_array($integrationResult) ? json_encode($integrationResult) : null,
                 auth()->id()
             );
 

@@ -217,9 +217,32 @@ class SulAmericaController extends Controller
     public function cancelamento($config){
         $numeroOperacao = isset($config['numeroOperacao']) ? $config['numeroOperacao'] : false;
         $canalVenda = isset($config['canalVenda']) ? $config['canalVenda'] : 'site';
-        $mesAnoFatura = isset($config['mesAnoFatura']) ? $config['mesAnoFatura'] : '032025';
+        $mesAnoFatura = isset($config['mesAnoFatura']) ? $config['mesAnoFatura'] : date('mY');
         $id_contrato = isset($config['id_contrato']) ? $config['id_contrato'] : '';
         $contract = $id_contrato ? \App\Models\Contract::find($id_contrato) : null;
+
+        $xml = '
+        <soapenv:Envelope
+            xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+            xmlns:urn="urn:br.com.sulamerica.canalvenda.ws"
+            xmlns:NS1="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+            <soapenv:Header>
+                <NS1:Security soapenv:mustUnderstand="1">
+                    <NS1:UsernameToken>
+                    <NS1:Username>'.$this->user.'</NS1:Username>
+                    <NS1:Password>'.$this->pass.'</NS1:Password>
+                    </NS1:UsernameToken>
+                </NS1:Security>
+            </soapenv:Header>
+            <soapenv:Body>
+                <urn:confirmarCancelamento>
+                    <urn:numeroOperacao>'.$numeroOperacao.'</urn:numeroOperacao>
+                    <urn:canalVenda>'.$canalVenda.'</urn:canalVenda>
+                    <urn:mesAnoFatura>'.$mesAnoFatura.'</urn:mesAnoFatura>
+                </urn:confirmarCancelamento>
+            </soapenv:Body>
+        </soapenv:Envelope>
+        ';
 
         // Log de início do processamento do cancelamento na integração
         if ($contract) {
@@ -228,7 +251,7 @@ class SulAmericaController extends Controller
                 'cancelamento_integracao',
                 'Início do processamento do cancelamento (SulAmérica)',
                 ['request' => $config],
-                null,
+                $xml,
                 auth()->id()
             );
         }
@@ -267,28 +290,6 @@ class SulAmericaController extends Controller
             }
             return $ret;
         }
-        $xml = '
-        <soapenv:Envelope
-            xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
-            xmlns:urn="urn:br.com.sulamerica.canalvenda.ws"
-            xmlns:NS1="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
-            <soapenv:Header>
-                <NS1:Security soapenv:mustUnderstand="1">
-                    <NS1:UsernameToken>
-                    <NS1:Username>'.$this->user.'</NS1:Username>
-                    <NS1:Password>'.$this->pass.'</NS1:Password>
-                    </NS1:UsernameToken>
-                </NS1:Security>
-            </soapenv:Header>
-            <soapenv:Body>
-                <urn:confirmarCancelamento>
-                    <urn:numeroOperacao>'.$numeroOperacao.'</urn:numeroOperacao>
-                    <urn:canalVenda>'.$canalVenda.'</urn:canalVenda>
-                    <urn:mesAnoFatura>'.$mesAnoFatura.'</urn:mesAnoFatura>
-                </urn:confirmarCancelamento>
-            </soapenv:Body>
-        </soapenv:Envelope>
-        ';
         $response = Http::withHeaders([
             'Content-Type' => 'application/xml',
             'Accept' => 'application/xml',
@@ -407,7 +408,10 @@ class SulAmericaController extends Controller
             if(isset($array['retorno']) && $array['retorno']=='0'){
                 $ret['exec'] = true;
                 $ret['data'] = $array;
-                $ret['mens'] = isset($array['retornoMsg']) ? $array['retornoMsg'] : 'Cancelado com sucesso!';
+                $ret['mens'] = isset($array['retornoMsg']) ? $array['retornoMsg'] : 'Cancelado com sucesso!!';
+                if(isset($array['dataOperacaoContrat'])){
+                    $ret['mens'] .= ' Data da operação: '.date('d/m/Y', strtotime($array['dataOperacaoContrat']));
+                }
                 $ret['color'] = 'success';
             }else{
                 $ret['mens'] = isset($array['retornoMsg']) ? $array['retornoMsg'] : 'Erro ao cancelar!';

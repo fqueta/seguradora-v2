@@ -59,9 +59,10 @@ class ContractsService extends BaseApiService {
   /**
    * Cancela um contrato (mudança de status para cancelled)
    * @param id ID do contrato
+   * @param payload Dados adicionais (opcional)
    */
-  async cancelContract(id: string | number): Promise<any> {
-    const response = await this.post<any>(`${this.endpoint}/${id}/cancel`, {});
+  async cancelContract(id: string | number, payload: any = {}): Promise<any> {
+    const response = await this.post<any>(`${this.endpoint}/${id}/cancel`, payload);
     return response;
   }
 

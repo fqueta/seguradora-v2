@@ -42,6 +42,15 @@ export default function ContractView() {
     const [showLsxJson, setShowLsxJson] = useState(false);
     const [lsxConfirmDialogOpen, setLsxConfirmDialogOpen] = useState(false);
     const [pendingLsxStatus, setPendingLsxStatus] = useState<boolean | null>(null);
+    const [showSulAmericaCancel, setShowSulAmericaCancel] = useState(false);
+    const [cancelMonth, setCancelMonth] = useState(() => {
+        const now = new Date();
+        return String(now.getMonth() + 1).padStart(2, '0');
+    });
+    const [cancelYear, setCancelYear] = useState(() => {
+        return String(new Date().getFullYear());
+    });
+
     /**
      * buildAuthHeaders
      * pt-BR: Monta headers com Authorization Bearer conforme BaseApiService.
@@ -76,9 +85,18 @@ export default function ContractView() {
     };
 
     const handleCancel = () => {
-        cancelContract(id as string, {
+        const payload: any = {};
+        if (showSulAmericaCancel) {
+            payload.mesAnoFatura = `${cancelMonth}${cancelYear}`;
+        }
+        
+        cancelContract({ id: id as string, ...payload }, {
             onSuccess: async () => {
-                try { await refetch(); } catch {}
+                try { 
+                    await refetch();
+                    setShowSulAmericaCancel(false);
+                    setIsCancelDialogOpen(false);
+                } catch {}
             }
         });
     };
@@ -150,7 +168,15 @@ export default function ContractView() {
      */
     const handleOpenCancel = () => {
         if (contract?.status === 'approved') {
-            setIsCancelDialogOpen(true);
+            const isSulAmerica = contract.product?.name?.toLowerCase().includes('sulamerica') || 
+                               contract.product?.post_title?.toLowerCase().includes('sulamerica') ||
+                               (contract as any)?.supplier_tag?.toLowerCase().includes('sulamerica');
+            
+            if (isSulAmerica) {
+                setShowSulAmericaCancel(true);
+            } else {
+                setIsCancelDialogOpen(true);
+            }
         }
     };
  
@@ -912,6 +938,54 @@ export default function ContractView() {
             </EditFooterBar>
             {/* Dialog de confirmação de cancelamento acionado pela barra de rodapé */}
             {contract.status === 'approved' && (
+                <>
+                {/* Dialog de confirmação de cancelamento SulAmérica com inputs */}
+                <AlertDialog open={showSulAmericaCancel} onOpenChange={setShowSulAmericaCancel}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Cancelar Contrato SulAmérica</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Informe o mês e ano da fatura para processar o cancelamento na integração.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        
+                        <div className="grid grid-cols-2 gap-4 py-4">
+                            <div className="space-y-2">
+                                <Label>Mês</Label>
+                                <select 
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    value={cancelMonth}
+                                    onChange={(e) => setCancelMonth(e.target.value)}
+                                >
+                                    {Array.from({ length: 12 }, (_, i) => {
+                                        const m = String(i + 1).padStart(2, '0').toString();
+                                        return <option key={m} value={m}>{m}</option>;
+                                    })}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Ano</Label>
+                                <input 
+                                    type="number"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    value={cancelYear}
+                                    onChange={(e) => setCancelYear(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Voltar</AlertDialogCancel>
+                            <AlertDialogAction 
+                                onClick={handleCancel}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                                Confirmar Cancelamento
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+
                 <AlertDialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
                     <AlertDialogContent>
                         <AlertDialogHeader>
@@ -932,6 +1006,7 @@ export default function ContractView() {
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
+                </>
             )}
         </div>
     );
