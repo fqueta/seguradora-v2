@@ -205,7 +205,8 @@ class ContractController extends Controller
                             $request->merge([
                                 'tags' => $organization->name ?? ''
                             ]);
-                            $retLsx = $this->lsxMedicalService->createPatient($clientFn, $request->all());
+                            // Passa o $contract para que o buildPayload herde o código do plano via product->config
+                            $retLsx = $this->lsxMedicalService->createPatient($clientFn, $request->all(), $contract);
 
                             Qlib::update_contract_meta($contract->id, 'integration_lsx_medical', json_encode($retLsx));
 
@@ -415,7 +416,8 @@ class ContractController extends Controller
                             $request->merge([
                                 'tags' => $organization->name ?? ''
                             ]);
-                            $retLsx = $this->lsxMedicalService->createPatient($clientFn, $request->all());
+                            // Passa o $contract para que o buildPayload herde o código do plano via product->config
+                            $retLsx = $this->lsxMedicalService->createPatient($clientFn, $request->all(), $contract);
                             Qlib::update_contract_meta($contract->id, 'integration_lsx_medical', json_encode($retLsx));
                             $mens = $retLsx['message'] ?? $retLsx['error'] ?? 'Contrato atualizado com sucesso.';
                             // dd($mens);

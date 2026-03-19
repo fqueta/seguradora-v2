@@ -49,6 +49,7 @@
         { "title": "Todas Categorias", "url": "/categories" },
         { "title": "Organizações", "url": "/settings/organizations" },
         { "title": "Integrações", "url": "/settings/integration" },
+        { "title": "Templates de E-mail", "url": "/settings/email-templates" },
         { "title": "Sistema", "url": "/settings/system"}
     ]
   }

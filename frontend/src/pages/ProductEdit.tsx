@@ -63,6 +63,7 @@ export default function ProductEdit() {
       availability: 'available',
       terms: [],
       validUntil: undefined,
+      slug_parceiro: '',
       supplier_id: undefined,
     },
   });
@@ -89,6 +90,7 @@ export default function ProductEdit() {
         terms: product.terms || [],
         validUntil: product.validUntil,
         plan: product.plan ? String(product.plan) as any : undefined,
+        slug_parceiro: product.slug_parceiro || '',
         supplier_id: product.supplier_id ? String(product.supplier_id) : undefined,
       });
     }
@@ -134,6 +136,7 @@ export default function ProductEdit() {
           availability: data.availability,
           terms: data.terms,
           validUntil: data.validUntil,
+          slug_parceiro: data.slug_parceiro,
           supplier_id: data.supplier_id,
         },
       });
@@ -178,6 +181,7 @@ export default function ProductEdit() {
     availability: data.availability,
     terms: data.terms,
     validUntil: data.validUntil,
+    slug_parceiro: data.slug_parceiro,
     supplier_id: data.supplier_id,
   });
   const handleSaveContinue = () => {

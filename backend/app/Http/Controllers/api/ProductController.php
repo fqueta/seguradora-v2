@@ -156,6 +156,7 @@ class ProductController extends Controller
             'reviews' => $product->config['reviews'] ?? 0,
             'terms' => $product->config['terms'] ?? [],
             'plan' => $product->config['plan'] ?? null,
+            'slug_parceiro' => $product->config['slug_parceiro'] ?? null,
             'supplier_id' => $supplierid,
             'supplierData' => $supplierData,
             //data no padrão banco de dados
@@ -179,6 +180,7 @@ class ProductController extends Controller
             'reviews' => 'nullable|integer|min:0',
             'terms' => 'nullable|array',
             'plan' => 'nullable|integer|min:1|max:9',
+            'slug_parceiro' => 'nullable|string|max:255',
             'supplier_id' => 'nullable|string|exists:users,id',
         ];
     }
@@ -281,6 +283,9 @@ class ProductController extends Controller
         if (isset($validated['plan'])) {
             $config['plan'] = (int)$validated['plan'];
         }
+        if (isset($validated['slug_parceiro'])) {
+            $config['slug_parceiro'] = $validated['slug_parceiro'];
+        }
         if (isset($validated['supplier_id'])) {
             $config['supplier_id'] = $validated['supplier_id'];
         }
@@ -375,6 +380,7 @@ class ProductController extends Controller
             'rating' => 'nullable|numeric|min:0|max:5',
             'reviews' => 'nullable|integer|min:0',
             'terms' => 'nullable|array',
+            'slug_parceiro' => 'nullable|string|max:255',
             'supplier_id' => 'nullable|string|exists:users,id',
         ]);
 
@@ -439,6 +445,9 @@ class ProductController extends Controller
         }
         if (isset($validated['plan'])) {
             $config['plan'] = (int)$validated['plan'];
+        }
+        if (isset($validated['slug_parceiro'])) {
+            $config['slug_parceiro'] = $validated['slug_parceiro'];
         }
         if (isset($validated['supplier_id'])) {
             $config['supplier_id'] = $validated['supplier_id'];

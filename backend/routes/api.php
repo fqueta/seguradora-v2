@@ -96,6 +96,8 @@ Route::name('api.')->prefix('v1')->middleware([
     // Envio de e-mail de boas-vindas (público)
     // EN: Public endpoint to send welcome email via Brevo channel
     Route::post('emails/welcome', [EmailController::class, 'sendWelcome'])->name('emails.welcome');
+    Route::get('email-templates/shortcodes/{context?}', [EmailController::class, 'getShortcodes'])->name('email-templates.shortcodes');
+    Route::post('email-templates/test', [EmailController::class, 'sendTest'])->name('email-templates.test');
 
 
 

@@ -9,6 +9,9 @@ use Illuminate\Http\Request;
 use App\Helpers\StringHelper;
 use Inertia\Inertia;
 
+use App\Models\Contract;
+use App\Observers\ContractObserver;
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -35,6 +38,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Contract::observe(ContractObserver::class);
+
         Inertia::share('nav', [
             ['label' => 'Dashboard', 'href' => '/dashboard'],
             ['label' => 'Usuários', 'href' => '/users'],

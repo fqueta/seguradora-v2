@@ -285,11 +285,13 @@ export function MediaLibraryModal({ open, onClose, onSelect, defaultFilters }: M
               <div className="col-span-full text-center text-sm text-muted-foreground">Nenhum item encontrado.</div>
             )}
             {!isLoading && items.map((item) => (
-              <button
+              <div
                 key={String(item.id)}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => onSelect(item)}
-                className="relative border rounded-md overflow-hidden hover:shadow focus:outline-none"
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(item); } }}
+                className="relative border rounded-md overflow-hidden hover:shadow focus:outline-none cursor-pointer"
                 title={item.title || item.file?.original || String(item.id)}
               >
                 {/* Botão excluir (overlay) */}
@@ -323,7 +325,7 @@ export function MediaLibraryModal({ open, onClose, onSelect, defaultFilters }: M
                   <div className="text-xs font-medium truncate">{item.title || item.file?.original || `#${item.id}`}</div>
                   <div className="text-[10px] text-muted-foreground truncate">{item.file?.mime || item.mime || 'arquivo'}</div>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
 

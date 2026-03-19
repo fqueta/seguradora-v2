@@ -497,11 +497,11 @@ export default function ClientView() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Situação</label>
-                  <p className="text-sm">
+                  <div className="text-sm">
                     <Badge variant={client.is_alloyal.active ? 'default' : 'destructive'}>
                       {client.is_alloyal.active ? 'Ativado' : 'Desativado'}
                     </Badge>
-                  </p>
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">ID da Empresa</label>

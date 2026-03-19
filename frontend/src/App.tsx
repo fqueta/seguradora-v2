@@ -60,6 +60,8 @@ import ApiCredentialEdit from "./pages/settings/ApiCredentialEdit";
 import Login from "./pages/auth/Login";
 import Metrics from "./pages/settings/Metrics";
 import AircraftsSettings from "./pages/settings/AircraftsSettings";
+import EmailTemplates from "./pages/settings/EmailTemplates";
+import EmailTemplateForm from "./pages/settings/EmailTemplateForm";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
@@ -671,6 +673,28 @@ const App = () => {
                     >
                       <ApiCredentialEdit />
                     </PermissionGuard>
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+
+              <Route path="/admin/settings/email-templates" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <EmailTemplates />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/settings/email-templates/create" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <EmailTemplateForm />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/settings/email-templates/:id/edit" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <EmailTemplateForm />
                   </AppLayout>
                 </AdminProtectedRoute>
               } />

@@ -23,6 +23,7 @@ export interface Product {
   salePrice?: number;
   active?: boolean; // Adicionado para consistência
   stock: number;
+  slug_parceiro?: string;
   supplier_id?: string;
   supplierData?: { name: string; [key: string]: any };
   supplier_name?: string; // For listing display
@@ -47,6 +48,7 @@ export interface CreateProductInput {
   availability: 'available' | 'limited' | 'unavailable';
   terms: string[];
   validUntil?: string;
+  slug_parceiro?: string;
   supplier_id?: string;
 }
 
@@ -69,6 +71,7 @@ export interface UpdateProductInput {
   availability?: 'available' | 'limited' | 'unavailable';
   terms?: string[];
   validUntil?: string;
+  slug_parceiro?: string;
   supplier_id?: string;
 }
 

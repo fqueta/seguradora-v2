@@ -70,7 +70,7 @@ class LsxMedicalService
      * Tenta extrair dados do cliente para o payload da LSX Medical.
      * Prioriza dados passados explicitamente em $extraData, depois tenta extrair de User e config.
      */
-    public function buildPayload(User $client, array $extraData = []): array
+    public function buildPayload(User $client, array $extraData = [], ?Contract $contract = null): array
     {
         // 1. Base data
         $name = $extraData['name'] ?? $client->name;
@@ -79,6 +79,21 @@ class LsxMedicalService
         $phone = preg_replace('/\D/', '', $extraData['celular'] ?? $client->celular ?? $extraData['phone'] ?? '');
         // 2. Extra fields from config or $extraData
         $config = is_array($client->config) ? $client->config : (json_decode($client->config ?? '[]', true) ?? []);
+
+        // 3. Código do plano herdado do produto vinculado ao contrato
+        //    Prioridade: $extraData explícito → product->config → client->config → fallback
+        $productConfig = [];
+        if ($contract === null && isset($extraData['contract']) && $extraData['contract'] instanceof Contract) {
+            $contract = $extraData['contract'];
+        }
+        if ($contract !== null) {
+            $product = $contract->product; // belongsTo Product via product_id
+            if ($product !== null) {
+                $productConfig = is_array($product->config)
+                    ? $product->config
+                    : (json_decode($product->config ?? '[]', true) ?? []);
+            }
+        }
 
         // Campos específicos
         $birthDate = $extraData['birth_date'] ?? $config['nascimento'] ?? $extraData['nascimento'] ?? null;
@@ -92,7 +107,26 @@ class LsxMedicalService
                 }
             }
         }
-        $beneficiaryPlanCode = $extraData['beneficiary_plan_code'] ?? $config['beneficiary_plan_code'] ?? $extraData['codigo_do_plano'] ?? $config['codigo_do_plano'] ?? $extraData['insurance_plan_code'] ?? $config['insurance_plan_code'] ?? 'PLAN0001';
+
+        // Código do plano: extraData > product->config > client->config > fallback
+        $beneficiaryPlanCode =
+            $extraData['beneficiary_plan_code']
+            ?? $extraData['codigo_do_plano']
+            ?? $extraData['insurance_plan_code']
+            ?? $extraData['slug_parceiro']
+            ?? $extraData['id_parceiro']
+            ?? $productConfig['beneficiary_plan_code']
+            ?? $productConfig['codigo_do_plano']
+            ?? $productConfig['insurance_plan_code']
+            ?? $productConfig['slug_parceiro']
+            ?? $productConfig['id_parceiro']
+            ?? $config['beneficiary_plan_code']
+            ?? $config['codigo_do_plano']
+            ?? $config['insurance_plan_code']
+            ?? $config['slug_parceiro']
+            ?? $config['id_parceiro']
+            ?? 'PLAN0001';
+
         $planAdherenceDate = $extraData['plan_adherence_date'] ?? $config['plan_adherence_date'] ?? $extraData['data_de_inicio_do_plano'] ?? $config['data_de_inicio_do_plano'] ?? date('Y-m-d');
         $planExpiryDate = $extraData['plan_expiry_date'] ?? $config['plan_expiry_date'] ?? $extraData['data_de_expiracao'] ?? $config['data_de_expiracao'] ?? date('Y-m-d', strtotime('+1 year'));
         $extraFields = $extraData['extra_fields'] ?? $config['lsx_extra_fields'] ?? [];
@@ -112,7 +146,7 @@ class LsxMedicalService
                 $gender = strtoupper(substr($genderRaw, 0, 1));
             }
         }
-        $tags = $extraData['tags'] ?? $config['tags'] ?? $extraData['tags'] ?? [];
+        $tags = $extraData['tags'] ?? $config['tags'] ?? [];
 
         return [
             'name' => (string)$name,
@@ -140,13 +174,13 @@ class LsxMedicalService
     /**
      * Cria um paciente na LSX Medical.
      */
-    public function createPatient(User $client, array $extraData = []): array
+    public function createPatient(User $client, array $extraData = [], ?Contract $contract = null): array
     {
         if (!$this->isIntegrationActive()) {
             return ['exec' => false, 'message' => 'Integração LSX Medical inativa'];
         }
 
-        $payload = $this->buildPayload($client, $extraData);
+        $payload = $this->buildPayload($client, $extraData, $contract);
         // Garantir campos extras obrigatórios com padrões se não enviados
         if (!isset($payload['extra_fields']['tipo'])) {
             $payload['extra_fields']['tipo'] = 'TITULAR';
@@ -196,13 +230,13 @@ class LsxMedicalService
     /**
      * Atualiza um paciente na LSX Medical pelo CPF.
      */
-    public function updatePatient(User $client, array $extraData = []): array
+    public function updatePatient(User $client, array $extraData = [], ?Contract $contract = null): array
     {
         if (!$this->isIntegrationActive()) {
             return ['exec' => false, 'message' => 'Integração LSX Medical inativa'];
         }
 
-        $payload = $this->buildPayload($client, $extraData);
+        $payload = $this->buildPayload($client, $extraData, $contract);
         // Validar campos obrigatórios mínimos
         if (empty($payload['cpf'])) {
              return ['exec' => false, 'message' => 'CPF obrigatório para atualização'];

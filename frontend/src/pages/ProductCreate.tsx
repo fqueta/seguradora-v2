@@ -61,6 +61,7 @@ export default function ProductCreate() {
       availability: 'available',
       terms: [],
       validUntil: undefined,
+      slug_parceiro: '',
       supplier_id: undefined,
     },
   });
@@ -86,6 +87,7 @@ export default function ProductCreate() {
         availability: data.availability,
         terms: data.terms,
         validUntil: data.validUntil,
+        slug_parceiro: data.slug_parceiro,
         supplier_id: data.supplier_id,
       });
       
@@ -128,6 +130,7 @@ export default function ProductCreate() {
     availability: data.availability,
     terms: data.terms,
     validUntil: data.validUntil,
+    slug_parceiro: data.slug_parceiro,
     supplier_id: data.supplier_id,
   });
   const handleSaveContinue = () => {

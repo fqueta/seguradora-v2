@@ -49,6 +49,22 @@ class SystemSettingsService extends BaseApiService {
     const response = await this.get<ApiResponse<AdvancedSystemSettings>>(endpoint || this.endpoint);
     return response.data;
   }
+
+  /**
+   * Obtém as configurações de branding públicas
+   */
+  async getPublicBranding(): Promise<any> {
+    const response = await this.get<ApiResponse<any>>('/options/public-branding');
+    return response.data;
+  }
+
+  /**
+   * Obtém as configurações de aparência públicas
+   */
+  async getPublicAppearance(): Promise<any> {
+    const response = await this.get<ApiResponse<any>>('/options/public-appearance');
+    return response.data;
+  }
 }
 
 // Instância singleton do serviço

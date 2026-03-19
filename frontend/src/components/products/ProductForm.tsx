@@ -45,6 +45,7 @@ const productSchema = z.object({
     required_error: "Disponibilidade é obrigatória",
   }),
   plan: z.enum(["1","2","3","4","5","6","7","8","9","10","11","12"]).optional(),
+  slug_parceiro: z.string().optional(),
   terms: z.array(z.string()).optional(),
   validUntil: z.string().optional(),
   supplier_id: z.string().optional(),
@@ -408,8 +409,25 @@ export function ProductForm({
             )}
           />
 
-
           <FormField
+            control={form.control}
+            name="slug_parceiro"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>ID/Slug do Plano no Parceiro</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="Ex: PLAN0001 ou slug-do-parceiro" 
+                    {...field} 
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+
+          {/* <FormField
             control={form.control}
             name="rating"
             render={({ field }) => (
@@ -429,7 +447,7 @@ export function ProductForm({
                 <FormMessage />
               </FormItem>
             )}
-          />
+          /> */}
 
           <FormField
             control={form.control}
