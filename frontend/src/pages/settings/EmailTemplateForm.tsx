@@ -240,7 +240,7 @@ export default function EmailTemplateForm() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-5 max-w-7xl">
+    <div className="container mx-auto py-6 space-y-5 max-w-7xl pb-24">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-primary/5 via-transparent to-transparent p-4 -mx-4 rounded-xl">
         <div className="flex items-center gap-3">
@@ -254,14 +254,6 @@ export default function EmailTemplateForm() {
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5">Configure o conteúdo, variáveis e anexos do e-mail.</p>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setIsTestDialogOpen(true)} className="gap-2">
-                <Send className="h-3.5 w-3.5" /> Enviar Teste
-            </Button>
-            <Button size="sm" onClick={handleSave} disabled={mutation.isPending} className="gap-2 shadow-sm">
-                <Save className="h-3.5 w-3.5" /> {isEdit ? 'Salvar' : 'Criar'}
-            </Button>
         </div>
       </div>
 
@@ -305,19 +297,21 @@ export default function EmailTemplateForm() {
                 </button>
               </div>
             </div>
-            <div className="md:col-span-2 flex items-end">
-              <div className="flex items-center gap-2 w-full px-3 py-2 bg-primary/5 border border-primary/10 rounded-md h-9">
-                <Switch 
-                  id="attach-pdf" 
-                  checked={attachPdf} 
-                  onCheckedChange={setAttachPdf}
-                  className="scale-90"
-                />
-                <label htmlFor="attach-pdf" className="text-[10px] font-semibold cursor-pointer select-none leading-tight">
-                  Anexar PDF
-                </label>
+            {canAttach && (
+              <div className="md:col-span-2 flex items-end">
+                <div className="flex items-center gap-2 w-full px-3 py-2 bg-primary/5 border border-primary/10 rounded-md h-9">
+                  <Switch 
+                    id="attach-pdf" 
+                    checked={attachPdf} 
+                    onCheckedChange={setAttachPdf}
+                    className="scale-90"
+                  />
+                  <label htmlFor="attach-pdf" className="text-[10px] font-semibold cursor-pointer select-none leading-tight">
+                    Anexar PDF
+                  </label>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -559,6 +553,51 @@ export default function EmailTemplateForm() {
         onSelect={handleMediaSelect}
         defaultFilters={{ mime: 'application/pdf' }}
       />
+
+      {/* Fixed bottom action bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 p-4 shadow-lg ring-1 ring-black/5">
+        <div className="container mx-auto max-w-7xl flex items-center justify-between gap-4">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/admin/settings/email-templates')}
+            className="text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Voltar para a lista</span>
+            <span className="sm:hidden text-xs">Voltar</span>
+          </Button>
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsTestDialogOpen(true)} 
+              className="gap-2 text-xs h-9 sm:h-10 px-4 transition-all hover:border-primary/40 hover:bg-primary/5"
+            >
+              <Send className="h-3.5 w-3.5 text-primary" /> 
+              <span className="hidden sm:inline">Enviar E-mail de Teste</span>
+              <span className="sm:hidden">Teste</span>
+            </Button>
+            
+            <Button 
+              onClick={handleSave} 
+              disabled={mutation.isPending} 
+              className="gap-2 min-w-[100px] h-9 sm:h-10 px-6 shadow-md transition-all active:scale-95"
+            >
+              {mutation.isPending ? (
+                <>
+                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></div>
+                  <span>Salvando...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" /> 
+                  <span>{isEdit ? 'Salvar Alterações' : 'Criar Template'}</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
