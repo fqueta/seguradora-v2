@@ -23,6 +23,7 @@ import {
 import { MediaLibraryModal } from '@/components/media/MediaLibraryModal';
 import type { FileStorageItem } from '@/services/fileStorageService';
 import { systemSettingsService } from '@/services/systemSettingsService';
+import { authService } from '@/services/authService';
 
 export default function EmailTemplateForm() {
   const navigate = useNavigate();
@@ -45,6 +46,9 @@ export default function EmailTemplateForm() {
     queryFn: () => emailTemplatesService.getById(id!),
     enabled: isEdit,
   });
+
+  const user = authService.getStoredUser();
+  const canAttach = user?.permission_id === '1' || Number(user?.permission_id) === 1;
 
   const { data: shortcodes } = useQuery({
     queryKey: ['settings', 'email-templates', 'shortcodes'],
@@ -346,74 +350,77 @@ export default function EmailTemplateForm() {
                 </Card>
 
                 {/* Seção de Anexo */}
-                <Card className="shadow-sm border-border/60">
-                    <CardHeader className="py-2.5 px-4 border-b bg-muted/30">
-                        <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                            <Paperclip className="h-3.5 w-3.5" /> Arquivo Anexo
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="py-3 px-4">
-                        {attachment ? (
-                            <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 border border-red-200/50 dark:border-red-800/30 rounded-lg">
-                                <div className="flex items-center justify-center h-11 w-11 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-lg shrink-0 shadow-sm">
-                                    <FileText className="h-5 w-5" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold truncate">{attachment.name}</p>
-                                    <p className="text-[10px] text-muted-foreground truncate font-mono">{attachment.path || 'Upload local'}</p>
-                                </div>
-                                {attachment.url && (
-                                    <a 
-                                        href={attachment.url} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-primary bg-background hover:bg-primary/10 border rounded-md transition-colors shrink-0 shadow-sm"
+                {canAttach && (
+                    <Card className="shadow-sm border-border/60">
+                        <CardHeader className="py-2.5 px-4 border-b bg-muted/30">
+                            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                                <Paperclip className="h-3.5 w-3.5" /> Arquivo Anexo
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="py-3 px-4">
+                            {attachment ? (
+                                <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 border border-red-200/50 dark:border-red-800/30 rounded-lg">
+                                    <div className="flex items-center justify-center h-11 w-11 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-lg shrink-0 shadow-sm">
+                                        <FileText className="h-5 w-5" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold truncate">{attachment.name}</p>
+                                        <p className="text-[10px] text-muted-foreground truncate font-mono">{attachment.path || 'Upload local'}</p>
+                                    </div>
+                                    {attachment.url && (
+                                        <a 
+                                            href={attachment.url} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-primary bg-background hover:bg-primary/10 border rounded-md transition-colors shrink-0 shadow-sm"
+                                        >
+                                            <ExternalLink className="h-3 w-3" />
+                                            Abrir
+                                        </a>
+                                    )}
+                                    <Button 
+                                        variant="ghost" size="icon" 
+                                        className="h-8 w-8 text-destructive hover:text-destructive/80 hover:bg-destructive/10 shrink-0"
+                                        onClick={() => { setAttachment(null); toast.info('Anexo removido.'); }}
                                     >
-                                        <ExternalLink className="h-3 w-3" />
-                                        Abrir
-                                    </a>
-                                )}
-                                <Button 
-                                    variant="ghost" size="icon" 
-                                    className="h-8 w-8 text-destructive hover:text-destructive/80 hover:bg-destructive/10 shrink-0"
-                                    onClick={() => { setAttachment(null); toast.info('Anexo removido.'); }}
-                                >
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-2 gap-3">
-                                <label className="flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all group">
-                                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                                        <Upload className="h-5 w-5 text-primary" />
-                                    </div>
-                                    <div className="text-center">
-                                        <span className="text-xs font-semibold text-foreground">Upload de PDF</span>
-                                        <p className="text-[10px] text-muted-foreground mt-0.5">Selecione do computador</p>
-                                    </div>
-                                    <input 
-                                        type="file" 
-                                        accept="application/pdf" 
-                                        className="hidden" 
-                                        onChange={handleFileUpload} 
-                                    />
-                                </label>
-                                <button 
-                                    onClick={() => setIsMediaLibOpen(true)}
-                                    className="flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all group"
-                                >
-                                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                                        <FileText className="h-5 w-5 text-primary" />
-                                    </div>
-                                    <div className="text-center">
-                                        <span className="text-xs font-semibold text-foreground">Biblioteca de Mídia</span>
-                                        <p className="text-[10px] text-muted-foreground mt-0.5">Selecione um arquivo existente</p>
-                                    </div>
-                                </button>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <label className="flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all group">
+                                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                                            <Upload className="h-5 w-5 text-primary" />
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-xs font-semibold text-foreground">Upload de PDF</span>
+                                            <p className="text-[10px] text-muted-foreground mt-0.5">Selecione do computador</p>
+                                        </div>
+                                        <input 
+                                            type="file" 
+                                            accept="application/pdf" 
+                                            className="hidden" 
+                                            onChange={handleFileUpload} 
+                                        />
+                                    </label>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setIsMediaLibOpen(true)}
+                                        className="flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all group"
+                                    >
+                                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                                            <FileText className="h-5 w-5 text-primary" />
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-xs font-semibold text-foreground">Biblioteca de Mídia</span>
+                                            <p className="text-[10px] text-muted-foreground mt-0.5">Selecione um arquivo existente</p>
+                                        </div>
+                                    </button>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
             </TabsContent>
 
             <TabsContent value="preview" className="mt-0">
