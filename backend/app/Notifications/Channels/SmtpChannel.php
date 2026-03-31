@@ -55,12 +55,13 @@ class SmtpChannel
                     ->subject($subject)
                     ->html($htmlContent);
                 
-                // Remetente dinâmico a partir do payload ou fallback das configurações
+                // Remetente corrigido para máxima compatibilidade com SPF/MX
                 $fromEmail = $payload['sender']['email'] ?? env('SMTP_CUSTOM_FROM_ADDRESS');
                 $fromName = $payload['sender']['name'] ?? env('SMTP_CUSTOM_FROM_NAME');
                 
                 if ($fromEmail) {
                     $message->from($fromEmail, $fromName);
+                    Log::debug('SmtpChannel: Remetente configurado', ['email' => $fromEmail, 'name' => $fromName]);
                 }
 
                 // Processa anexos
