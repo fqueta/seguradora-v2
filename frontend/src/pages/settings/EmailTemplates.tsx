@@ -21,6 +21,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Building2 } from 'lucide-react';
+
+const getSlugLabel = (slug: string) => {
+  const mapping: Record<string, string> = {
+    'contract_approved': 'Aprovação de Contrato',
+    'welcome_email': 'Boas-vindas',
+    'generic': 'Notificação Geral'
+  };
+  return mapping[slug] || slug;
+};
 
 export default function EmailTemplates() {
   const navigate = useNavigate();
@@ -203,7 +213,8 @@ export default function EmailTemplates() {
                 <TableHeader>
                   <TableRow className="bg-muted/30">
                     <TableHead className="font-semibold text-xs uppercase tracking-wider">Assunto</TableHead>
-                    <TableHead className="font-semibold text-xs uppercase tracking-wider">Slug</TableHead>
+                    <TableHead className="font-semibold text-xs uppercase tracking-wider">Tipo (Slug)</TableHead>
+                    <TableHead className="font-semibold text-xs uppercase tracking-wider">Organização</TableHead>
                     <TableHead className="font-semibold text-xs uppercase tracking-wider">Status</TableHead>
                     <TableHead className="font-semibold text-xs uppercase tracking-wider">Atualizado</TableHead>
                     <TableHead className="text-right font-semibold text-xs uppercase tracking-wider">Ações</TableHead>
@@ -241,9 +252,24 @@ export default function EmailTemplates() {
                       >
                         <TableCell className="font-medium text-sm">{item.post_title}</TableCell>
                         <TableCell>
-                          <code className="bg-muted px-1.5 py-0.5 rounded text-xs text-primary font-mono">
-                            {item.post_name}
-                          </code>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold">{getSlugLabel(item.post_name)}</span>
+                            <code className="text-[10px] text-muted-foreground font-mono">
+                              {item.post_name}
+                            </code>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {item.organization ? (
+                            <div className="flex items-center gap-1.5">
+                              <Building2 className="h-3.5 w-3.5 text-primary/60" />
+                              <span className="text-sm font-medium">{item.organization.name}</span>
+                            </div>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] bg-primary/5 text-primary/70 border-primary/20">
+                              🌎 Geral / Global
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Badge variant={item.post_status === 'publish' ? 'default' : 'secondary'} className="text-[10px]">
@@ -300,7 +326,8 @@ export default function EmailTemplates() {
                 <TableHeader>
                   <TableRow className="bg-muted/30">
                     <TableHead className="font-semibold text-xs uppercase tracking-wider">Assunto</TableHead>
-                    <TableHead className="font-semibold text-xs uppercase tracking-wider">Slug</TableHead>
+                    <TableHead className="font-semibold text-xs uppercase tracking-wider">Tipo (Slug)</TableHead>
+                    <TableHead className="font-semibold text-xs uppercase tracking-wider">Organização</TableHead>
                     <TableHead className="font-semibold text-xs uppercase tracking-wider">Status</TableHead>
                     <TableHead className="font-semibold text-xs uppercase tracking-wider">Excluído em</TableHead>
                     <TableHead className="text-right font-semibold text-xs uppercase tracking-wider">Ações</TableHead>
@@ -330,9 +357,17 @@ export default function EmailTemplates() {
                       <TableRow key={item.ID} className="group opacity-75 hover:opacity-100 transition-opacity">
                         <TableCell className="font-medium text-sm line-through decoration-muted-foreground/40">{item.post_title}</TableCell>
                         <TableCell>
-                          <code className="bg-muted px-1.5 py-0.5 rounded text-xs text-muted-foreground font-mono">
-                            {item.post_name}
-                          </code>
+                          <div className="flex flex-col opacity-70">
+                            <span className="text-sm font-semibold">{getSlugLabel(item.post_name)}</span>
+                            <code className="text-[10px] font-mono">
+                              {item.post_name}
+                            </code>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-xs text-muted-foreground">
+                            {item.organization?.name || 'Geral/Global'}
+                          </span>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-[10px] text-muted-foreground border-muted-foreground/30">

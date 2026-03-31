@@ -162,6 +162,7 @@ class EmailController extends Controller
             Log::info('EmailController: Resultado do anexo', [
                 'attached' => $attached,
                 'attachments_count' => count($attachments),
+                'config_attachment' => $config['attachment'] ?? 'not_provided'
             ]);
         }
 

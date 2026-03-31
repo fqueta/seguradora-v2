@@ -67,6 +67,10 @@ class PostController extends Controller
 
         $query = Post::query()->orderBy($order_by, $order);
 
+        if ($request->input('post_type') === 'email_template') {
+            $query->with('organization');
+        }
+
         // Não exibir registros marcados como deletados ou excluídos
         $query->where(function($q) {
             $q->whereNull('deletado')->orWhere('deletado', '!=', 's');
@@ -154,6 +158,7 @@ class PostController extends Controller
             'post_mime_type' => 'nullable|string|max:100',
             'comment_count' => 'nullable|integer',
             'config'        => 'array',
+            'organization_id' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -265,6 +270,7 @@ class PostController extends Controller
             'post_mime_type' => 'nullable|string|max:100',
             'comment_count' => 'nullable|integer',
             'config'        => 'array',
+            'organization_id' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -351,8 +357,13 @@ class PostController extends Controller
         $query = Post::withoutGlobalScope('notDeleted')
                     ->where(function($q) {
                         $q->where('deletado', 's')->orWhere('excluido', 's');
-                    })
-                    ->orderBy($order_by, $order);
+                    });
+
+        if ($request->input('post_type') === 'email_template') {
+            $query->with('organization');
+        }
+
+        $query->orderBy($order_by, $order);
 
         // Filtros opcionais
         if ($request->filled('post_title')) {

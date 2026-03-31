@@ -9,6 +9,8 @@ export interface EmailTemplate {
   post_status: 'publish' | 'draft';
   post_type: 'email_template';
   config?: any;
+  organization_id?: number | string | null;
+  organization?: { name: string };
   created_at?: string;
   updated_at?: string;
 }

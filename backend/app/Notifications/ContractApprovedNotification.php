@@ -31,7 +31,13 @@ class ContractApprovedNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return [BrevoChannel::class];
+        // pt-BR: Só envia se houver um template válido configurado no banco (global ou por organização)
+        $templateService = app(\App\Services\EmailTemplateService::class);
+        if (!$templateService->getTemplate('contract_approved', $this->contract->organization_id)) {
+            return [];
+        }
+
+        return [\App\Notifications\Channels\SmtpChannel::class];
     }
 
     /**
@@ -40,7 +46,13 @@ class ContractApprovedNotification extends Notification
     public function toBrevo(object $notifiable): array
     {
         $templateService = app(\App\Services\EmailTemplateService::class);
-        $template = $templateService->getTemplate('contract_approved');
+        $template = $templateService->getTemplate('contract_approved', $this->contract->organization_id);
+
+        // Se chegamos aqui, o template existe (devido à verificação no via()), 
+        // mas adicionamos uma proteção extra.
+        if (!$template) {
+            return [];
+        }
 
         $productName = $this->contract->product->post_title ?? $this->contract->product->name ?? 'Produto Yellow';
         $startDate = $this->contract->start_date ? $this->contract->start_date->format('d/m/Y') : 'Não informada';
@@ -60,49 +72,9 @@ class ContractApprovedNotification extends Notification
             'company_name' => Qlib::get_company_name() ?? 'Clube Yellow',
         ];
 
-        if ($template) {
-            $subject = $templateService->parse($template->post_title ?? "Seu contrato foi aprovado! - " . $productName, $data);
-            $htmlContent = $templateService->parse($template->post_content, $data);
-            $textContent = strip_tags($htmlContent);
-        } else {
-            // Fallback para conteúdo estático
-            $subject = "Seu contrato foi aprovado! - " . $productName;
-
-            $htmlContent = "
-                <div style='font-family: sans-serif; line-height: 1.6; color: #333;'>
-                    <h2 style='color: #2563eb;'>Olá, " . e($notifiable->name) . "!</h2>
-                    <p>Temos o prazer de informar que seu contrato foi <strong>aprovado</strong> com sucesso.</p>
-                    
-                    <div style='background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;'>
-                        <h3 style='margin-top: 0;'>Detalhes do seu contrato:</h3>
-                        <ul style='list-style: none; padding-left: 0;'>
-                            <li><strong>Produto:</strong> " . e($productName) . "</li>
-                            <li><strong>Número do Contrato:</strong> " . e($contractNumber) . "</li>
-                            <li><strong>Data de Início:</strong> " . e($startDate) . "</li>
-                            <li><strong>Vigência até:</strong> " . e($endDate) . "</li>
-                        </ul>
-                    </div>
-
-                    <p>Você já pode aproveitar todos os benefícios do seu plano.</p>
-                    
-                    <p>Se tiver qualquer dúvida, nossa equipe está à disposição para ajudar.</p>
-                    
-                    <p style='margin-top: 30px;'>Atenciosamente,<br><strong>Equipe Clube Yellow</strong></p>
-                    <hr style='border: 0; border-top: 1px solid #eee; margin: 20px 0;'>
-                    <p style='font-size: 12px; color: #666;'>Este é um e-mail automático, por favor não responda.</p>
-                </div>
-            ";
-
-            $textContent = "Olá, " . $notifiable->name . "!\n\n" .
-                "Seu contrato foi aprovado com sucesso.\n\n" .
-                "Detalhes do seu contrato:\n" .
-                "- Produto: " . $productName . "\n" .
-                "- Número do Contrato: " . $contractNumber . "\n" .
-                "- Data de Início: " . $startDate . "\n" .
-                "- Vigência até: " . $endDate . "\n\n" .
-                "Você já pode aproveitar todos os benefícios do seu plano.\n\n" .
-                "Atenciosamente,\nEquipe Clube Yellow";
-        }
+        $subject = $templateService->parse($template->post_title ?? "Seu contrato foi aprovado! - " . $productName, $data);
+        $htmlContent = $templateService->parse($template->post_content, $data);
+        $textContent = strip_tags($htmlContent);
 
         $attachments = [];
         $config = [];

@@ -24,6 +24,14 @@ import { MediaLibraryModal } from '@/components/media/MediaLibraryModal';
 import type { FileStorageItem } from '@/services/fileStorageService';
 import { systemSettingsService } from '@/services/systemSettingsService';
 import { authService } from '@/services/authService';
+import { organizationService } from '@/services/organizationService';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function EmailTemplateForm() {
   const navigate = useNavigate();
@@ -40,6 +48,7 @@ export default function EmailTemplateForm() {
   const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
   const [isMediaLibOpen, setIsMediaLibOpen] = useState(false);
   const [attachment, setAttachment] = useState<{ name: string; url: string; path?: string } | null>(null);
+  const [organizationId, setOrganizationId] = useState<string | null>('null'); // 'null' como string para o Select
 
   const { data: template, isLoading: isLoadingTemplate } = useQuery({
     queryKey: ['settings', 'email-templates', 'detail', id],
@@ -66,6 +75,11 @@ export default function EmailTemplateForm() {
     queryFn: () => systemSettingsService.getPublicAppearance(),
   });
 
+  const { data: organizations } = useQuery({
+    queryKey: ['organizations', 'list', 'all'],
+    queryFn: () => organizationService.list({ per_page: 100 }),
+  });
+
   useEffect(() => {
     if (template) {
       setTitle(template.post_title || '');
@@ -81,6 +95,7 @@ export default function EmailTemplateForm() {
         if (config.attachment) {
           setAttachment(config.attachment);
         }
+        setOrganizationId(template.organization_id ? String(template.organization_id) : 'null');
       } catch (e) {
         setAttachPdf(false);
       }
@@ -107,7 +122,7 @@ export default function EmailTemplateForm() {
   const testMutation = useMutation({
     mutationFn: () => emailTemplatesService.sendTest(testEmail, title, content, 'contract', {
       attach_pdf: attachPdf,
-      attachment: attachment || undefined,
+      attachment: (attachment && (attachment.path || attachment.url)) ? attachment : null,
     }),
     onSuccess: () => {
       toast.success('E-mail de teste enviado com sucesso!');
@@ -130,8 +145,9 @@ export default function EmailTemplateForm() {
       post_status: status,
       config: {
         attach_pdf: attachPdf,
-        attachment: attachment || undefined,
-      }
+        attachment: (attachment && (attachment.path || attachment.url)) ? attachment : null,
+      },
+      organization_id: organizationId === 'null' ? null : organizationId,
     });
   };
 
@@ -260,37 +276,28 @@ export default function EmailTemplateForm() {
       {/* Campos inline: Assunto + Slug + Status + Switch */}
       <Card className="shadow-sm border-border/60">
         <CardContent className="py-4">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-            <div className="md:col-span-5 space-y-1.5">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-x-5 gap-y-6 items-end">
+            {/* Primeira Linha */}
+            <div className="md:col-span-8 space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Assunto do E-mail</label>
               <Input 
                 value={title} 
                 onChange={(e) => setTitle(e.target.value)} 
                 placeholder="Ex: Seu contrato foi aprovado! 🎉" 
-                className="h-9 focus-visible:ring-primary"
-              />
-            </div>
-            <div className="md:col-span-3 space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Slug Interno</label>
-              <Input 
-                value={slug} 
-                onChange={(e) => setSlug(e.target.value)} 
-                placeholder="contract_approved" 
-                disabled={isEdit && slug === 'contract_approved'}
-                className="h-9 font-mono text-xs"
+                className="h-10 focus-visible:ring-primary shadow-sm"
               />
             </div>
             <div className="md:col-span-2 space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</label>
-              <div className="flex bg-muted p-0.5 rounded-md h-9">
+              <div className="flex bg-muted p-0.5 rounded-md h-10 border border-border/50">
                 <button 
-                  className={`flex-1 px-2 text-xs rounded-sm transition-all ${status === 'publish' ? 'bg-background shadow-sm font-semibold text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={`flex-1 px-2 text-[10px] uppercase font-bold rounded-sm transition-all ${status === 'publish' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                   onClick={() => setStatus('publish')}
                 >
                   Público
                 </button>
                 <button 
-                  className={`flex-1 px-2 text-xs rounded-sm transition-all ${status === 'draft' ? 'bg-background shadow-sm font-semibold text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={`flex-1 px-2 text-[10px] uppercase font-bold rounded-sm transition-all ${status === 'draft' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                   onClick={() => setStatus('draft')}
                 >
                   Rascunho
@@ -299,19 +306,53 @@ export default function EmailTemplateForm() {
             </div>
             {canAttach && (
               <div className="md:col-span-2 flex items-end">
-                <div className="flex items-center gap-2 w-full px-3 py-2 bg-primary/5 border border-primary/10 rounded-md h-9">
+                <div className="flex items-center gap-2 w-full px-3 py-2 bg-primary/5 border border-primary/10 rounded-md h-10 shadow-sm">
                   <Switch 
                     id="attach-pdf" 
                     checked={attachPdf} 
                     onCheckedChange={setAttachPdf}
                     className="scale-90"
                   />
-                  <label htmlFor="attach-pdf" className="text-[10px] font-semibold cursor-pointer select-none leading-tight">
-                    Anexar PDF
+                  <label htmlFor="attach-pdf" className="text-[10px] font-bold cursor-pointer select-none leading-tight text-primary/70">
+                    ANEXAR PDF
                   </label>
                 </div>
               </div>
             )}
+
+            {/* Segunda Linha: Slug e Organização dividindo o espaço igualmente */}
+            <div className="md:col-span-5 space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                Tipo de Notificação <Badge variant="outline" className="text-[8px] py-0 px-1 border-primary/20 text-primary/60">Sistema</Badge>
+              </label>
+              <Select value={slug} onValueChange={setSlug} disabled={isEdit && slug === 'contract_approved'}>
+                <SelectTrigger className="h-10 text-xs font-medium border-muted-foreground/20 bg-muted/10">
+                  <SelectValue placeholder="Selecione o tipo..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="contract_approved" className="font-semibold text-primary">📑 Aprovação de Contrato</SelectItem>
+                  <SelectItem value="welcome_email" className="font-medium">👋 Boas-vindas (Novo Usuário)</SelectItem>
+                  <SelectItem value="generic" className="font-medium italic">✉️ Notificação Geral</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-7 space-y-1.5">
+              <label className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                🏠 Vincular à Organização
+              </label>
+              <Select value={organizationId || 'null'} onValueChange={setOrganizationId}>
+                <SelectTrigger className="h-10 text-sm border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors">
+                  <SelectValue placeholder="Configuração Global" />
+                </SelectTrigger>
+                <SelectContent className="border-primary/20 shadow-xl">
+                  <SelectItem value="null" className="font-semibold text-primary">🌎 Geral / Global (Todos os clientes)</SelectItem>
+                  {organizations?.data?.map((org) => (
+                    <SelectItem key={org.id} value={String(org.id)} className="pl-8">🏢 {org.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground italic">Selecione uma organização para tornar este template exclusivo ou deixe Global para todos.</p>
+            </div>
           </div>
         </CardContent>
       </Card>

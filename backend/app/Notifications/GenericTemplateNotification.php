@@ -31,7 +31,7 @@ class GenericTemplateNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return [BrevoChannel::class];
+        return [\App\Notifications\Channels\SmtpChannel::class];
     }
 
     /**

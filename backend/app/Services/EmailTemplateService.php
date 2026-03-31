@@ -8,16 +8,37 @@ use Illuminate\Support\Facades\Log;
 class EmailTemplateService
 {
     /**
-     * Busca um template de e-mail pelo slug (post_name)
+     * Busca um template de e-mail pelo slug (post_name) e opcionalmente por organização
      *
      * @param string $slug
+     * @param int|string|null $organizationId
      * @return Post|null
      */
-    public function getTemplate(string $slug): ?Post
+    public function getTemplate(string $slug, $organizationId = null): ?Post
     {
+        // 1. Tenta buscar o template específico da organização (incluindo rascunhos para verificar existência)
+        if ($organizationId) {
+            $orgTemplate = Post::where('post_type', 'email_template')
+                ->where('post_name', $slug)
+                ->where('organization_id', $organizationId)
+                ->where('excluido', 'n')
+                ->first();
+
+            if ($orgTemplate) {
+                // Se existe template para a org e está publicado, retorna ele.
+                // Se existe mas não está publicado (rascunho), retorna null (bloqueia o envio).
+                return $orgTemplate->post_status === 'publish' ? $orgTemplate : null;
+            }
+        }
+
+        // 2. Se não achou nada para a organização (ou organizationId é null), busca o global
         return Post::where('post_type', 'email_template')
             ->where('post_name', $slug)
-            ->where('post_status', 'publish')
+            ->where(function ($q) {
+                $q->whereNull('organization_id')->orWhere('organization_id', '');
+            })
+            ->published()
+            ->orderBy('ID', 'desc')
             ->where('excluido', 'n')
             ->first();
     }

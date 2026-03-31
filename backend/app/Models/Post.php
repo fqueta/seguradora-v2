@@ -50,6 +50,7 @@ class Post extends Model
         'comment_count',
         'config',
         'token',
+        'organization_id',
         'excluido',
         'reg_excluido',
         'deletado',
@@ -112,6 +113,14 @@ class Post extends Model
     public function children()
     {
         return $this->hasMany(Post::class, 'post_parent', 'ID');
+    }
+
+    /**
+     * Relacionamento com a Organização
+     */
+    public function organization()
+    {
+        return $this->belongsTo(Organization::class, 'organization_id');
     }
 
     /**
