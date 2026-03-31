@@ -58,6 +58,7 @@ return [
             'password' => env('SMTP_CUSTOM_PASSWORD'),
             'timeout' => null,
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            'verify_peer' => false, // Adicionado para aceitar certificados na VPS
         ],
 
         'ses' => [
