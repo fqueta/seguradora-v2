@@ -331,8 +331,12 @@ export default function EmailTemplateForm() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="contract_approved" className="font-semibold text-primary">📑 Aprovação de Contrato</SelectItem>
-                  <SelectItem value="welcome_email" className="font-medium">👋 Boas-vindas (Novo Usuário)</SelectItem>
-                  <SelectItem value="generic" className="font-medium italic">✉️ Notificação Geral</SelectItem>
+                  {canAttach && (
+                    <>
+                      <SelectItem value="welcome_email" className="font-medium">👋 Boas-vindas (Novo Usuário)</SelectItem>
+                      <SelectItem value="generic" className="font-medium italic">✉️ Notificação Geral</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
