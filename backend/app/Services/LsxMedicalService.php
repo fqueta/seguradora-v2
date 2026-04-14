@@ -156,6 +156,7 @@ class LsxMedicalService
             'phone' => (string)$phone,
             'gender' => $gender,
             'beneficiary_plan_code' => (string)$beneficiaryPlanCode,
+            'plan_id' => (string)$beneficiaryPlanCode,
             'plan_adherence_date' => $planAdherenceDate,
             'plan_expiry_date' => $planExpiryDate,
             'extra_fields' => $extraFields,
