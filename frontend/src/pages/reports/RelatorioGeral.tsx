@@ -33,6 +33,7 @@ export default function RelatorioGeral() {
   const [vigenciaFim, setVigenciaFim] = useState<string>(() => searchParams.get("vigencia_fim") || "");
   const [status, setStatus] = useState<string>(() => searchParams.get("status") || "");
   const [ownerId, setOwnerId] = useState<string>(() => searchParams.get("owner_id") || "");
+  const [orgId, setOrgId] = useState<string>(() => searchParams.get("organization_id") || "");
   
   const [loading, setLoading] = useState<boolean>(false);
   const [page, setPage] = useState<number>(() => Number(searchParams.get("page")) || 1);
@@ -40,6 +41,7 @@ export default function RelatorioGeral() {
   const [total, setTotal] = useState<number>(0);
   const [items, setItems] = useState<ContractRecord[]>([]);
   const [owners, setOwners] = useState<UserRecord[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [orgMap, setOrgMap] = useState<Record<string | number, string>>({});
 
   // Sync state changes to URL
@@ -52,18 +54,36 @@ export default function RelatorioGeral() {
     if (vigenciaFim) params.vigencia_fim = vigenciaFim;
     if (status) params.status = status;
     if (ownerId) params.owner_id = ownerId;
+    if (orgId) params.organization_id = orgId;
     
     setSearchParams(params, { replace: true });
-  }, [page, perPage, periodField, vigenciaInicio, vigenciaFim, status, ownerId, setSearchParams]);
+  }, [page, perPage, periodField, vigenciaInicio, vigenciaFim, status, ownerId, orgId, setSearchParams]);
 
   useEffect(() => {
+    const params: any = { per_page: 999 };
+    if (orgId && orgId !== "all") {
+      params.organization_id = orgId;
+    }
     usersService
-      .listUsers({ per_page: 100 })
+      .listUsers(params)
       .then((res) => setOwners(res.data))
       .catch(() => {});
+  }, [orgId]);
+
+  // Se mudar a organização e o vendedor selecionado não pertencer a ela, limpa o vendedor
+  useEffect(() => {
+    if (orgId && ownerId) {
+      const currentOwner = owners.find(o => String(o.id) === ownerId);
+      if (currentOwner && String(currentOwner.organization_id) !== orgId) {
+        setOwnerId("");
+      }
+    }
+  }, [orgId, owners]);
+  useEffect(() => {
     organizationService
       .list({ per_page: 1000 })
       .then((res) => {
+        setOrganizations(res.data as Organization[]);
         const map = Object.fromEntries(
           (res.data as Organization[]).map((o) => [o.id, o.name])
         );
@@ -79,10 +99,11 @@ export default function RelatorioGeral() {
     };
     if (status) params.status = status;
     if (ownerId) params.owner_id = ownerId;
+    if (orgId) params.organization_id = orgId;
     if (vigenciaInicio) params.vigencia_inicio = vigenciaInicio;
     if (vigenciaFim) params.vigencia_fim = vigenciaFim;
     return params;
-  }, [page, perPage, status, ownerId, vigenciaInicio, vigenciaFim]);
+  }, [page, perPage, status, ownerId, orgId, vigenciaInicio, vigenciaFim]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -112,6 +133,7 @@ export default function RelatorioGeral() {
     setVigenciaFim("");
     setStatus("");
     setOwnerId("");
+    setOrgId("");
     setPage(1);
   };
 
@@ -247,7 +269,7 @@ export default function RelatorioGeral() {
       </div>
 
       <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <div>
             <label className="text-sm text-muted-foreground">Campo do período</label>
             <Select value={periodField} onValueChange={(v) => setPeriodField(v as PeriodField)}>
@@ -281,6 +303,22 @@ export default function RelatorioGeral() {
                 <SelectItem value="pending">Pendente</SelectItem>
                 <SelectItem value="cancelled">Cancelado</SelectItem>
                 <SelectItem value="draft">Rascunho</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-sm text-muted-foreground">Organização</label>
+            <Select value={orgId} onValueChange={(v) => setOrgId(v === "all" ? "" : v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                {organizations.map((org) => (
+                  <SelectItem key={org.id} value={String(org.id)}>
+                    {org.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

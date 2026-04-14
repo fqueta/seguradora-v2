@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useContractsList, useDeleteContract, useContractsTrash, useRestoreContract, useForceDeleteContract } from '@/hooks/contracts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,7 +73,20 @@ export default function ContractList() {
     const [newOwnerId, setNewOwnerId] = useState<string>('');
 
     const { data: orgs } = useOrganizationsList({ per_page: 100 });
-    const { data: users } = useUsersList({ per_page: 9999 });
+    const { data: users } = useUsersList({ 
+        per_page: 999, 
+        organization_id: orgId !== 'all' ? orgId : undefined 
+    });
+
+    // Se mudar a organização e o vendedor selecionado não pertencer a ela, limpa o vendedor
+    useEffect(() => {
+        if (orgId !== 'all' && ownerId !== 'all' && users?.data) {
+            const currentOwner = users.data.find(o => String(o.id) === ownerId);
+            if (currentOwner && String(currentOwner.organization_id) !== orgId) {
+                setOwnerId("all");
+            }
+        }
+    }, [orgId, users?.data, ownerId]);
     const { data: products } = useProductsList({ per_page: 100 });
 
     const [isTrashMode, setIsTrashMode] = useState(false);

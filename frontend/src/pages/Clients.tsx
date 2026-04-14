@@ -75,6 +75,9 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { Switch } from "@/components/ui/switch";
 import { SummaryCards } from '@/components/common/SummaryCards';
 import { PerPageSelector } from '@/components/common/PerPageSelector';
+import { useAuth } from '@/contexts/AuthContext';
+import { useOrganizationsList } from '@/hooks/organizations';
+import { useUsersList } from '@/hooks/users';
 interface ApiDeleteResponse {
   exec: boolean;
   message: string;
@@ -261,8 +264,33 @@ export default function Clients() {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const debouncedSearchTerm = useDebounce(searchTerm, 400);
+
+  const [orgId, setOrgId] = useState<string>("all");
+  const [ownerId, setOwnerId] = useState<string>("all");
+  const [createdAfter, setCreatedAfter] = useState<string>("");
+  const [createdBefore, setCreatedBefore] = useState<string>("");
+
+  const canFilterAdmin = user && (Number(user.permission_id) < 3);
+
+  const { data: orgs } = useOrganizationsList({ per_page: 100 });
+  const { data: users } = useUsersList({ 
+    per_page: 999, 
+    organization_id: orgId !== 'all' ? orgId : undefined 
+  });
+
+  // Se mudar a organização e o vendedor selecionado não pertencer a ela, limpa o vendedor
+  useEffect(() => {
+    if (orgId !== 'all' && ownerId !== 'all' && users?.data) {
+      const currentOwner = users.data.find(o => String(o.id) === ownerId);
+      if (currentOwner && String(currentOwner.organization_id) !== orgId) {
+        setOwnerId("all");
+      }
+    }
+  }, [orgId, users?.data, ownerId]);
+
   // Sorting state with persistence
   const [sortState, setSortState] = useState<{ orderBy: string; order: 'asc' | 'desc' }>(() => {
     try {
@@ -298,6 +326,11 @@ export default function Clients() {
       per_page: pageSize,
       search: debouncedSearchTerm,
       excluido: showTrash ? 's' : undefined,
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+      organization_id: orgId !== 'all' ? orgId : undefined,
+      autor: ownerId !== 'all' ? ownerId : undefined,
+      created_after: createdAfter || undefined,
+      created_before: createdBefore || undefined,
       // Se a ordenação for frontend, não enviamos para a API (ou enviamos padrão)
       order_by: ['organization', 'autor'].includes(sortState.orderBy) ? 'created_at' : sortState.orderBy,
       order: ['organization', 'autor'].includes(sortState.orderBy) ? 'desc' : sortState.order,
@@ -761,6 +794,10 @@ export default function Clients() {
   const clearFilters = useCallback(() => {
     setSearchTerm("");
     setStatusFilter("all");
+    setOrgId("all");
+    setOwnerId("all");
+    setCreatedAfter("");
+    setCreatedBefore("");
     setCurrentPage(1);
   }, []);
 
@@ -888,6 +925,58 @@ export default function Clients() {
 
           {isFiltersOpen && (
             <div className="space-y-2 pt-2 border-t animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+                <div className="flex items-center gap-2 col-span-1 md:col-span-2 lg:col-span-2 min-w-0">
+                  <Input
+                    type="date"
+                    value={createdAfter}
+                    onChange={(e) => setCreatedAfter(e.target.value)}
+                    className="text-xs w-full flex-1 min-w-0"
+                    placeholder="Cadastrado após"
+                  />
+                  <span className="text-muted-foreground text-xs whitespace-nowrap">até</span>
+                  <Input
+                    type="date"
+                    value={createdBefore}
+                    onChange={(e) => setCreatedBefore(e.target.value)}
+                    className="text-xs w-full flex-1 min-w-0"
+                    placeholder="Cadastrado antes"
+                  />
+                </div>
+
+                {canFilterAdmin && (
+                  <>
+                    <Select value={orgId} onValueChange={setOrgId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Organização" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas as Organizações</SelectItem>
+                        {orgs?.data?.map((org: any) => (
+                          <SelectItem key={org.id} value={org.id.toString()}>
+                            {org.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select value={ownerId} onValueChange={setOwnerId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Vendedor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os Vendedores</SelectItem>
+                        {users?.data?.map((u: any) => (
+                          <SelectItem key={u.id} value={u.id.toString()}>
+                            {u.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
+              </div>
+
               <div className="flex justify-end pt-2">
                 <Button 
                   variant="ghost" 

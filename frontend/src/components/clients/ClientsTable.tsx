@@ -155,7 +155,7 @@ export function ClientsTable({
             {renderSortableHeader("CPF", "cpf")}
             {renderSortableHeader("Email", "email")}
             {renderSortableHeader("Organização", "organization")}
-            {renderSortableHeader("Proprietário", "autor")}
+            {renderSortableHeader("Vendedor", "autor")}
             {renderSortableHeader("Status", "status")}
             <TableHead className="text-right">Ações</TableHead>
           </TableRow>

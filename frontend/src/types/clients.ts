@@ -142,4 +142,9 @@ export interface ClientsListParams {
   permission_id?: number;
   order_by?: string;
   order?: 'asc' | 'desc';
+  status?: string;
+  organization_id?: string;
+  autor?: string;
+  created_after?: string;
+  created_before?: string;
 }

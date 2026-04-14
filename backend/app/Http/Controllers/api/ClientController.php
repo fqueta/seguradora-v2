@@ -137,6 +137,28 @@ class ClientController extends Controller
                 }
             });
         }
+
+        // Novos filtros solicitados
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        if ($request->filled('organization_id')) {
+            $query->where('organization_id', $request->input('organization_id'));
+        }
+
+        if ($request->filled('autor')) {
+            $query->where('autor', $request->input('autor'));
+        }
+
+        if ($request->filled('created_after')) {
+            $query->whereDate('created_at', '>=', $request->input('created_after'));
+        }
+
+        if ($request->filled('created_before')) {
+            $query->whereDate('created_at', '<=', $request->input('created_before'));
+        }
+
         //quero debugar a query em sql string completa
         // dd([
         //     'sql_string' => vsprintf($query->toSql(), $query->getBindings()),
