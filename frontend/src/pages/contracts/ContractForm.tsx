@@ -29,28 +29,19 @@ import { FormActionBar } from '@/components/common/FormActionBar';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { currencyRemoveMaskToNumber } from '@/lib/masks/currency';
 
-const contractSchema = z.object({
-    contract_number: z.string().optional().nullable(),
-    c_number: z.string().optional().nullable(),
-    status: z.string({ required_error: "Status é obrigatório" }).min(1, "Status é obrigatório"),
-    start_date: z.string({ required_error: "Data de início é obrigatória" }).min(1, "Data de início é obrigatória").refine((date) => {
-        if (!date) return false;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        // Force local time interpretation by appending T00:00:00 if strictly date string
-        const dateStr = date.includes('T') ? date : date + 'T00:00:00';
-        const selected = new Date(dateStr);
-        return selected >= today;
-    }, "Data de início deve ser hoje ou futura"),
-    end_date: z.string({ required_error: "Data de fim é obrigatória" }).min(1, "Data de fim é obrigatória"),
-    client_id: z.string({ required_error: "Cliente é obrigatório" }).min(1, "Cliente é obrigatório"),
-    owner_id: z.string().optional().nullable(),
-    product_id: z.string({ required_error: "Produto é obrigatório" }).min(1, "Produto é obrigatório"),
-    value: z.coerce.number().optional().nullable(),
-    description: z.string().optional().nullable(),
-});
-
-type ContractFormData = z.infer<typeof contractSchema>;
+// Base type for contract form data
+type ContractFormData = {
+    contract_number?: string | null;
+    c_number?: string | null;
+    status: string;
+    start_date: string;
+    end_date: string;
+    client_id: string;
+    owner_id?: string | null;
+    product_id: string;
+    value?: number | null;
+    description?: string | null;
+};
 
 export default function ContractForm() {
     const { id } = useParams();
@@ -142,6 +133,33 @@ export default function ContractForm() {
         }));
     }, [products?.data, currentUser]);
 
+    // Determine if the form should be restricted (only description editable)
+    const isRestricted = useMemo(() => {
+        return isEdit && (contract?.status === 'approved' || contract?.status === 'cancelled');
+    }, [isEdit, contract]);
+
+    const contractSchema = useMemo(() => z.object({
+        contract_number: z.string().optional().nullable(),
+        c_number: z.string().optional().nullable(),
+        status: z.string({ required_error: "Status é obrigatório" }).min(1, "Status é obrigatório"),
+        start_date: z.string({ required_error: "Data de início é obrigatória" }).min(1, "Data de início é obrigatória").refine((date) => {
+            if (isRestricted) return true; // Se estiver bloqueado, ignoramos a validação de data futura
+            if (!date) return false;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            // Force local time interpretation by appending T00:00:00 if strictly date string
+            const dateStr = date.includes('T') ? date : date + 'T00:00:00';
+            const selected = new Date(dateStr);
+            return selected >= today;
+        }, "Data de início deve ser hoje ou futura"),
+        end_date: z.string({ required_error: "Data de fim é obrigatória" }).min(1, "Data de fim é obrigatória"),
+        client_id: z.string({ required_error: "Cliente é obrigatório" }).min(1, "Cliente é obrigatório"),
+        owner_id: z.string().optional().nullable(),
+        product_id: z.string({ required_error: "Produto é obrigatório" }).min(1, "Produto é obrigatório"),
+        value: z.coerce.number().optional().nullable(),
+        description: z.string().optional().nullable(),
+    }), [isRestricted]);
+
     const form = useForm<ContractFormData>({
         resolver: zodResolver(contractSchema),
         defaultValues: {
@@ -192,10 +210,7 @@ export default function ContractForm() {
         }
     }, [isEdit, clientIdParam, ownerIdParam, form]);
 
-    // Determine if the form should be restricted (only description editable)
-    const isRestricted = useMemo(() => {
-        return isEdit && (contract?.status === 'approved' || contract?.status === 'cancelled');
-    }, [isEdit, contract]);
+    
 
     const handleBack = () => {
         navigate(clientIdParam ? `/admin/clients/${clientIdParam}/view` : '/admin/contracts');

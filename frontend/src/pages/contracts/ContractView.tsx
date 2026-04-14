@@ -265,6 +265,8 @@ export default function ContractView() {
 
     const getEventLabel = (type: string) => {
         const labels: Record<string, string> = {
+            'creation': 'Criação do Contrato',
+            'update': 'Alteração de Dados',
             'status_update': 'Atualização de Status',
             'integracao_sulamerica': 'Integração SulAmérica',
             'contratacao_end': 'Integração SulAmérica (Fim)',
@@ -829,10 +831,10 @@ export default function ContractView() {
                             </CardContent>
                         </Card>
 
-                        {/* Eventos de Integração */}
+                        {/* Histórico de Ações e Auditoria */}
                         <Card>
                             <CardHeader>
-                                <CardTitle className="text-lg font-semibold">Eventos de Integração</CardTitle>
+                                <CardTitle className="text-lg font-semibold">Histórico de Ações e Auditoria</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-6">
@@ -857,6 +859,14 @@ export default function ContractView() {
                                                     <p className="text-xs text-muted-foreground mb-2">
                                                         Usuário: <span className="font-semibold text-foreground">{event.user.name}</span>
                                                     </p>
+                                                )}
+
+                                                {/* Rota e Metodo se houver no metadata */}
+                                                {event.metadata?.route && (
+                                                    <div className="mb-2 p-1.5 bg-background/50 rounded border border-muted-foreground/10 text-[10px]">
+                                                        <p className="text-muted-foreground font-semibold uppercase text-[9px] mb-0.5">Rota Submetida:</p>
+                                                        <code className="text-primary truncate block">{event.metadata.method} {event.metadata.route}</code>
+                                                    </div>
                                                 )}
                                                 
                                                 {/* Mensagem de Retorno se houver */}
