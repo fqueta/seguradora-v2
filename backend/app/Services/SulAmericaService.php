@@ -35,7 +35,7 @@ class SulAmericaService
                     $permission = $client->permission;
                     $permId = $permission ? $permission->id : null;
                     $supplierPermission = Qlib::qoption('permission_supplier_id') ?? '6';
-                    
+                    //se for cliente não pode integrar  
                     if (!$permId || $permId == $supplierPermission) {
                         ContractEventLogger::log(
                             $contract,
@@ -77,6 +77,7 @@ class SulAmericaService
                     if (empty($nascimento)) $missing[] = 'data Nascimento';
                     
                     if (!empty($missing)) {
+                        //se faltar dados não integrar
                         ContractEventLogger::log(
                             $contract,
                             'integracao_sulamerica',
@@ -85,6 +86,13 @@ class SulAmericaService
                                 'status' => 'skipped',
                                 'reason' => 'insufficient_client_data',
                                 'missing_fields' => $missing,
+                                'payload_attempted' => [
+                                    'client_id' => $client->id ?? null,
+                                    'documento' => $documento,
+                                    'nascimento_config' => $nascimento,
+                                    'client_config' => $clientConfig,
+                                    'contract_token' => $contract->token ?? null,
+                                ]
                             ],
                             null,
                             $authUserId

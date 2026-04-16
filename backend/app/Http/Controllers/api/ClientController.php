@@ -590,7 +590,8 @@ class ClientController extends Controller
             "Cliente criado com sucesso por " . ($user->name ?? $user->id) . " ({$userOrgName})",
             [],
             $client->toArray(),
-            ['source' => 'ClientController@store']
+            ['source' => 'ClientController@store'],
+            $request->all() // Enviando o payload bruto para aparecer no frontend
         );
 
         return response()->json($ret, 201);
@@ -905,7 +906,8 @@ class ClientController extends Controller
             "Cadastro de cliente atualizado por " . ($user->name ?? $user->id) . " ({$userOrgName})",
             $clientToUpdate->getOriginal(),
             $changes,
-            ['source' => 'ClientController@update']
+            ['source' => 'ClientController@update'],
+            $request->all()
         );
 
         return response()->json($ret);
