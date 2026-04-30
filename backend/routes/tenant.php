@@ -603,6 +603,14 @@ Route::name('api.')->prefix('api/v1')->middleware([
          Route::put('service-orders/{id}/status ', [ServiceOrderController::class, 'updateStatus'])->name('service-orders.update-status');
          Route::delete('service-orders/{id}/force', [ServiceOrderController::class, 'forceDelete'])->name('service-orders.forceDelete');
 
+        // IZA: credenciais resolvidas e operações de contrato
+        Route::get('iza/credentials-resolved', [\App\Http\Controllers\api\IzaController::class, 'credentialsResolved'])
+            ->name('iza.credentials-resolved');
+        Route::post('iza/contracts', [\App\Http\Controllers\api\IzaController::class, 'submitContract'])
+            ->name('iza.contracts.submit');
+        Route::get('iza/contracts/status', [\App\Http\Controllers\api\IzaController::class, 'consultStatus'])
+            ->name('iza.contracts.status');
+
         // Rotas para contracts
         Route::post('contracts/{id}/cancel', [\App\Http\Controllers\api\ContractController::class, 'cancelarContrato'])->name('contracts.cancel');
         Route::get('contracts/trash', [\App\Http\Controllers\api\ContractController::class, 'trash'])->name('contracts.trash');
@@ -656,6 +664,8 @@ Route::name('api.')->prefix('api/v1')->middleware([
         });
 
         // Rotas para gráficos do dashboard (dados mocados)
+        Route::get('dashboard', [\App\Http\Controllers\api\DashboardController::class, 'index'])
+            ->name('dashboard.index');
         // Resumo único do dashboard (payload consolidado)
         Route::get('dashboard/summary', [DashboardChartController::class, 'summary'])
             ->name('dashboard.summary');

@@ -13,16 +13,19 @@ use App\Http\Controllers\api\SulAmericaController;
 use App\Models\Client;
 use Carbon\Carbon;
 use App\Services\LsxMedicalService;
+use App\Services\IzaService;
 
 class ContractController extends Controller
 {
     protected LsxMedicalService $lsxMedicalService;
     protected \App\Services\SulAmericaService $sulAmericaService;
+    protected IzaService $izaService;
 
-    public function __construct(LsxMedicalService $lsxMedicalService, \App\Services\SulAmericaService $sulAmericaService)
+    public function __construct(LsxMedicalService $lsxMedicalService, \App\Services\SulAmericaService $sulAmericaService, IzaService $izaService)
     {
         $this->lsxMedicalService = $lsxMedicalService;
         $this->sulAmericaService = $sulAmericaService;
+        $this->izaService = $izaService;
     }
 
     public function index(Request $request): JsonResponse
@@ -247,9 +250,43 @@ class ContractController extends Controller
                      }
                  } catch (\Throwable $e) {
                       \App\Services\ContractEventLogger::log(
+                          $contract,
+                          'integration_exception',
+                          'Exceção na integração LSX: ' . $e->getMessage(),
+                          ['trace' => $e->getTraceAsString()],
+                          json_encode(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]),
+                          auth()->id()
+                      );
+                 }
+             }
+
+             // Lógica para IZA
+             elseif ($supplier && (stripos($supplier, 'Iza') !== false)) {
+                 \App\Services\ContractEventLogger::log(
+                     $contract,
+                     'debug_iza_attempt',
+                     'Tentativa de integração IZA detectada. Fornecedor: ' . $supplier,
+                     ['supplier' => $supplier],
+                     null,
+                     auth()->id()
+                 );
+
+                 try {
+                     $integrationRet = $this->izaService->processIntegration($contract, auth()->id());
+
+                     if (isset($integrationRet['exec']) && $integrationRet['exec'] === true) {
+                         $ret['data'] = $contract->refresh();
+                         $ret['mens'] = 'Contrato criado e integrado com IZA com sucesso.';
+                     } else {
+                         if (!empty($integrationRet['mens'])) {
+                             $ret['mens'] = 'Contrato cadastrado com sucesso, porém houve falha na integração IZA: ' . $integrationRet['mens'];
+                         }
+                     }
+                 } catch (\Throwable $e) {
+                     \App\Services\ContractEventLogger::log(
                          $contract,
                          'integration_exception',
-                         'Exceção na integração LSX: ' . $e->getMessage(),
+                         'Exceção na integração IZA: ' . $e->getMessage(),
                          ['trace' => $e->getTraceAsString()],
                          json_encode(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]),
                          auth()->id()
@@ -304,6 +341,16 @@ class ContractController extends Controller
             $lsx_data = is_array($lsx_integration) ? $lsx_integration : json_decode($lsx_integration, true);
             if(isset($lsx_data['exec'])){
                  $contract->setAttribute('integration_lsx_medical', $lsx_data);
+            }
+        }
+
+        // IZA Integration Data
+        $contract->setAttribute('integration_iza', []);
+        $iza_integration = Qlib::get_contract_meta($contract->id, 'integration_iza');
+        if ($iza_integration) {
+            $iza_data = is_array($iza_integration) ? $iza_integration : json_decode($iza_integration, true);
+            if(isset($iza_data['exec'])){
+                 $contract->setAttribute('integration_iza', $iza_data);
             }
         }
 
@@ -475,6 +522,52 @@ class ContractController extends Controller
                          null,
                          auth()->id()
                      );
+                    return response()->json([
+                        'exec' => false,
+                        'mens' => $erro
+                    ], 500);
+                }
+            }
+
+            // Lógica para IZA
+            elseif ($supplier && (stripos($supplier, 'Iza') !== false)) {
+                \App\Services\ContractEventLogger::log(
+                    $contract,
+                    'debug_iza_attempt_update',
+                    'Tentativa de integração IZA (Update). Fornecedor: ' . $supplier,
+                    ['supplier' => $supplier],
+                    null,
+                    auth()->id()
+                );
+
+                try {
+                    $integrationRet = $this->izaService->processIntegration($contract, auth()->id());
+
+                    $ret = [
+                        'exec' => true,
+                        'mens' => 'Contrato atualizado com sucesso.',
+                        'data' => $contract
+                    ];
+
+                    if (isset($integrationRet['exec']) && $integrationRet['exec'] === true) {
+                        $ret['mens'] .= ' | Integração IZA: Sucesso e Contrato Aprovado.';
+                        $ret['data'] = $contract->refresh();
+                    } else {
+                        $msgIza = $integrationRet['mens'] ?? 'Erro IZA';
+                        $ret['mens'] .= ' | Falha IZA: ' . $msgIza;
+                    }
+
+                    return response()->json($ret);
+                } catch (\Throwable $e) {
+                    $erro = 'Exceção na integração IZA (Update): ' . $e->getMessage();
+                    \App\Services\ContractEventLogger::log(
+                        $contract,
+                        'integration_exception_update',
+                        $erro,
+                        ['trace' => $e->getTraceAsString()],
+                        null,
+                        auth()->id()
+                    );
                     return response()->json([
                         'exec' => false,
                         'mens' => $erro
@@ -808,16 +901,43 @@ class ContractController extends Controller
             if (!isset($response['exec']) || $response['exec'] !== true) {
                 $integrationSuccess = false;
             }
-        }
-        else {
-            // Fornecedor não é SulAmérica: registrar skip para auditoria
+        }elseif($supplier && (stripos($supplier, 'Iza') !== false)){
+            // IZA: enviar cancelamento via API
             \App\Services\ContractEventLogger::log(
                 $contract,
                 'cancelamento_integracao',
-                'Integração não aplicável ao cancelamento: fornecedor do produto não é SulAmérica.',
+                'Iniciando cancelamento do contrato na IZA.',
+                ['status' => 'processing', 'supplier' => $supplier],
+                null,
+                auth()->id()
+            );
+
+            $dateCancelled = $request->input('date_cancelled') ?? date('Y-m-d');
+            $izaResponse = $this->izaService->cancelContract($contract, $dateCancelled, auth()->id());
+
+            $message = $izaResponse['message'] ?? 'Cancelamento processado.';
+            $integrationSuccess = isset($izaResponse['exec']) && $izaResponse['exec'] === true;
+
+            \App\Services\ContractEventLogger::log(
+                $contract,
+                'cancelamento_integracao',
+                $integrationSuccess
+                    ? 'Cancelamento realizado com sucesso na IZA.'
+                    : 'Falha no cancelamento na IZA: ' . $message,
+                ['status' => $integrationSuccess ? 'success' : 'error', 'response' => $izaResponse],
+                json_encode($izaResponse),
+                auth()->id()
+            );
+        }
+        else {
+            // Fornecedor não reconhecido: registrar skip para auditoria
+            \App\Services\ContractEventLogger::log(
+                $contract,
+                'cancelamento_integracao',
+                'Integração não aplicável ao cancelamento: fornecedor não reconhecido.',
                 [
                     'status' => 'skipped',
-                    'reason' => 'supplier_not_sulamerica',
+                    'reason' => 'supplier_not_recognized',
                     'supplier' => $supplier,
                 ],
                 null,

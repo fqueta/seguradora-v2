@@ -80,6 +80,8 @@ class DatabaseSeeder extends Seeder
                     ApiCredentialsSeeder::class,
                     ApiCredentialsAlloyalSeeder::class,
                     LsxProductsSeeder::class,
+                    IzaIntegrationSeeder::class,
+                    IzaProductsSeeder::class,
             ];
 
         }

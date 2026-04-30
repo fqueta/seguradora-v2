@@ -16,6 +16,7 @@ use App\Http\Controllers\api\MetricasController;
 use App\Http\Controllers\api\TrackingEventController;
 use App\Http\Controllers\api\DashboardMetricController;
 use App\Http\Controllers\api\DashboardChartController;
+use App\Http\Controllers\api\DashboardController;
 use App\Http\Controllers\api\StageController;
 use App\Http\Controllers\api\ProductUnitController;
 use App\Http\Controllers\api\ProductController;
@@ -212,6 +213,14 @@ Route::name('api.')->prefix('v1')->middleware([
         Route::post('lsxmedical/patients/{cpf}/toggle-status', [LsxMedicalController::class, 'toggleStatus'])
             ->name('lsxmedical.patients.toggle-status');
 
+        // IZA: credenciais resolvidas e operações de contrato
+        Route::get('iza/credentials-resolved', [\App\Http\Controllers\api\IzaController::class, 'credentialsResolved'])
+            ->name('iza.credentials-resolved');
+        Route::post('iza/contracts', [\App\Http\Controllers\api\IzaController::class, 'submitContract'])
+            ->name('iza.contracts.submit');
+        Route::get('iza/contracts/status', [\App\Http\Controllers\api\IzaController::class, 'consultStatus'])
+            ->name('iza.contracts.status');
+
         // Rotas para product-units
         Route::apiResource('product-units', ProductUnitController::class,['parameters' => [
             'product-units' => 'id'
@@ -301,6 +310,8 @@ Route::name('api.')->prefix('v1')->middleware([
          * pt-BR: Endpoints para gráficos do Dashboard com dados mocados.
          * en-US: Endpoints for Dashboard charts with mocked data.
          */
+        Route::get('dashboard', [DashboardController::class, 'index'])
+            ->name('dashboard.index');
         // Resumo único do dashboard (payload consolidado)
         Route::get('dashboard/summary', [DashboardChartController::class, 'summary'])
             ->name('dashboard.summary');

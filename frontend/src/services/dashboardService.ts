@@ -46,9 +46,9 @@ export interface PendingPreRegistration {
 export interface DashboardApiResponse {
   success: boolean;
   data: {
-    recentClientActivities: ClientActivity[];
+    recent_activities: ClientActivity[];
     registration_data: ClientRegistrationData[];
-    pendingPreRegistrations: PendingPreRegistration[];
+    pending_pre_registrations: PendingPreRegistration[];
     totals: {
       actived: number;
       inactived: number;
@@ -155,9 +155,9 @@ class DashboardService extends BaseApiService {
       const response = await this.get<DashboardApiResponse>(this.endpoint);
       if (response.success && response.data) {
         return {
-          recentActivities: this.transformActivities(response.data.recentClientActivities || []),
-          registrationData: response.data.clientRegistrationData || [],
-          pendingPreRegistrations: response.data.pendingPreRegistrations || [],
+          recentActivities: this.transformActivities(response.data.recent_activities || []),
+          registrationData: response.data.registration_data || [],
+          pendingPreRegistrations: response.data.pending_pre_registrations || [],
           totals: response.data.totals
         };
       }
