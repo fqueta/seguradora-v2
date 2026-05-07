@@ -37,7 +37,7 @@ class ContractApprovedNotification extends Notification
             return [];
         }
 
-        return [\App\Notifications\Channels\SmtpChannel::class];
+        return [BrevoChannel::class];
     }
 
     /**
@@ -48,7 +48,7 @@ class ContractApprovedNotification extends Notification
         $templateService = app(\App\Services\EmailTemplateService::class);
         $template = $templateService->getTemplate('contract_approved', $this->contract->organization_id);
 
-        // Se chegamos aqui, o template existe (devido à verificação no via()), 
+        // Se chegamos aqui, o template existe (devido à verificação no via()),
         // mas adicionamos uma proteção extra.
         if (!$template) {
             return [];
@@ -89,7 +89,7 @@ class ContractApprovedNotification extends Notification
             $attachPath = $config['attachment']['path'] ?? '';
             $attachUrl = $config['attachment']['url'] ?? '';
             $attachName = $config['attachment']['name'] ?? basename($attachPath ?: $attachUrl);
-            
+
             if ($attachName && !str_ends_with(strtolower($attachName), '.pdf')) {
                 $attachName .= '.pdf';
             }

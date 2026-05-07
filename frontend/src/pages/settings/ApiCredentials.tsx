@@ -20,6 +20,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+import { Switch } from "@/components/ui/switch";
+
 export default function ApiCredentials() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -37,6 +39,24 @@ export default function ApiCredentials() {
       return apiCredentialsService.list(params);
     },
   });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, active }: { id: number, active: boolean }) => {
+      return apiCredentialsService.update(id, { active });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings', 'api-credentials', 'list'] });
+      toast.success('Status atualizado');
+    },
+    onError: () => {
+      toast.error('Erro ao atualizar status');
+    }
+  });
+
+  const handleToggleActive = (id: number, currentStatus: boolean, e: React.MouseEvent) => {
+    e.stopPropagation();
+    updateMutation.mutate({ id, active: !currentStatus });
+  };
 
   const items = useMemo(() => {
     const paginator = (data?.data || {}) as any;
@@ -150,7 +170,14 @@ export default function ApiCredentials() {
                   >
                     <TableCell>{i.name}</TableCell>
                     <TableCell>{i.slug}</TableCell>
-                    <TableCell>{i.active ? 'Sim' : 'Não'}</TableCell>
+                    <TableCell>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <Switch
+                          checked={!!i.active}
+                          onCheckedChange={(checked) => updateMutation.mutate({ id: i.id, active: checked })}
+                        />
+                      </div>
+                    </TableCell>
                     <TableCell>{i.updated_at ? new Date(i.updated_at).toLocaleString() : ''}</TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/settings/integration/${i.id}/edit`)}>

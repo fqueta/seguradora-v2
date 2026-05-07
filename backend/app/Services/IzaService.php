@@ -224,6 +224,7 @@ class IzaService
                 'message' => 'Erro ao comunicar com a IZA',
                 'error' => $e->getMessage(),
                 'payload' => $payload,
+                'url' => $url,
             ];
         }
     }

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query'; // Importa useQueryClient
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
@@ -61,6 +62,7 @@ export default function Enroll() {
    */
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient(); // Inicializa queryClient
   const returnTo = `${location.pathname}${location.search || ''}`;
   // Estado de busca
   const [search, setSearch] = useState('');
@@ -455,6 +457,12 @@ export default function Enroll() {
               items={enrollments}
               isLoading={isLoading}
               resolveAmountBRL={resolveAmountBRL}
+              onToggleActive={(enroll, checked) => {
+                updateMutation.mutate({
+                  id: String(enroll.id),
+                  data: { ativo: checked ? 's' : 'n' } as any
+                });
+              }}
               onProgress={(enroll: any) => {
                 /**
                  * onProgress
