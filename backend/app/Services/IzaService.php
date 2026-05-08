@@ -134,14 +134,13 @@ class IzaService
             ?? date('Y-m-d', strtotime('+1 year'));
 
         // Plan ID (prioridade: extraData > product config > client config > fallback)
-        $planId = $extraData['plan_id']
-            ?? $extraData['codigo_do_plano']
-            ?? $productConfig['plan_id']
-            ?? $productConfig['iza_plan_id']
+        $planId = $extraData['slug_parceiro']
+            ?? $productConfig['slug_parceiro']
+            ?? $productConfig['iza_plan_id_prd']
             ?? $productConfig['slug_parceiro']
             ?? $productConfig['codigo_do_plano']
             ?? $config['plan_id']
-            ?? $config['iza_plan_id']
+            ?? $config['iza_plan_id_prd']
             ?? $config['codigo_do_plano']
             ?? '101';
 
