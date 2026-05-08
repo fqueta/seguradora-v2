@@ -211,9 +211,18 @@ class IzaService
             $body = $response->json();
             $ok = $status >= 200 && $status < 300;
 
+            $errorDetails = is_array($body)
+                ? ($body['errors']['details'] ?? null)
+                : null;
+
             $messageRaw = $ok
                 ? ($body['message'] ?? 'Contrato enviado à IZA com sucesso')
                 : ($body['message'] ?? $body['error'] ?? 'Falha ao enviar contrato para a IZA');
+
+            if ($errorDetails === 'already_has_contract') {
+                $messageRaw = 'Este cliente já possui um contrato ativo na IZA para este plano.';
+            }
+
             $message = $this->normalizeMessage($messageRaw);
             // dd($headers,$url,$payload,$body,$ok);
 
