@@ -206,6 +206,7 @@ class IzaService
         $url = rtrim($this->baseUrl, '/') . '/partners/contracts';
 
         try {
+            dd($headers,$url,$payload);
             $response = Http::withHeaders($headers)->post($url, $payload);
             $status = $response->status();
             $body = $response->json();
