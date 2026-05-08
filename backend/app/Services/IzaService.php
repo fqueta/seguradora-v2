@@ -188,7 +188,7 @@ class IzaService
             'Content-Type' => 'application/json',
         ];
 
-        $url = rtrim($this->baseUrl, '/') . '/api/integrations/partners/contracts';
+        $url = rtrim($this->baseUrl, '/') . '/partners/contracts';
 
         try {
             $response = Http::withHeaders($headers)->post($url, $payload);
@@ -271,7 +271,7 @@ class IzaService
 
         $dateCancelled = $dateCancelled ?? date('Y-m-d');
 
-        $url = rtrim($this->baseUrl, '/') . '/api/integrations/partners/contracts/' . $izaContractId . '/cancel';
+        $url = rtrim($this->baseUrl, '/') . '/partners/contracts/' . $izaContractId . '/cancel';
         $payload = ['date_cancelled' => $dateCancelled];
 
         $headers = [
