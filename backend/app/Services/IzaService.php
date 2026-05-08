@@ -206,7 +206,6 @@ class IzaService
         $url = rtrim($this->baseUrl, '/') . '/partners/contracts';
 
         try {
-            dd($headers,$url,$payload);
             $response = Http::withHeaders($headers)->post($url, $payload);
             $status = $response->status();
             $body = $response->json();
@@ -216,6 +215,7 @@ class IzaService
                 ? ($body['message'] ?? 'Contrato enviado à IZA com sucesso')
                 : ($body['message'] ?? $body['error'] ?? 'Falha ao enviar contrato para a IZA');
             $message = $this->normalizeMessage($messageRaw);
+            dd($headers,$url,$payload,$message);
 
             // Gravar meta no contrato
             if ($contract) {
