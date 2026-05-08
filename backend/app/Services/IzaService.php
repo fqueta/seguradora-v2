@@ -220,7 +220,7 @@ class IzaService
                 : ($body['message'] ?? $body['error'] ?? 'Falha ao enviar contrato para a IZA');
 
             if ($errorDetails === 'already_has_contract') {
-                $messageRaw = 'Este cliente já possui um contrato ativo na IZA para este plano.';
+                $messageRaw = 'Contrato ja criado anteriormente.';
             }
 
             $message = $this->normalizeMessage($messageRaw);
