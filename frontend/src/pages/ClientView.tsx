@@ -717,6 +717,7 @@ export default function ClientView() {
                         'pending': 'Pendente',
                         'active': 'Ativo',
                         'cancelled': 'Cancelado',
+                        'cancel_error': 'Erro no cancelamento',
                         'approved': 'Aprovado',
                         'rejected': 'Rejeitado',
                         'draft': 'Rascunho'
@@ -729,7 +730,7 @@ export default function ClientView() {
                           <TableCell>
                             <Badge variant={
                               contract.status === 'approved' || contract.status === 'active' ? 'default' :
-                              contract.status === 'cancelled' || contract.status === 'rejected' ? 'destructive' :
+                              contract.status === 'cancelled' || contract.status === 'rejected' || contract.status === 'cancel_error' ? 'destructive' :
                               'secondary'
                             }>
                               {translatedStatus}

@@ -256,6 +256,7 @@ export default function ContractView() {
             'pending': 'Pendente',
             'approved': 'Aprovado',
             'cancelled': 'Cancelado',
+            'cancel_error': 'Erro no cancelamento',
             'rejected': 'Rejeitado',
             'active': 'Ativo',
             'inactive': 'Inativo',
@@ -288,6 +289,7 @@ export default function ContractView() {
             case 'approved': return 'default';
             case 'pending': return 'secondary'; // yellow/gray
             case 'cancelled': return 'destructive';
+            case 'cancel_error': return 'destructive';
             default: return 'outline';
         }
     };
@@ -792,6 +794,14 @@ export default function ContractView() {
                                             </div>
                                             <div className="mt-2 p-3 bg-muted/50 rounded-md text-sm">
                                                 <p className="font-medium mb-2">{event.description}</p>
+                                                {(event.metadata?.date_cancelled || event.metadata?.cancellation_at) && (
+                                                    <p className="text-xs text-muted-foreground mb-2">
+                                                        Data do cancelamento:{' '}
+                                                        <span className="font-semibold text-foreground">
+                                                            {formatDate(event.metadata?.date_cancelled || event.metadata?.cancellation_at)}
+                                                        </span>
+                                                    </p>
+                                                )}
                                                 {event.user && (
                                                     <p className="text-xs text-muted-foreground">
                                                         Usuário: <span className="font-semibold text-foreground">{event.user.name}</span>

@@ -73,6 +73,7 @@ export default function UserView() {
       'active': { label: 'Ativo', variant: 'default' },
       'approved': { label: 'Aprovado', variant: 'default' },
       'cancelled': { label: 'Cancelado', variant: 'destructive' },
+      'cancel_error': { label: 'Erro no cancelamento', variant: 'destructive' },
       'rejected': { label: 'Rejeitado', variant: 'destructive' },
       'draft': { label: 'Rascunho', variant: 'outline' },
     };

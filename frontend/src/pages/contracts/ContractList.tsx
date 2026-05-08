@@ -123,7 +123,7 @@ export default function ContractList() {
         }).length;
 
         const active = contracts.filter((c: any) => c.status === 'active' || c.status === 'approved').length;
-        const inactive = contracts.filter((c: any) => c.status === 'cancelled' || c.status === 'rejected').length;
+        const inactive = contracts.filter((c: any) => c.status === 'cancelled' || c.status === 'rejected' || c.status === 'cancel_error').length;
 
         return [
             { label: 'Todos cadastros', value: total, icon: Calendar },
@@ -379,6 +379,7 @@ export default function ContractList() {
                                         'pending': 'Pendente',
                                         'active': 'Ativo',
                                         'cancelled': 'Cancelado',
+                                        'cancel_error': 'Erro no cancelamento',
                                         'approved': 'Aprovado',
                                         'rejected': 'Rejeitado',
                                         'draft': 'Rascunho'

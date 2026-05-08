@@ -835,6 +835,7 @@ class ContractController extends Controller
 
         $integrationResult = null;
         $integrationSuccess = true; // Assume success if no integration is needed, unless proven otherwise
+        $dateCancelled = $request->input('date_cancelled') ?? date('Y-m-d');
 
         // Log de início da operação de cancelamento (auditoria de integração)
         \App\Services\ContractEventLogger::log(
@@ -912,8 +913,8 @@ class ContractController extends Controller
                 auth()->id()
             );
 
-            $dateCancelled = $request->input('date_cancelled') ?? date('Y-m-d');
             $izaResponse = $this->izaService->cancelContract($contract, $dateCancelled, auth()->id());
+            $integrationResult = $izaResponse;
 
             $message = $izaResponse['message'] ?? 'Cancelamento processado.';
             $integrationSuccess = isset($izaResponse['exec']) && $izaResponse['exec'] === true;
@@ -960,16 +961,23 @@ class ContractController extends Controller
                 auth()->id()
             );
 
-            // Log status change
-            \App\Services\ContractEventLogger::logStatusChange(
-                $contract,
-                $oldStatus,
-                'cancelled',
-                'Contrato cancelado com sucesso.',
-                ['integration_response' => $integrationResult],
-                is_array($integrationResult) ? json_encode($integrationResult) : null,
-                auth()->id()
-            );
+            if ($oldStatus !== 'cancelled') {
+                \App\Services\ContractEventLogger::logStatusChange(
+                    $contract,
+                    $oldStatus,
+                    'cancelled',
+                    'Contrato cancelado com sucesso.',
+                    [
+                        'integration_response' => $integrationResult,
+                        'supplier' => $supplier,
+                        'date_cancelled' => $dateCancelled,
+                        'url' => is_array($integrationResult) ? ($integrationResult['url'] ?? null) : null,
+                        'cancellation_at' => is_array($integrationResult) ? ($integrationResult['data']['cancellation_at'] ?? null) : null,
+                    ],
+                    is_array($integrationResult) ? json_encode($integrationResult) : null,
+                    auth()->id()
+                );
+            }
 
             return response()->json([
                 'exec' => true,
@@ -979,18 +987,45 @@ class ContractController extends Controller
                 'data' => $contract
             ]);
         } else {
+             $errorMsg = is_array($integrationResult)
+                 ? ($integrationResult['message'] ?? $integrationResult['mens'] ?? 'Erro desconhecido')
+                 : 'Erro desconhecido';
+
+             $oldStatus = $contract->status;
+             if ($oldStatus !== 'cancelled' && $oldStatus !== 'cancel_error') {
+                 $contract->update(['status' => 'cancel_error']);
+             }
+
+             if ($oldStatus !== $contract->status) {
+                 \App\Services\ContractEventLogger::logStatusChange(
+                     $contract,
+                     $oldStatus,
+                     $contract->status,
+                     'Erro no cancelamento do contrato.',
+                     [
+                         'integration_response' => $integrationResult,
+                         'supplier' => $supplier,
+                         'date_cancelled' => $dateCancelled,
+                         'url' => is_array($integrationResult) ? ($integrationResult['url'] ?? null) : null,
+                         'cancellation_at' => is_array($integrationResult) ? ($integrationResult['data']['cancellation_at'] ?? null) : null,
+                     ],
+                     is_array($integrationResult) ? json_encode($integrationResult) : null,
+                     auth()->id()
+                 );
+             }
+
              // Log de erro na integração
              \App\Services\ContractEventLogger::log(
                  $contract,
                  'cancelamento_integracao',
-                 'Falha ao cancelar na integração: ' . ($integrationResult['mens'] ?? 'Erro desconhecido'),
+                 'Falha ao cancelar na integração: ' . $errorMsg,
                  ['status' => 'error'],
                  is_array($integrationResult) ? json_encode($integrationResult) : null,
                  auth()->id()
              );
              return response()->json([
                 'exec' => false,
-                'mens' => 'Falha ao cancelar na integração: ' . ($integrationResult['mens'] ?? 'Erro desconhecido'),
+                'mens' => 'Falha ao cancelar na integração: ' . $errorMsg,
                 'data' => $integrationResult
             ], 400);
         }

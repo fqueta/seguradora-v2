@@ -205,6 +205,7 @@ class IzaService
                 Qlib::update_contract_meta($contract->id, 'integration_iza', json_encode([
                     'exec' => $ok,
                     'status' => $status,
+                    'url' => $url,
                     'data' => $body,
                     'payload' => $payload,
                 ]));
@@ -213,6 +214,7 @@ class IzaService
             return [
                 'exec' => $ok,
                 'message' => $message,
+                'url' => $url,
                 'data' => $body,
                 'payload' => $payload,
                 'status' => $status,
@@ -294,14 +296,6 @@ class IzaService
                 'response' => ['status' => $status, 'body' => $body],
             ], JSON_UNESCAPED_UNICODE);
 
-            Qlib::update_contract_meta($contract->id, 'integration_iza_cancel', json_encode([
-                'exec' => $ok,
-                'status' => $status,
-                'iza_contract_id' => $izaContractId,
-                'date_cancelled' => $dateCancelled,
-                'data' => $body,
-            ]));
-
             // Detecta se a IZA sinalizou que o contrato já está em processo de cancelamento
             $errorText = strtolower($body['error'] ?? $body['message'] ?? '');
             $alreadyCancelling = !$ok && str_contains($errorText, 'cancellation');
@@ -309,31 +303,24 @@ class IzaService
             // Trata como sucesso efetivo: API confirmou cancelamento OU contrato já estava sendo cancelado
             $effectiveSuccess = $ok || $alreadyCancelling;
 
-            if ($effectiveSuccess) {
-                // Atualizar status local para cancelled
-                $oldStatus = $contract->status;
-                if ($oldStatus !== 'cancelled') {
-                    $contract->update(['status' => 'cancelled']);
-                    ContractEventLogger::logStatusChange(
-                        $contract,
-                        $oldStatus,
-                        'cancelled',
-                        $alreadyCancelling
-                            ? 'Status atualizado para cancelado: IZA indicou que contrato já estava em cancelamento.'
-                            : 'Status atualizado para cancelado via integração IZA.',
-                        ['iza_contract_id' => $izaContractId, 'date_cancelled' => $dateCancelled],
-                        $logPayload,
-                        $authUserId
-                    );
-                }
+            Qlib::update_contract_meta($contract->id, 'integration_iza_cancel', json_encode([
+                'exec' => $effectiveSuccess,
+                'status' => $status,
+                'url' => $url,
+                'iza_contract_id' => $izaContractId,
+                'date_cancelled' => $dateCancelled,
+                'already_cancelling' => $alreadyCancelling,
+                'data' => $body,
+            ]));
 
+            if ($effectiveSuccess) {
                 ContractEventLogger::log(
                     $contract,
                     'integracao_iza_cancel',
                     $alreadyCancelling
-                        ? 'Cancelamento IZA: contrato já estava em processo de cancelamento — status local atualizado.'
+                        ? 'Cancelamento IZA: contrato já estava em processo de cancelamento.'
                         : 'Cancelamento realizado com sucesso na IZA.',
-                    ['status' => 'success', 'iza_contract_id' => $izaContractId, 'date_cancelled' => $dateCancelled, 'already_cancelling' => $alreadyCancelling],
+                    ['status' => 'success', 'iza_contract_id' => $izaContractId, 'date_cancelled' => $dateCancelled, 'already_cancelling' => $alreadyCancelling, 'url' => $url],
                     $logPayload,
                     $authUserId
                 );
@@ -342,7 +329,7 @@ class IzaService
                     $contract,
                     'integracao_iza_cancel',
                     'Falha no cancelamento na IZA: ' . $message,
-                    ['status' => 'error', 'http_status' => $status, 'iza_contract_id' => $izaContractId],
+                    ['status' => 'error', 'http_status' => $status, 'iza_contract_id' => $izaContractId, 'url' => $url],
                     $logPayload,
                     $authUserId
                 );
@@ -351,8 +338,11 @@ class IzaService
             return [
                 'exec' => $effectiveSuccess,
                 'message' => $alreadyCancelling
-                    ? 'Contrato já estava em cancelamento na IZA. Status local atualizado.'
+                    ? 'Contrato já estava em cancelamento na IZA.'
                     : $message,
+                'url' => $url,
+                'date_cancelled' => $dateCancelled,
+                'already_cancelling' => $alreadyCancelling,
                 'data' => $body,
                 'status' => $status,
                 'iza_contract_id' => $izaContractId,
@@ -370,6 +360,8 @@ class IzaService
                 'exec' => false,
                 'message' => 'Erro ao comunicar cancelamento com a IZA',
                 'error' => $e->getMessage(),
+                'url' => $url ?? null,
+                'date_cancelled' => $dateCancelled ?? null,
             ];
         }
     }
@@ -461,7 +453,10 @@ class IzaService
             $response = $this->submitContract($client, [], $contract);
 
             $fullLogPayload = json_encode([
-                'request' => $response['payload'] ?? [],
+                'request' => [
+                    'url' => $response['url'] ?? null,
+                    'payload' => $response['payload'] ?? [],
+                ],
                 'response' => $response,
             ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
@@ -476,7 +471,7 @@ class IzaService
                     $contract,
                     'integracao_iza',
                     'Integração IZA realizada com sucesso.',
-                    ['status' => 'success'],
+                    ['status' => 'success', 'url' => $response['url'] ?? null],
                     $fullLogPayload,
                     $authUserId
                 );
@@ -486,7 +481,7 @@ class IzaService
                     $oldStatus,
                     'approved',
                     'Status atualizado para aprovado via integração IZA.',
-                    [],
+                    ['url' => $response['url'] ?? null],
                     $fullLogPayload,
                     $authUserId
                 );
@@ -503,7 +498,7 @@ class IzaService
                     $contract,
                     'integracao_iza',
                     'Falha na integração IZA: ' . $errorMsg,
-                    ['status' => 'error'],
+                    ['status' => 'error', 'url' => $response['url'] ?? null],
                     $fullLogPayload,
                     $authUserId
                 );
