@@ -17,6 +17,21 @@ class IzaService
     protected string $authToken = '';
     protected bool $integrationActive = false;
 
+    private function normalizeMessage(mixed $value): string
+    {
+        if (is_string($value)) {
+            return $value;
+        }
+        if ($value === null) {
+            return '';
+        }
+        if (is_bool($value) || is_int($value) || is_float($value)) {
+            return (string) $value;
+        }
+        $json = json_encode($value, JSON_UNESCAPED_UNICODE);
+        return $json !== false ? $json : (string) print_r($value, true);
+    }
+
     public function __construct()
     {
         $this->loadCredentialsFromApi('integracao-iza');
@@ -196,9 +211,10 @@ class IzaService
             $body = $response->json();
             $ok = $status >= 200 && $status < 300;
 
-            $message = $ok
+            $messageRaw = $ok
                 ? ($body['message'] ?? 'Contrato enviado à IZA com sucesso')
                 : ($body['message'] ?? $body['error'] ?? 'Falha ao enviar contrato para a IZA');
+            $message = $this->normalizeMessage($messageRaw);
 
             // Gravar meta no contrato
             if ($contract) {
@@ -493,7 +509,7 @@ class IzaService
                     'data' => $contract->refresh(),
                 ];
             } else {
-                $errorMsg = $response['message'] ?? 'Erro desconhecido na integração IZA';
+                $errorMsg = $this->normalizeMessage($response['message'] ?? 'Erro desconhecido na integração IZA');
                 ContractEventLogger::log(
                     $contract,
                     'integracao_iza',

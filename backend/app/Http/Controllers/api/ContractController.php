@@ -279,7 +279,11 @@ class ContractController extends Controller
                          $ret['mens'] = 'Contrato criado e integrado com IZA com sucesso.';
                      } else {
                          if (!empty($integrationRet['mens'])) {
-                             $ret['mens'] = 'Contrato cadastrado com sucesso, porém houve falha na integração IZA: ' . $integrationRet['mens'];
+                            $mensIza = $integrationRet['mens'];
+                            if (!is_string($mensIza)) {
+                                $mensIza = json_encode($mensIza, JSON_UNESCAPED_UNICODE) ?: 'Erro IZA';
+                            }
+                            $ret['mens'] = 'Contrato cadastrado com sucesso, porém houve falha na integração IZA: ' . $mensIza;
                          }
                      }
                  } catch (\Throwable $e) {
@@ -554,6 +558,9 @@ class ContractController extends Controller
                         $ret['data'] = $contract->refresh();
                     } else {
                         $msgIza = $integrationRet['mens'] ?? 'Erro IZA';
+                        if (!is_string($msgIza)) {
+                            $msgIza = json_encode($msgIza, JSON_UNESCAPED_UNICODE) ?: 'Erro IZA';
+                        }
                         $ret['mens'] .= ' | Falha IZA: ' . $msgIza;
                     }
 
