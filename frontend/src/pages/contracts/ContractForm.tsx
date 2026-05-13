@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useCreateContract, useUpdateContract, useContract } from '@/hooks/contracts';
 import { useUsersList } from '@/hooks/users';
-import { useClientsList } from '@/hooks/clients';
+import { useClientsList, useClient } from '@/hooks/clients';
 import { usePermissionsList } from '@/hooks/permissions';
 import { useOrganizationsList } from '@/hooks/organizations';
 import { useCreateUser, useUpdateUser } from '@/hooks/users';
@@ -133,6 +133,19 @@ export default function ContractForm() {
         }));
     }, [products?.data, currentUser]);
 
+    const preselectedClientId = useMemo(() => {
+        if (isEdit) {
+            const selectedId = contract?.client_id ?? contract?.owner_id;
+            return selectedId ? String(selectedId) : '';
+        }
+        return clientIdParam ? String(clientIdParam) : '';
+    }, [isEdit, contract?.client_id, contract?.owner_id, clientIdParam]);
+
+    const { data: preselectedClient } = useClient(preselectedClientId, {
+        enabled: !!preselectedClientId,
+        retry: false,
+    });
+
     // Determine if the form should be restricted (only description editable)
     const isRestricted = useMemo(() => {
         return isEdit && (contract?.status === 'approved' || contract?.status === 'cancelled');
@@ -200,6 +213,19 @@ export default function ContractForm() {
             setProfileFilter(pname === 'cliente' ? 'cliente' : 'usuario');
         }
     }, [contract, form, users?.data, clients?.data, permissionNameById]);
+
+    useEffect(() => {
+        if (!preselectedClient?.id) return;
+        const preselectedId = String(preselectedClient.id);
+        const remoteClients = clients?.data || [];
+        const isInRemote = remoteClients.some((c: any) => String(c?.id) === preselectedId);
+        if (isInRemote) return;
+        setTempClients((prev) => {
+            const isAlreadyTemp = prev.some((c: any) => String(c?.id) === preselectedId);
+            if (isAlreadyTemp) return prev;
+            return [...prev, preselectedClient];
+        });
+    }, [preselectedClient, clients?.data]);
 
     useEffect(() => {
         if (!isEdit && clientIdParam) {
