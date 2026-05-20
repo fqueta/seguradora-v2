@@ -85,7 +85,7 @@ class EmailController extends Controller
         ]);
 
         $service = app(EmailTemplateService::class);
-        
+
         // Dados de teste para preencher shortcodes
         $testData = [
             'client_name' => 'Usuário Teste (Yellow)',
@@ -112,7 +112,7 @@ class EmailController extends Controller
             $attachPath = $config['attachment']['path'] ?? '';
             $attachUrl = $config['attachment']['url'] ?? '';
             $attachName = $config['attachment']['name'] ?? basename($attachPath ?: $attachUrl);
-            
+
             // Garante extensão .pdf no nome
             if ($attachName && !str_ends_with(strtolower($attachName), '.pdf')) {
                 $attachName .= '.pdf';
@@ -175,7 +175,7 @@ class EmailController extends Controller
                 $parsedContent,
                 !empty($attachments) ? $attachments : []
             ));
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'E-mail de teste enviado com sucesso para ' . $validated['email'],

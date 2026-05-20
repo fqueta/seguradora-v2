@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use App\Notifications\Channels\BrevoChannel;
+use App\Notifications\Channels\SmtpChannel;
 use App\Models\Contract;
 use App\Services\Qlib;
 use Illuminate\Bus\Queueable;
@@ -37,7 +37,7 @@ class ContractApprovedNotification extends Notification
             return [];
         }
 
-        return [BrevoChannel::class];
+        return [SmtpChannel::class];
     }
 
     /**
