@@ -257,6 +257,53 @@ class IzaService
     }
 
     /**
+     * Busca detalhes de um contrato na API da IZA.
+     * GET /api/integrations/partners/contracts/{contractId}
+     *
+     * @param string $izaContractId ID do contrato na IZA (UUID)
+     * @return array
+     */
+    public function fetchContractDetails(string $izaContractId): array
+    {
+        if (!$this->isIntegrationActive()) {
+            return ['exec' => false, 'message' => 'Integração IZA inativa'];
+        }
+
+        $headers = [
+            'Authorization' => 'Basic ' . $this->authToken,
+            'Content-Type' => 'application/json',
+        ];
+
+        $url = rtrim($this->baseUrl, '/') . '/partners/contracts/' . $izaContractId;
+
+        try {
+            $response = Http::withHeaders($headers)->get($url);
+            $status = $response->status();
+            $body = $response->json();
+            $ok = $status >= 200 && $status < 300;
+
+            $message = $ok
+                ? ($body['message'] ?? 'Contrato IZA consultado com sucesso')
+                : ($body['message'] ?? $body['error'] ?? 'Falha ao consultar contrato na IZA');
+
+            return [
+                'exec' => $ok,
+                'message' => $this->normalizeMessage($message),
+                'url' => $url,
+                'data' => $body,
+                'status' => $status,
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'exec' => false,
+                'message' => 'Erro ao comunicar com a IZA',
+                'error' => $e->getMessage(),
+                'url' => $url,
+            ];
+        }
+    }
+
+    /**
      * Cancela um contrato na API da IZA.
      * PATCH /api/integrations/partners/contracts/{iza_contract_id}/cancel
      *

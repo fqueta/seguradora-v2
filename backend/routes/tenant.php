@@ -610,6 +610,8 @@ Route::name('api.')->prefix('api/v1')->middleware([
             ->name('iza.contracts.submit');
         Route::get('iza/contracts/status', [\App\Http\Controllers\api\IzaController::class, 'consultStatus'])
             ->name('iza.contracts.status');
+        Route::get('iza/contracts/sync', [\App\Http\Controllers\api\IzaController::class, 'syncContract'])
+            ->name('iza.contracts.sync');
 
         // Rotas para contracts
         Route::post('contracts/{id}/cancel', [\App\Http\Controllers\api\ContractController::class, 'cancelarContrato'])->name('contracts.cancel');

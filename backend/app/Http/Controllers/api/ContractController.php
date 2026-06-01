@@ -13,19 +13,46 @@ use App\Http\Controllers\api\SulAmericaController;
 use App\Models\Client;
 use Carbon\Carbon;
 use App\Services\LsxMedicalService;
+use App\Services\LsxMedicalV2Service;
 use App\Services\IzaService;
 
 class ContractController extends Controller
 {
     protected LsxMedicalService $lsxMedicalService;
+    protected LsxMedicalV2Service $lsxMedicalV2Service;
     protected \App\Services\SulAmericaService $sulAmericaService;
     protected IzaService $izaService;
 
-    public function __construct(LsxMedicalService $lsxMedicalService, \App\Services\SulAmericaService $sulAmericaService, IzaService $izaService)
+    public function __construct(LsxMedicalService $lsxMedicalService, LsxMedicalV2Service $lsxMedicalV2Service, \App\Services\SulAmericaService $sulAmericaService, IzaService $izaService)
     {
         $this->lsxMedicalService = $lsxMedicalService;
+        $this->lsxMedicalV2Service = $lsxMedicalV2Service;
         $this->sulAmericaService = $sulAmericaService;
         $this->izaService = $izaService;
+    }
+
+    private function resolveLsxIntegrationSlug(Request $request, ?Contract $contract = null): string
+    {
+        $slug = (string)($request->input('lsx_integration_slug')
+            ?? $request->input('integration_lsx_slug')
+            ?? $request->input('integration_slug')
+            ?? $request->input('api_credential_slug')
+            ?? '');
+
+        if ($slug === '' && $contract) {
+            $saved = Qlib::get_contract_meta($contract->id, 'lsx_integration_slug');
+            if (is_string($saved) && $saved !== '') {
+                $slug = $saved;
+            }
+        }
+
+        return $slug !== '' ? $slug : 'integracao-lsx-medical';
+    }
+
+    private function isLsxV2Slug(string $slug): bool
+    {
+        $slugLower = strtolower($slug);
+        return $slugLower === 'integracao-lsx-medical-v2' || stripos($slugLower, 'lsx-medical-v2') !== false;
     }
 
     public function index(Request $request): JsonResponse
@@ -197,9 +224,18 @@ class ContractController extends Controller
                      auth()->id()
                  );
 
-                 // Integration LSX Medical
+                 $lsxIntegrationSlug = $this->resolveLsxIntegrationSlug($request, $contract);
+                 Qlib::update_contract_meta($contract->id, 'lsx_integration_slug', $lsxIntegrationSlug);
+
+                 $lsxService = $this->isLsxV2Slug($lsxIntegrationSlug)
+                     ? $this->lsxMedicalV2Service
+                     : $this->lsxMedicalService;
+                 $lsxMetaKey = $this->isLsxV2Slug($lsxIntegrationSlug)
+                     ? 'integration_lsx_medical_v2'
+                     : 'integration_lsx_medical';
+
                  try {
-                     if ($this->lsxMedicalService->isIntegrationActive()) {
+                     if ($lsxService->isIntegrationActive()) {
                         $clientFn = Client::find($data['client_id'] ?? 0);
                         if($clientFn){
                             //adiciona que é o nome da organização o usuario logado cadastrando
@@ -209,9 +245,9 @@ class ContractController extends Controller
                                 'tags' => $organization->name ?? ''
                             ]);
                             // Passa o $contract para que o buildPayload herde o código do plano via product->config
-                            $retLsx = $this->lsxMedicalService->createPatient($clientFn, $request->all(), $contract);
+                            $retLsx = $lsxService->createPatient($clientFn, $request->all(), $contract);
 
-                            Qlib::update_contract_meta($contract->id, 'integration_lsx_medical', json_encode($retLsx));
+                            Qlib::update_contract_meta($contract->id, $lsxMetaKey, json_encode($retLsx));
 
                             if (isset($retLsx['exec']) && $retLsx['exec'] === true) {
                                 // Sucesso: Aprovar contrato automaticamente
@@ -224,7 +260,7 @@ class ContractController extends Controller
                                     $oldStatus, // provavelmente 'pending' ou equivalente inicial
                                     'approved',
                                     'Contrato aprovado automaticamente via integração LSX Medical.',
-                                    ['integration_response' => $retLsx],
+                                    ['integration_slug' => $lsxIntegrationSlug, 'integration_response' => $retLsx],
                                     json_encode($retLsx),
                                     auth()->id()
                                 );
@@ -241,7 +277,7 @@ class ContractController extends Controller
                                      $contract,
                                      'integration_error',
                                      'Falha na integração LSX Medical: ' . $msgLsx,
-                                     ['integration_response' => $retLsx],
+                                     ['integration_slug' => $lsxIntegrationSlug, 'integration_response' => $retLsx],
                                      json_encode($retLsx),
                                      auth()->id()
                                  );
@@ -347,6 +383,17 @@ class ContractController extends Controller
                  $contract->setAttribute('integration_lsx_medical', $lsx_data);
             }
         }
+
+        $contract->setAttribute('integration_lsx_medical_v2', []);
+        $lsx_integration_v2 = Qlib::get_contract_meta($contract->id, 'integration_lsx_medical_v2');
+        if ($lsx_integration_v2) {
+            $lsx_data_v2 = is_array($lsx_integration_v2) ? $lsx_integration_v2 : json_decode($lsx_integration_v2, true);
+            if(isset($lsx_data_v2['exec'])){
+                $contract->setAttribute('integration_lsx_medical_v2', $lsx_data_v2);
+            }
+        }
+
+        $contract->setAttribute('lsx_integration_slug', (string)(Qlib::get_contract_meta($contract->id, 'lsx_integration_slug') ?? ''));
 
         // IZA Integration Data
         $contract->setAttribute('integration_iza', []);
@@ -456,9 +503,18 @@ class ContractController extends Controller
                      auth()->id()
                  );
 
-                // Integration LSX Medical
+                $lsxIntegrationSlug = $this->resolveLsxIntegrationSlug($request, $contract);
+                Qlib::update_contract_meta($contract->id, 'lsx_integration_slug', $lsxIntegrationSlug);
+
+                $lsxService = $this->isLsxV2Slug($lsxIntegrationSlug)
+                    ? $this->lsxMedicalV2Service
+                    : $this->lsxMedicalService;
+                $lsxMetaKey = $this->isLsxV2Slug($lsxIntegrationSlug)
+                    ? 'integration_lsx_medical_v2'
+                    : 'integration_lsx_medical';
+
                 try {
-                    if ($this->lsxMedicalService->isIntegrationActive()) {
+                    if ($lsxService->isIntegrationActive()) {
                         $clientFn = Client::find($contract->client_id ?? 0);
                         if($clientFn){
                             //adiciona que é o nome da organização o usuario logado cadastrando
@@ -468,8 +524,8 @@ class ContractController extends Controller
                                 'tags' => $organization->name ?? ''
                             ]);
                             // Passa o $contract para que o buildPayload herde o código do plano via product->config
-                            $retLsx = $this->lsxMedicalService->createPatient($clientFn, $request->all(), $contract);
-                            Qlib::update_contract_meta($contract->id, 'integration_lsx_medical', json_encode($retLsx));
+                            $retLsx = $lsxService->createPatient($clientFn, $request->all(), $contract);
+                            Qlib::update_contract_meta($contract->id, $lsxMetaKey, json_encode($retLsx));
                             $mens = $retLsx['message'] ?? $retLsx['error'] ?? 'Contrato atualizado com sucesso.';
                             // dd($mens);
                             $ret = [
@@ -490,7 +546,7 @@ class ContractController extends Controller
                                     $oldStatus, // provavelmente 'pending'
                                     'approved',
                                     'Contrato aprovado automaticamente via integração LSX Medical (Update).',
-                                    ['integration_response' => $retLsx],
+                                    ['integration_slug' => $lsxIntegrationSlug, 'integration_response' => $retLsx],
                                     json_encode($retLsx),
                                     auth()->id()
                                 );
@@ -508,7 +564,7 @@ class ContractController extends Controller
                                     $contract,
                                     'integration_error',
                                     'Falha na integração LSX Medical (Update): ' . $msgLsx,
-                                    ['integration_response' => $retLsx],
+                                    ['integration_slug' => $lsxIntegrationSlug, 'integration_response' => $retLsx],
                                     json_encode($retLsx),
                                     auth()->id()
                                 );
@@ -903,7 +959,11 @@ class ContractController extends Controller
             }
         }elseif($supplier == 'LSX'){
             $client = Client::find($contract->client_id);
-            $response = (new LsxMedicalService())->toggleStatus($client->cpf, ['contract_id' => $contract->id, 'status' => false]);
+            $lsxIntegrationSlug = $this->resolveLsxIntegrationSlug($request, $contract);
+            $lsxService = $this->isLsxV2Slug($lsxIntegrationSlug)
+                ? $this->lsxMedicalV2Service
+                : $this->lsxMedicalService;
+            $response = $lsxService->toggleStatus($client->cpf, ['contract_id' => $contract->id, 'status' => false]);
             $integrationResult = $response;
             $message = $response['message']??'Contrato cancelado com sucesso.';
             if (!isset($response['exec']) || $response['exec'] !== true) {

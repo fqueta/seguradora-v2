@@ -146,4 +146,77 @@ class IzaController extends Controller
             'data' => $data,
         ]);
     }
+
+    /**
+     * Sincroniza os dados de um contrato com a IZA.
+     * GET iza/contracts/sync?contract_id={id}
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function syncContract(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['error' => 'Acesso negado'], 403);
+        }
+        $perm = intval($user->permission_id ?? $user->id_permission ?? 99);
+        if ($perm >= 3) {
+            return response()->json(['error' => 'Permissão insuficiente'], 403);
+        }
+        if (!$this->permissionService->isHasPermission('view')) {
+            return response()->json(['error' => 'Acesso negado'], 403);
+        }
+
+        $contractId = $request->query('contract_id');
+        if (!$contractId) {
+            return response()->json(['exec' => false, 'message' => 'contract_id é obrigatório'], 400);
+        }
+
+        $contract = Contract::find($contractId);
+        if (!$contract) {
+            return response()->json(['exec' => false, 'message' => 'Contrato não encontrado'], 404);
+        }
+
+        $izaMeta = Qlib::get_contract_meta($contract->id, 'integration_iza');
+        $izaData = [];
+        if ($izaMeta) {
+            $izaData = is_array($izaMeta) ? $izaMeta : (json_decode($izaMeta, true) ?? []);
+        }
+
+        $izaContractId = $izaData['data']['id']
+            ?? $izaData['data']['contract_id']
+            ?? $izaData['data']['uuid']
+            ?? null;
+
+        if (!$izaContractId) {
+            return response()->json([
+                'exec' => false,
+                'message' => 'ID do contrato na IZA não encontrado. O contrato foi integrado à IZA?',
+            ], 404);
+        }
+
+        $result = $this->izaService->fetchContractDetails($izaContractId);
+
+        $mergedData = array_merge($izaData, [
+            'sync_data' => $result['data'] ?? [],
+            'sync_status' => $result['status'] ?? null,
+            'sync_message' => $result['message'] ?? '',
+            'synced_at' => now()->toDateTimeString(),
+        ]);
+
+        Qlib::update_contract_meta($contract->id, 'integration_iza', json_encode($mergedData));
+
+        ContractEventLogger::log(
+            $contract,
+            'integracao_iza_sync',
+            'Sincronização IZA realizada.',
+            ['status' => $result['exec'] ? 'success' : 'error', 'iza_contract_id' => $izaContractId],
+            json_encode($result),
+            auth()->id()
+        );
+
+        $status = $result['status'] ?? ($result['exec'] ? 200 : 400);
+        return response()->json($result, $status);
+    }
 }

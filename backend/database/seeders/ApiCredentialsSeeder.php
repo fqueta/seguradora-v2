@@ -11,7 +11,8 @@ class ApiCredentialsSeeder extends Seeder
 {
     public function run(): void
     {
-        $slug = 'integracao-lsxmedical';
+        $slug = 'integracao-lsx-medical';
+        $legacySlug = 'integracao-lsxmedical';
         $name = 'Integração LSX Medical';
         $url = 'https://clinicahomo.lsxmedical.com/api/clinic';
         $token = 'lStDj16-gHz6d1Uq7lGXnucjC1D9x2NtcjaQ4q98nGXETN5LiNpGb0zkx9HFVBZy';
@@ -23,13 +24,17 @@ class ApiCredentialsSeeder extends Seeder
             'pass' => $encryptedToken,
         ]);
 
+        $slugNormalized = Str::slug($slug);
+        $legacySlugNormalized = Str::slug($legacySlug);
+
         $existing = ApiCredential::withoutGlobalScope('notDeleted')
-            ->where('post_name', $slug)
+            ->whereIn('post_name', [$slugNormalized, $legacySlugNormalized])
             ->first();
 
         if ($existing) {
             $existing->update([
                 'post_title' => $name,
+                'post_name' => $slugNormalized,
                 'post_status' => 'publish',
                 'comment_status' => 'closed',
                 'ping_status' => 'closed',
@@ -55,6 +60,58 @@ class ApiCredentialsSeeder extends Seeder
                 'config' => $config,
             ]);
         }
+
+        $slugV2 = 'integracao-lsx-medical-v2';
+        $nameV2 = 'Integração LSX Medical (Nova API)';
+        $urlV2 = 'https://gateway.meditele.com.br';
+        $tokenV2 = '';
+        $clinicIdV2 = '';
+
+        $encryptedTokenV2 = Crypt::encryptString($tokenV2);
+        $configV2 = json_encode([
+            'url' => $urlV2,
+            'user' => '',
+            'pass' => $encryptedTokenV2,
+            'clinicId' => $clinicIdV2,
+        ]);
+
+        $existingV2 = ApiCredential::withoutGlobalScope('notDeleted')
+            ->where('post_name', Str::slug($slugV2))
+            ->first();
+
+        if ($existingV2) {
+            $existingV2->update([
+                'post_title' => $nameV2,
+                'post_name' => Str::slug($slugV2),
+                'post_status' => 'draft',
+                'comment_status' => 'closed',
+                'ping_status' => 'closed',
+                'menu_order' => 0,
+                'comment_count' => 0,
+                'excluido' => 'n',
+                'deletado' => 'n',
+                'config' => $configV2,
+            ]);
+            $postIdV2 = $existingV2->ID ?? $existingV2->id;
+        } else {
+            $createdV2 = ApiCredential::create([
+                'post_title' => $nameV2,
+                'post_name' => Str::slug($slugV2),
+                'post_status' => 'draft',
+                'post_author' => '1',
+                'comment_status' => 'closed',
+                'ping_status' => 'closed',
+                'menu_order' => 0,
+                'comment_count' => 0,
+                'excluido' => 'n',
+                'deletado' => 'n',
+                'token' => \App\Services\Qlib::token(),
+                'config' => $configV2,
+            ]);
+            $postIdV2 = $createdV2->ID ?? $createdV2->id;
+        }
+        \App\Services\Qlib::update_postmeta($postIdV2, 'clinicId', $clinicIdV2);
+        \App\Services\Qlib::update_postmeta($postIdV2, 'clinic_id', $clinicIdV2);
 
         $slug2 = 'integracao-alloyal';
         $name2 = 'Integração Alloyal';

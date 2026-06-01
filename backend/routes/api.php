@@ -38,6 +38,7 @@ use App\Http\Controllers\TesteController;
 use App\Http\Controllers\api\SulAmericaController;
 use App\Http\Controllers\api\AlloyalController;
 use App\Http\Controllers\api\LsxMedicalController;
+use App\Http\Controllers\api\LsxMedicalV2Controller;
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
@@ -212,6 +213,17 @@ Route::name('api.')->prefix('v1')->middleware([
             ->name('lsxmedical.patients.update');
         Route::post('lsxmedical/patients/{cpf}/toggle-status', [LsxMedicalController::class, 'toggleStatus'])
             ->name('lsxmedical.patients.toggle-status');
+
+        Route::get('lsxmedical-v2/credentials-resolved', [LsxMedicalV2Controller::class, 'credentialsResolved'])
+            ->name('lsxmedical-v2.credentials-resolved');
+        Route::get('lsxmedical-v2/filter-patients', [LsxMedicalV2Controller::class, 'filterPatients'])
+            ->name('lsxmedical-v2.filter-patients');
+        Route::post('lsxmedical-v2/patients', [LsxMedicalV2Controller::class, 'createPatient'])
+            ->name('lsxmedical-v2.patients.create');
+        Route::put('lsxmedical-v2/patients/{cpf}', [LsxMedicalV2Controller::class, 'updatePatient'])
+            ->name('lsxmedical-v2.patients.update');
+        Route::post('lsxmedical-v2/patients/{cpf}/toggle-status', [LsxMedicalV2Controller::class, 'toggleStatus'])
+            ->name('lsxmedical-v2.patients.toggle-status');
 
         // IZA: credenciais resolvidas e operações de contrato
         Route::get('iza/credentials-resolved', [\App\Http\Controllers\api\IzaController::class, 'credentialsResolved'])

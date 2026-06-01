@@ -42,6 +42,10 @@ export default function ContractView() {
     const [showLsxJson, setShowLsxJson] = useState(false);
     const [lsxConfirmDialogOpen, setLsxConfirmDialogOpen] = useState(false);
     const [pendingLsxStatus, setPendingLsxStatus] = useState<boolean | null>(null);
+    const [izaModalOpen, setIzaModalOpen] = useState(false);
+    const [izaQueryResult, setIzaQueryResult] = useState<any>(null);
+    const [izaActionLoading, setIzaActionLoading] = useState(false);
+    const [showIzaJson, setShowIzaJson] = useState(false);
     const [showSulAmericaCancel, setShowSulAmericaCancel] = useState(false);
     const [cancelMonth, setCancelMonth] = useState(() => {
         const now = new Date();
@@ -709,6 +713,215 @@ export default function ContractView() {
                     );
                 })()}
 
+                {/* Resumo da Integração IZA */}
+                {((contract as any)?.supplier_tag?.toUpperCase() === 'IZA') && (() => {
+                    const izaData = (contract as any)?.integration_iza || {};
+                    const izaSyncData = izaData?.sync_data || {};
+                    const izaPayloadData = izaData?.payload || {};
+
+                    const isSuccess = izaData.exec === true;
+                    const syncSuccess = izaData?.sync_data && Object.keys(izaSyncData).length > 0;
+                    const izaContractId = izaSyncData?.contract_id || izaData?.data?.id || izaData?.data?.contract_id || izaData?.data?.uuid || '-';
+                    const izaStatus = izaSyncData?.status || izaData?.data?.status || null;
+                    const message = izaData?.sync_message || izaData?.message || '-';
+
+                    const statusLabel = (() => {
+                        if (!syncSuccess && !isSuccess) return 'Pendente';
+                        if (!syncSuccess) return 'Enviado';
+                        return izaStatus === 'opened' ? 'Aberto' :
+                               izaStatus === 'cancelled' ? 'Cancelado' :
+                               izaStatus === 'closed' ? 'Encerrado' :
+                               izaStatus ? izaStatus.charAt(0).toUpperCase() + izaStatus.slice(1) :
+                               'Sincronizado';
+                    })();
+
+                    const statusBadgeVariant = (() => {
+                        if (!syncSuccess && !isSuccess) return 'destructive';
+                        if (izaStatus === 'opened') return 'default';
+                        if (izaStatus === 'cancelled' || izaStatus === 'closed') return 'secondary';
+                        if (!syncSuccess) return 'default';
+                        return 'default';
+                    })();
+
+                    const statusBadgeClass = (() => {
+                        if (!syncSuccess && !isSuccess) return 'h-6';
+                        if (izaStatus === 'opened') return 'bg-blue-600 hover:bg-blue-700 h-6';
+                        if (izaStatus === 'cancelled' || izaStatus === 'closed') return 'bg-amber-600 hover:bg-amber-700 h-6';
+                        if (!syncSuccess) return 'bg-green-600 h-6';
+                        return 'bg-blue-600 hover:bg-blue-700 h-6';
+                    })();
+
+                    const hasResponseData = syncSuccess && izaSyncData && Object.keys(izaSyncData).length > 0;
+                    const displayName = izaSyncData?.insured_name || izaPayloadData?.name || '-';
+                    const displayDoc = izaSyncData?.insured_doc || izaPayloadData?.doc || '-';
+                    const displayBirth = izaSyncData?.insured_birth_date || izaPayloadData?.birthed_at || null;
+                    const displayPlanId = izaSyncData?.plan_id || izaPayloadData?.plan_id || '-';
+                    const displayPlanDesc = izaSyncData?.plan_description || '-';
+                    const displayOrg = izaSyncData?.organization_name || '-';
+                    const displayDateBegin = izaSyncData?.date_begin || izaPayloadData?.date_begin || null;
+                    const displayDateEnd = izaSyncData?.date_end || izaPayloadData?.date_end || null;
+                    const displayEmission = izaSyncData?.emission || null;
+                    const displaySiesId = izaSyncData?.sies_id || null;
+
+                    return (
+                        <Card className="md:col-span-2 border-l-4 border-l-blue-500">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-blue-700">
+                                    <Package className="h-5 w-5" />
+                                    Integração IZA
+                                </CardTitle>
+                                {(user && Number(user.permission_id ?? (user as any).id_permission ?? 99) < 3) && (
+                                <div className="mt-2 flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={izaActionLoading}
+                                        onClick={async () => {
+                                            try {
+                                                setIzaActionLoading(true);
+                                                const res = await fetch(`${getApiUrl()}/iza/contracts/sync?contract_id=${encodeURIComponent(String(contract.id))}`, {
+                                                    method: 'GET',
+                                                    headers: buildAuthHeaders(),
+                                                    credentials: 'include',
+                                                });
+                                                const data = await res.json();
+                                                setIzaQueryResult(data);
+                                                setIzaModalOpen(true);
+                                                try { await refetch(); } catch {}
+                                            } finally {
+                                                setIzaActionLoading(false);
+                                            }
+                                        }}
+                                    >
+                                        <RefreshCw className="mr-2 h-4 w-4" />
+                                        {izaActionLoading ? 'Sincronizando...' : 'Sincronizar'}
+                                    </Button>
+                                </div>
+                                )}
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-6">
+                                    {/* Status */}
+                                    <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                                        <div className="space-y-0.5">
+                                            <Label className="text-sm font-semibold text-blue-900">
+                                                Status na IZA
+                                            </Label>
+                                            <p className="text-xs text-muted-foreground">
+                                                {syncSuccess
+                                                    ? `Contrato ${izaStatus === 'opened' ? 'ativo' : izaStatus === 'cancelled' ? 'cancelado' : izaStatus === 'closed' ? 'encerrado' : izaStatus || 'sincronizado'}`
+                                                    : (isSuccess ? 'Contrato enviado, aguardando sincronização' : 'Aguardando envio')}
+                                            </p>
+                                        </div>
+                                        <Badge
+                                            variant={statusBadgeVariant as any}
+                                            className={statusBadgeClass}
+                                        >
+                                            {statusLabel}
+                                        </Badge>
+                                    </div>
+
+                                    {/* Dados do Segurado e Contrato (resposta da IZA ou payload) */}
+                                    {(hasResponseData || (izaPayloadData && Object.keys(izaPayloadData).length > 0)) && (
+                                        <div className="rounded-md border">
+                                            {hasResponseData && (
+                                                <div className="bg-blue-50/50 px-4 py-2 border-b border-blue-100">
+                                                    <span className="text-sm font-semibold text-blue-800">Dados do Contrato na IZA</span>
+                                                </div>
+                                            )}
+                                            <table className="w-full text-sm">
+                                                <tbody className="divide-y">
+                                                    <tr>
+                                                        <td className="px-4 py-2 font-medium bg-muted/50 w-1/3 text-muted-foreground">Segurado</td>
+                                                        <td className="px-4 py-2 font-medium">{displayName}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Documento</td>
+                                                        <td className="px-4 py-2">{displayDoc}</td>
+                                                    </tr>
+                                                    {displayBirth && (
+                                                        <tr>
+                                                            <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Nascimento</td>
+                                                            <td className="px-4 py-2">{formatDate(displayBirth)}</td>
+                                                        </tr>
+                                                    )}
+                                                    <tr>
+                                                        <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Plano (ID)</td>
+                                                        <td className="px-4 py-2 font-bold">{displayPlanId}{displayPlanDesc !== '-' ? ` - ${displayPlanDesc}` : ''}</td>
+                                                    </tr>
+                                                    {displayOrg !== '-' && (
+                                                        <tr>
+                                                            <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Organização</td>
+                                                            <td className="px-4 py-2">{displayOrg}</td>
+                                                        </tr>
+                                                    )}
+                                                    <tr>
+                                                        <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Início Vigência</td>
+                                                        <td className="px-4 py-2">{displayDateBegin ? formatDate(displayDateBegin) : '-'}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Fim Vigência</td>
+                                                        <td className="px-4 py-2">{displayDateEnd ? formatDate(displayDateEnd) : '-'}</td>
+                                                    </tr>
+                                                    {displayEmission && (
+                                                        <tr>
+                                                            <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Emissão</td>
+                                                            <td className="px-4 py-2">{formatDate(displayEmission)}</td>
+                                                        </tr>
+                                                    )}
+                                                    {displaySiesId && (
+                                                        <tr>
+                                                            <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">SIES ID</td>
+                                                            <td className="px-4 py-2">{displaySiesId}</td>
+                                                        </tr>
+                                                    )}
+                                                    <tr>
+                                                        <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">ID do Contrato IZA</td>
+                                                        <td className="px-4 py-2 font-mono text-xs break-all">{izaContractId}</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-muted-foreground">Mensagem de Retorno</label>
+                                        <div className="font-medium text-sm p-2 bg-muted rounded border flex items-center gap-2">
+                                            {(isSuccess || syncSuccess) ?
+                                                <Badge className="bg-blue-600 h-5 px-1.5 pointer-events-none">Sucesso</Badge> :
+                                                <Badge variant="destructive" className="h-5 px-1.5 pointer-events-none">Falha</Badge>
+                                            }
+                                            {message}
+                                        </div>
+                                    </div>
+
+                                    {/* Controle de JSON para Super Admin */}
+                                    {user?.permission_id == '1' && (
+                                        <div className="pt-4 border-t">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label className="text-sm font-medium text-muted-foreground">Dados Técnicos (JSON)</label>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setShowIzaJson(!showIzaJson)}
+                                                    className="h-8 text-xs text-primary underline-offset-4 hover:underline"
+                                                >
+                                                    {showIzaJson ? 'Ocultar JSON' : 'Ver JSON'}
+                                                </Button>
+                                            </div>
+                                            {showIzaJson && (
+                                                <pre className="p-3 bg-slate-950 text-slate-50 rounded text-xs overflow-x-auto max-h-60 border border-slate-800">
+                                                    {JSON.stringify(izaData, null, 2)}
+                                                </pre>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    );
+                })()}
+
                 <Dialog open={lsxModalOpen} onOpenChange={setLsxModalOpen}>
                     <DialogContent className="max-w-2xl">
                         <DialogHeader>
@@ -739,6 +952,47 @@ export default function ContractView() {
                                 Fechar
                             </Button>
                             <Button disabled={lsxActionLoading} onClick={() => setLsxModalOpen(false)}>
+                                Ok
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={izaModalOpen} onOpenChange={setIzaModalOpen}>
+                    <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle>Resultado da Integração IZA</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-3">
+                            {izaQueryResult?.exec === false && (
+                                <div className="p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-md text-sm font-medium">
+                                    {izaQueryResult.message || 'Falha ao sincronizar com a IZA'}
+                                </div>
+                            )}
+                            {izaQueryResult?.exec && (
+                                <div className="p-4 bg-green-50 border border-green-200 text-green-800 rounded-md text-sm font-medium">
+                                    {izaQueryResult.message || 'Sincronização realizada com sucesso'}
+                                </div>
+                            )}
+                            {user?.permission_id == '1' && (
+                                <div>
+                                    <pre className="p-2 bg-slate-950 text-slate-50 rounded text-xs overflow-x-auto max-h-80">
+                                        {(() => {
+                                            try {
+                                                return JSON.stringify(izaQueryResult, null, 2);
+                                            } catch {
+                                                return String(izaQueryResult ?? '');
+                                            }
+                                        })()}
+                                    </pre>
+                                </div>
+                            )}
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIzaModalOpen(false)}>
+                                Fechar
+                            </Button>
+                            <Button onClick={() => setIzaModalOpen(false)}>
                                 Ok
                             </Button>
                         </DialogFooter>
