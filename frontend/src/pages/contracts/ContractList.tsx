@@ -248,6 +248,7 @@ export default function ContractList() {
                                     <SelectItem value="pending">Pendente</SelectItem>
                                     <SelectItem value="approved">Aprovado</SelectItem>
                                     <SelectItem value="active">Ativo</SelectItem>
+                                    <SelectItem value="cancelling">Cancelando</SelectItem>
                                     <SelectItem value="cancelled">Cancelado</SelectItem>
                                     <SelectItem value="rejected">Rejeitado</SelectItem>
                                     <SelectItem value="draft">Rascunho</SelectItem>
@@ -379,6 +380,7 @@ export default function ContractList() {
                                     const statusMap: Record<string, string> = {
                                         'pending': 'Pendente',
                                         'active': 'Ativo',
+                                        'cancelling': 'Cancelando',
                                         'cancelled': 'Cancelado',
                                         'cancel_error': 'Erro no cancelamento',
                                         'approved': 'Aprovado',

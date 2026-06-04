@@ -257,6 +257,7 @@ export default function ContractView() {
         const labels: Record<string, string> = {
             'pending': 'Pendente',
             'approved': 'Aprovado',
+            'cancelling': 'Cancelando',
             'cancelled': 'Cancelado',
             'cancel_error': 'Erro no cancelamento',
             'rejected': 'Rejeitado',
@@ -290,8 +291,10 @@ export default function ContractView() {
             case 'active': return 'default'; // often green/primary
             case 'approved': return 'default';
             case 'pending': return 'secondary'; // yellow/gray
+            case 'cancelling': return 'warning';
             case 'cancelled': return 'destructive';
             case 'cancel_error': return 'destructive';
+            case 'rejected': return 'destructive';
             default: return 'outline';
         }
     };
@@ -738,8 +741,15 @@ export default function ContractView() {
                     const izaContractId = izaSyncData?.contract_id || izaData?.data?.id || izaData?.data?.contract_id || izaData?.data?.uuid || '-';
                     const izaStatus = izaSyncData?.status || izaData?.data?.status || null;
                     const message = izaData?.sync_message || izaData?.message || '-';
-                    const cancellationStatus = izaSyncData?.cancellation_status || izaData?.data?.cancellation_status || null;
-                    const dateCancelled = izaData?.cancel?.date_cancelled || izaData?.date_cancelled || null;
+                    const cancelInfo = izaData?.cancel && typeof izaData.cancel === 'object' ? izaData.cancel : {};
+                    const alreadyCancelling = Boolean((cancelInfo as any)?.already_cancelling);
+                    const cancellationStatus =
+                        izaSyncData?.cancellation_status ||
+                        izaData?.data?.cancellation_status ||
+                        (cancelInfo as any)?.cancellation_status ||
+                        (alreadyCancelling ? 'cancelling' : null);
+                    const dateCancelled = (cancelInfo as any)?.date_cancelled || izaData?.date_cancelled || null;
+                    const cancelMessage = (cancelInfo as any)?.message || null;
 
                     const effectiveStatusRaw = cancellationStatus || izaStatus || null;
                     const effectiveStatusLower = typeof effectiveStatusRaw === 'string' ? effectiveStatusRaw.toLowerCase() : null;
@@ -747,11 +757,13 @@ export default function ContractView() {
                         effectiveStatusLower === 'active' ? 'opened' :
                         effectiveStatusLower;
                     const isCancelled = normalizedStatus === 'cancelled' || normalizedStatus === 'canceled';
+                    const isCancelling = normalizedStatus === 'cancelling';
                     const isClosed = normalizedStatus === 'closed';
                     const isOpened = normalizedStatus === 'opened';
 
                     const statusLabel = (() => {
                         if (isCancelled) return 'Cancelado';
+                        if (isCancelling) return 'Em cancelamento';
                         if (!syncSuccess && !isSuccess) return 'Pendente';
                         if (!syncSuccess) return 'Enviado';
                         return isOpened ? 'Aberto' :
@@ -762,6 +774,7 @@ export default function ContractView() {
 
                     const statusBadgeVariant = (() => {
                         if (isCancelled) return 'destructive';
+                        if (isCancelling) return 'secondary';
                         if (!syncSuccess && !isSuccess) return 'destructive';
                         if (isOpened) return 'default';
                         if (isClosed) return 'secondary';
@@ -771,6 +784,7 @@ export default function ContractView() {
 
                     const statusBadgeClass = (() => {
                         if (isCancelled) return 'bg-red-600 hover:bg-red-700 h-6';
+                        if (isCancelling) return 'bg-amber-600 hover:bg-amber-700 h-6';
                         if (!syncSuccess && !isSuccess) return 'h-6';
                         if (isOpened) return 'bg-blue-600 hover:bg-blue-700 h-6';
                         if (isClosed) return 'bg-amber-600 hover:bg-amber-700 h-6';
@@ -791,9 +805,9 @@ export default function ContractView() {
                     const displaySiesId = izaSyncData?.sies_id || null;
 
                     return (
-                        <Card className={`md:col-span-2 border-l-4 ${isCancelled ? 'border-l-red-500' : 'border-l-blue-500'}`}>
+                        <Card className={`md:col-span-2 border-l-4 ${isCancelled ? 'border-l-red-500' : isCancelling ? 'border-l-amber-500' : 'border-l-blue-500'}`}>
                             <CardHeader>
-                                <CardTitle className={`flex items-center gap-2 ${isCancelled ? 'text-red-700' : 'text-blue-700'}`}>
+                                <CardTitle className={`flex items-center gap-2 ${isCancelled ? 'text-red-700' : isCancelling ? 'text-amber-700' : 'text-blue-700'}`}>
                                     <Package className="h-5 w-5" />
                                     Integração IZA
                                 </CardTitle>
@@ -829,14 +843,16 @@ export default function ContractView() {
                             <CardContent className="space-y-4">
                                 <div className="space-y-6">
                                     {/* Status */}
-                                    <div className={`flex items-center justify-between p-3 rounded-lg border ${isCancelled ? 'bg-red-50/50 border-red-100' : 'bg-blue-50/50 border-blue-100'}`}>
+                                    <div className={`flex items-center justify-between p-3 rounded-lg border ${isCancelled ? 'bg-red-50/50 border-red-100' : isCancelling ? 'bg-amber-50/50 border-amber-100' : 'bg-blue-50/50 border-blue-100'}`}>
                                         <div className="space-y-0.5">
-                                            <Label className={`text-sm font-semibold ${isCancelled ? 'text-red-900' : 'text-blue-900'}`}>
+                                            <Label className={`text-sm font-semibold ${isCancelled ? 'text-red-900' : isCancelling ? 'text-amber-900' : 'text-blue-900'}`}>
                                                 Status na IZA
                                             </Label>
                                             <p className="text-xs text-muted-foreground">
                                                 {isCancelled
                                                     ? 'Contrato cancelado na IZA'
+                                                    : isCancelling
+                                                        ? (cancelMessage ? String(cancelMessage) : 'Contrato em cancelamento na IZA')
                                                     : (syncSuccess
                                                         ? `Contrato ${isOpened ? 'ativo' : isClosed ? 'encerrado' : normalizedStatus || 'sincronizado'}`
                                                         : (isSuccess ? 'Contrato enviado, aguardando sincronização' : 'Aguardando envio'))}

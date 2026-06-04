@@ -391,18 +391,31 @@ class IzaService
                 if (!isset($updatedIzaData['data']) || !is_array($updatedIzaData['data'])) {
                     $updatedIzaData['data'] = [];
                 }
-                $updatedIzaData['data']['status'] = 'cancelled';
-                if (isset($body['data']) && is_array($body['data'])) {
-                    if (array_key_exists('cancellation_status', $body['data'])) {
-                        $updatedIzaData['data']['cancellation_status'] = $body['data']['cancellation_status'];
-                    }
-                    if (array_key_exists('cancellation_at', $body['data'])) {
-                        $updatedIzaData['data']['cancellation_at'] = $body['data']['cancellation_at'];
-                    }
+                $effectiveCancellationStatus = null;
+                if ($ok) {
+                    $effectiveCancellationStatus = strtolower((string) (($body['data']['cancellation_status'] ?? null) ?: 'cancelled'));
+                } elseif ($alreadyCancelling) {
+                    $effectiveCancellationStatus = 'cancelling';
                 }
+
+                if ($ok) {
+                    $updatedIzaData['data']['status'] = 'cancelled';
+                } elseif ($alreadyCancelling) {
+                    $updatedIzaData['data']['status'] = 'cancelling';
+                }
+
+                if ($effectiveCancellationStatus) {
+                    $updatedIzaData['data']['cancellation_status'] = $effectiveCancellationStatus;
+                }
+                if (isset($body['data']) && is_array($body['data']) && array_key_exists('cancellation_at', $body['data'])) {
+                    $updatedIzaData['data']['cancellation_at'] = $body['data']['cancellation_at'];
+                }
+
                 $updatedIzaData['cancel'] = [
                     'date_cancelled' => $dateCancelled,
                     'already_cancelling' => $alreadyCancelling,
+                    'cancellation_status' => $effectiveCancellationStatus,
+                    'message' => $alreadyCancelling ? 'Contrato já estava em cancelamento na IZA.' : $message,
                 ];
                 Qlib::update_contract_meta($contract->id, 'integration_iza', json_encode($updatedIzaData));
 

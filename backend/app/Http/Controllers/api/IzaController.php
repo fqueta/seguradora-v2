@@ -216,6 +216,24 @@ class IzaController extends Controller
             auth()->id()
         );
 
+        if (isset($result['exec']) && $result['exec'] === true) {
+            $providerStatus = strtolower((string) (($result['data']['status'] ?? null) ?: ''));
+            if ($providerStatus === 'active' && $contract->status !== 'approved') {
+                $oldStatus = $contract->status;
+                $contract->update(['status' => 'approved']);
+
+                ContractEventLogger::logStatusChange(
+                    $contract,
+                    $oldStatus,
+                    'approved',
+                    'Contrato aprovado automaticamente via sincronização IZA (status ativo).',
+                    ['integration_response' => $result],
+                    json_encode($result),
+                    auth()->id()
+                );
+            }
+        }
+
         $status = $result['status'] ?? ($result['exec'] ? 200 : 400);
         return response()->json($result, $status);
     }

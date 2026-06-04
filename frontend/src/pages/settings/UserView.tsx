@@ -68,10 +68,11 @@ export default function UserView() {
   };
 
   const getContractStatusBadge = (status: string) => {
-    const map: Record<string, { label: string, variant: "default" | "destructive" | "outline" | "secondary" }> = {
+    const map: Record<string, { label: string, variant: "default" | "destructive" | "outline" | "secondary" | "warning" }> = {
       'pending': { label: 'Pendente', variant: 'secondary' },
       'active': { label: 'Ativo', variant: 'default' },
       'approved': { label: 'Aprovado', variant: 'default' },
+      'cancelling': { label: 'Cancelando', variant: 'warning' },
       'cancelled': { label: 'Cancelado', variant: 'destructive' },
       'cancel_error': { label: 'Erro no cancelamento', variant: 'destructive' },
       'rejected': { label: 'Rejeitado', variant: 'destructive' },

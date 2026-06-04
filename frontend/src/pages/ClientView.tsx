@@ -716,6 +716,7 @@ export default function ClientView() {
                       const statusMap: Record<string, string> = {
                         'pending': 'Pendente',
                         'active': 'Ativo',
+                        'cancelling': 'Cancelando',
                         'cancelled': 'Cancelado',
                         'cancel_error': 'Erro no cancelamento',
                         'approved': 'Aprovado',
@@ -730,6 +731,7 @@ export default function ClientView() {
                           <TableCell>
                             <Badge variant={
                               contract.status === 'approved' || contract.status === 'active' ? 'default' :
+                              contract.status === 'cancelling' ? 'warning' :
                               contract.status === 'cancelled' || contract.status === 'rejected' || contract.status === 'cancel_error' ? 'destructive' :
                               'secondary'
                             }>

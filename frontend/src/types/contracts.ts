@@ -2,7 +2,7 @@
  * Tipos relacionados a contratos de seguros
  */
 
-export type ContractStatus = 'pending' | 'active' | 'cancelled' | 'approved' | 'draft' | 'cancel_error';
+export type ContractStatus = 'pending' | 'active' | 'approved' | 'cancelling' | 'cancelled' | 'cancel_error' | 'rejected' | 'draft';
 
 /**
  * Registro de contrato retornado pela API

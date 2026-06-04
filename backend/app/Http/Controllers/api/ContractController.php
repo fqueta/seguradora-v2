@@ -1173,8 +1173,11 @@ class ContractController extends Controller
         }
         if ($integrationSuccess) {
             $oldStatus = $contract->status;
-            if($oldStatus!='cancelled'){
-                $contract->update(['status' => 'cancelled']);
+            $isIza = $supplier && stripos((string) $supplier, 'Iza') !== false;
+            $alreadyCancelling = $isIza && is_array($integrationResult) && !empty($integrationResult['already_cancelling']);
+            $nextStatus = $alreadyCancelling ? 'cancelling' : 'cancelled';
+            if ($oldStatus !== $nextStatus) {
+                $contract->update(['status' => $nextStatus]);
             }
 
             // Log de sucesso da integração antes da mudança de status
@@ -1187,18 +1190,19 @@ class ContractController extends Controller
                 auth()->id()
             );
 
-            if ($oldStatus !== 'cancelled') {
+            if ($oldStatus !== $nextStatus) {
                 \App\Services\ContractEventLogger::logStatusChange(
                     $contract,
                     $oldStatus,
-                    'cancelled',
-                    'Contrato cancelado com sucesso.',
+                    $nextStatus,
+                    $alreadyCancelling ? 'Contrato em cancelamento na IZA.' : 'Contrato cancelado com sucesso.',
                     [
                         'integration_response' => $integrationResult,
                         'supplier' => $supplier,
                         'date_cancelled' => $dateCancelled,
                         'url' => is_array($integrationResult) ? ($integrationResult['url'] ?? null) : null,
                         'cancellation_at' => is_array($integrationResult) ? ($integrationResult['data']['cancellation_at'] ?? null) : null,
+                        'already_cancelling' => $alreadyCancelling,
                     ],
                     is_array($integrationResult) ? json_encode($integrationResult) : null,
                     auth()->id()

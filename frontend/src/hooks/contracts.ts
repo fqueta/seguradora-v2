@@ -73,7 +73,9 @@ export function useCancelContract(mutationOptions?: any) {
                         ? { ...(next as any).integration_iza }
                         : {};
                     const izaData = iza.data && typeof iza.data === 'object' ? { ...iza.data } : {};
-                    izaData.status = 'cancelled';
+                    const alreadyCancelling = Boolean(data?.integration_response?.already_cancelling);
+                    next.status = alreadyCancelling ? 'cancelling' : 'cancelled';
+                    izaData.status = alreadyCancelling ? 'cancelling' : 'cancelled';
 
                     const cancelBody = data?.integration_response?.data?.data;
                     if (cancelBody && typeof cancelBody === 'object') {
@@ -83,12 +85,16 @@ export function useCancelContract(mutationOptions?: any) {
                         if (Object.prototype.hasOwnProperty.call(cancelBody, 'cancellation_at')) {
                             (izaData as any).cancellation_at = cancelBody.cancellation_at;
                         }
+                    } else if (alreadyCancelling) {
+                        (izaData as any).cancellation_status = 'cancelling';
                     }
 
                     iza.data = izaData;
                     iza.cancel = {
                         date_cancelled: data?.integration_response?.date_cancelled ?? data?.date_cancelled ?? null,
                         already_cancelling: data?.integration_response?.already_cancelling ?? null,
+                        cancellation_status: alreadyCancelling ? 'cancelling' : ((izaData as any).cancellation_status ?? null),
+                        message: data?.integration_response?.message ?? null,
                     };
                     (next as any).integration_iza = iza;
                 }
