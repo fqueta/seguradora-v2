@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { EventTimeline } from '@/components/clients/EventTimeline';
+import { useAuth } from '@/contexts/AuthContext';
 
 
 
@@ -27,6 +28,7 @@ export default function ClientView() {
 
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const location = useLocation();
   // pt-BR: Flag para ativar uso de dados mockados
@@ -975,7 +977,9 @@ export default function ClientView() {
       )}
 
       {/* Linha do Tempo de Eventos */}
-      <EventTimeline events={client.events} />
+      {Number((user as any)?.permission_id ?? (user as any)?.id_permission ?? 99) <= 2 && (
+        <EventTimeline events={client.events} />
+      )}
 
       {/* Informações do Sistema */}
       <Card>
