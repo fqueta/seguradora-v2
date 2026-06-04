@@ -84,6 +84,25 @@ class SupplierSeeder extends Seeder
                     'tag' => 'LSX'
                 ]),
             ]
+            ,
+            [
+                'name' => 'Alloyal',
+                'razao' => 'Alloyal',
+                'email' => 'contato@alloyal.com.br',
+                'password' => Hash::make('password'),
+                'permission_id' => $permissionId,
+                'ativo' => 's',
+                'status' => 'actived',
+                'cnpj' => '00.000.000/0000-00',
+                'tipo_pessoa' => 'pj',
+                'genero' => 'ni',
+                'verificado' => 's',
+                'excluido' => 'n',
+                'deletado' => 'n',
+                'config' => json_encode([
+                    'tag' => 'Alloyal'
+                ]),
+            ]
         ];
 
         $tableName = 'users';

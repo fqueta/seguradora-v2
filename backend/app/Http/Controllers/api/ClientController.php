@@ -70,7 +70,7 @@ class ClientController extends Controller
         $order_by = $request->input('order_by', 'created_at');
         $order = $request->input('order', 'desc');
 
-        $query = Client::query()->with('organization')->orderBy($order_by, $order);
+        $query = Client::query()->with(['organization', 'owner:id,name'])->orderBy($order_by, $order);
 
         // Security: visualiza apenas dados/cadastros de permission_id >= 3 da sua organization_id
         if ($user->permission_id >= 3) {
@@ -166,9 +166,28 @@ class ClientController extends Controller
         // ]);
         $clients = $query->paginate($perPage);
 
+        $stageIds = [];
+        foreach ($clients->getCollection() as $client) {
+            $config = $client->config ?? [];
+            $preferencias = $client->preferencias ?? [];
+            $stageId = $config['stage_id'] ?? ($preferencias['pipeline']['stage_id'] ?? null);
+            if (!empty($stageId)) {
+                $stageIds[] = (int)$stageId;
+            }
+        }
+        $stageIds = array_values(array_unique(array_filter($stageIds)));
+        $stageFunnelMap = [];
+        if (!empty($stageIds)) {
+            $stageFunnelMap = Stage::select(['id', 'funnel_id'])
+                ->whereIn('id', $stageIds)
+                ->get()
+                ->pluck('funnel_id', 'id')
+                ->toArray();
+        }
+
         // Mapear campos para compatibilidade no resultado do index
-        $clients->getCollection()->transform(function ($client) {
-            return $this->mapIndexItemOutput($client);
+        $clients->getCollection()->transform(function ($client) use ($stageFunnelMap) {
+            return $this->mapIndexItemOutput($client, $stageFunnelMap);
         });
 
         return response()->json($clients);
@@ -181,7 +200,7 @@ class ClientController extends Controller
      * - Adiciona alias em camelCase mantendo os originais em snake_case.
      * - Normaliza campo de ativo ('s'/'n') para booleano em "active".
      */
-    private function mapIndexItemOutput($client): array
+    private function mapIndexItemOutput($client, array $stageFunnelMap = []): array
     {
         // Base em array para manipulação
         $data = is_array($client) ? $client : $client->toArray();
@@ -231,14 +250,9 @@ class ClientController extends Controller
         // Derivar funnelId via Stage quando possível
         if (isset($data['config']['stage_id']) && (!isset($data['config']['funnelId']) || empty($data['config']['funnelId']))) {
             $stageId = $data['config']['stage_id'];
-            $stage = null;
-            try {
-                $stage = Stage::select(['id','funnel_id'])->find($stageId);
-            } catch (\Exception $e) {
-                $stage = null;
-            }
-            if ($stage && isset($stage->funnel_id)) {
-                $data['config']['funnelId'] = $stage->funnel_id;
+            $stageIdInt = (int)$stageId;
+            if (isset($stageFunnelMap[$stageIdInt])) {
+                $data['config']['funnelId'] = $stageFunnelMap[$stageIdInt];
             }
         }
 
@@ -255,6 +269,14 @@ class ClientController extends Controller
 
         // Enriquecer autor_name quando possível
         if (isset($data['autor']) && $data['autor'] !== null && $data['autor'] !== '') {
+            try {
+                if (is_object($client) && method_exists($client, 'relationLoaded') && $client->relationLoaded('owner') && $client->owner) {
+                    $data['autor_name'] = $client->owner->name ?? null;
+                    $data['points'] = $data['points'] ?? null;
+                    $data['is_alloyal'] = $data['is_alloyal'] ?? null;
+                    return $data;
+                }
+            } catch (\Throwable $e) {}
             $autorUser = null;
             try {
                 $autorUser = User::find($data['autor']);

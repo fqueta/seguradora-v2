@@ -18,6 +18,7 @@ class UsersService extends BaseApiService {
     if (params?.search) queryParams.search = params.search;
     if (params?.page) queryParams.page = params.page;
     if (params?.per_page) queryParams.per_page = params.per_page;
+    if (params?.fields) queryParams.fields = params.fields;
     if (params?.consultores) queryParams.consultores = 'true';
     if (params?.sort) queryParams.sort = params.sort;
     if (params?.excluido) queryParams.excluido = params.excluido;

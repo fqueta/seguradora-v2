@@ -78,8 +78,25 @@ class UserController extends Controller
         $order = $request->input('order', 'desc');
         $permission_id = $user->permission_id;
         $supplier_permission_id = Qlib::qoption('permission_supplier_id') ?: 6;
-        $query = User::with('organization')
-            ->orderBy($order_by,$order);
+
+        $fieldsParam = $request->input('fields');
+        $fields = null;
+        if (is_string($fieldsParam) && trim($fieldsParam) !== '') {
+            $requested = array_values(array_filter(array_map('trim', explode(',', $fieldsParam))));
+            $allowed = ['id', 'name', 'organization_id', 'permission_id', 'email'];
+            $filtered = array_values(array_intersect($requested, $allowed));
+            if (!in_array('id', $filtered, true)) {
+                $filtered[] = 'id';
+            }
+            $fields = $filtered;
+        }
+
+        $query = User::query()->orderBy($order_by,$order);
+        if (is_array($fields) && !empty($fields)) {
+            $query->select($fields);
+        } else {
+            $query->with('organization');
+        }
 
         if (!$request->input('skip_exclusions')) {
             $query->where('permission_id', '!=', $this->cliente_permission_id)
@@ -131,21 +148,21 @@ class UserController extends Controller
         }
 
         $users = $query->paginate($perPage);
-        // Converter config para array em cada usuário
-        $users->getCollection()->transform(function ($user) {
-            if (is_string($user->config)) {
-                $configArr = json_decode($user->config, true) ?? [];
-                array_walk($configArr, function (&$value) {
-                    if (is_null($value)) {
-                        $value = (string)'';
-                        // dd($value);
-                    }
-                    // dump($value);
-                });
-                $user->config = $configArr;
-            }
-            return $user;
-        });
+
+        if (!is_array($fields) || empty($fields)) {
+            $users->getCollection()->transform(function ($user) {
+                if (is_string($user->config)) {
+                    $configArr = json_decode($user->config, true) ?? [];
+                    array_walk($configArr, function (&$value) {
+                        if (is_null($value)) {
+                            $value = (string)'';
+                        }
+                    });
+                    $user->config = $configArr;
+                }
+                return $user;
+            });
+        }
         // dd($users->toArray());
         return response()->json($users);
     }

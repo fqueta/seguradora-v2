@@ -51,13 +51,53 @@ export function useCancelContract(mutationOptions?: any) {
         }
         return contractsService.cancelContract(id, payload);
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
         if(data?.exec === false){
             toast.error(data?.mens || 'Erro ao cancelar contrato');
             return;
         }
         toast.success('Contrato cancelado com sucesso');
+        const id = typeof variables === 'object' ? variables.id : variables;
+
+        if (id) {
+            queryClient.setQueryData(['contracts', 'detail', String(id)], (old: any) => {
+                if (!old || typeof old !== 'object') return old;
+
+                const supplierTag = String((old as any)?.supplier_tag ?? data?.supplier ?? '').toLowerCase();
+                const isIza = supplierTag.includes('iza');
+
+                const next: any = { ...old, status: 'cancelled' };
+
+                if (isIza) {
+                    const iza = (next as any).integration_iza && typeof (next as any).integration_iza === 'object'
+                        ? { ...(next as any).integration_iza }
+                        : {};
+                    const izaData = iza.data && typeof iza.data === 'object' ? { ...iza.data } : {};
+                    izaData.status = 'cancelled';
+
+                    const cancelBody = data?.integration_response?.data?.data;
+                    if (cancelBody && typeof cancelBody === 'object') {
+                        if (Object.prototype.hasOwnProperty.call(cancelBody, 'cancellation_status')) {
+                            (izaData as any).cancellation_status = cancelBody.cancellation_status;
+                        }
+                        if (Object.prototype.hasOwnProperty.call(cancelBody, 'cancellation_at')) {
+                            (izaData as any).cancellation_at = cancelBody.cancellation_at;
+                        }
+                    }
+
+                    iza.data = izaData;
+                    iza.cancel = {
+                        date_cancelled: data?.integration_response?.date_cancelled ?? data?.date_cancelled ?? null,
+                        already_cancelling: data?.integration_response?.already_cancelling ?? null,
+                    };
+                    (next as any).integration_iza = iza;
+                }
+
+                return next;
+            });
+        }
         queryClient.invalidateQueries({ queryKey: ['contracts'] });
+        queryClient.invalidateQueries({ queryKey: ['contracts', 'detail', String(id)] });
     },
     onError: (error: any) => {
         toast.error('Erro ao cancelar contrato: ' + (error.message || 'Erro desconhecido'));

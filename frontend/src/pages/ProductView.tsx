@@ -232,6 +232,13 @@ export default function ProductView() {
                 <label className="text-sm font-medium text-muted-foreground">Quantidade em Estoque</label>
                 <p className="text-sm font-medium">{product.stock !== undefined ? product.stock : 'Não informado'}</p>
               </div>
+
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Preço de Venda</label>
+                <p className="text-sm font-semibold text-primary">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.salePrice ?? 0)}
+                </p>
+              </div>
             </div>
             
             <Separator />

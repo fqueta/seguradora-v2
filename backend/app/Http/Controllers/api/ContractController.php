@@ -333,6 +333,72 @@ class ContractController extends Controller
                      );
                  }
              }
+
+             // Lógica para Alloyal
+             elseif ($supplier && (stripos($supplier, 'Alloyal') !== false)) {
+                 \App\Services\ContractEventLogger::log(
+                     $contract,
+                     'debug_alloyal_attempt',
+                     'Tentativa de integração Alloyal detectada. Fornecedor: ' . $supplier,
+                     ['supplier' => $supplier],
+                     null,
+                     auth()->id()
+                 );
+
+                 try {
+                     $clientFn = Client::find($contract->client_id ?? 0);
+                     if ($clientFn) {
+                         $alloyalController = new AlloyalController();
+                         $retAlloyal = $alloyalController->create_user_atived([], $clientFn->id);
+
+                         Qlib::update_contract_meta($contract->id, 'integration_alloyal', json_encode($retAlloyal));
+                         Qlib::update_contract_meta($contract->id, 'ultimo_envio_fornecedor', json_encode($retAlloyal));
+
+                         if (isset($retAlloyal['exec']) && $retAlloyal['exec'] === true) {
+                             $oldStatus = $contract->status;
+                             $contract->update(['status' => 'approved']);
+                             Qlib::update_contract_meta($contract->id, 'envio_fornecedor_sucesso', json_encode($retAlloyal));
+
+                             \App\Services\ContractEventLogger::logStatusChange(
+                                 $contract,
+                                 $oldStatus,
+                                 'approved',
+                                 'Contrato aprovado automaticamente via integração Alloyal.',
+                                 ['integration_response' => $retAlloyal],
+                                 json_encode($retAlloyal),
+                                 auth()->id()
+                             );
+
+                             $ret['mens'] .= ' | Integração Alloyal: Sucesso e Contrato Aprovado.';
+                             $ret['data'] = $contract->refresh();
+                         } else {
+                             $msgAlloyal = $retAlloyal['message'] ?? 'Erro Alloyal';
+                             if (!is_string($msgAlloyal)) {
+                                 $msgAlloyal = json_encode($msgAlloyal, JSON_UNESCAPED_UNICODE) ?: 'Erro Alloyal';
+                             }
+                             $ret['mens'] .= ' | Falha Alloyal: ' . $msgAlloyal;
+
+                             \App\Services\ContractEventLogger::log(
+                                 $contract,
+                                 'integration_error',
+                                 'Falha na integração Alloyal: ' . $msgAlloyal,
+                                 ['integration_response' => $retAlloyal],
+                                 json_encode($retAlloyal),
+                                 auth()->id()
+                             );
+                         }
+                     }
+                 } catch (\Throwable $e) {
+                     \App\Services\ContractEventLogger::log(
+                         $contract,
+                         'integration_exception',
+                         'Exceção na integração Alloyal: ' . $e->getMessage(),
+                         ['trace' => $e->getTraceAsString()],
+                         json_encode(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]),
+                         auth()->id()
+                     );
+                 }
+             }
         }
 
         return response()->json($ret, $httpStatus);
@@ -402,6 +468,16 @@ class ContractController extends Controller
             $iza_data = is_array($iza_integration) ? $iza_integration : json_decode($iza_integration, true);
             if(isset($iza_data['exec'])){
                  $contract->setAttribute('integration_iza', $iza_data);
+            }
+        }
+
+        // Alloyal Integration Data
+        $contract->setAttribute('integration_alloyal', []);
+        $alloyal_integration = Qlib::get_contract_meta($contract->id, 'integration_alloyal');
+        if ($alloyal_integration) {
+            $alloyal_data = is_array($alloyal_integration) ? $alloyal_integration : json_decode($alloyal_integration, true);
+            if(isset($alloyal_data['exec'])){
+                 $contract->setAttribute('integration_alloyal', $alloyal_data);
             }
         }
 
@@ -623,6 +699,89 @@ class ContractController extends Controller
                     return response()->json($ret);
                 } catch (\Throwable $e) {
                     $erro = 'Exceção na integração IZA (Update): ' . $e->getMessage();
+                    \App\Services\ContractEventLogger::log(
+                        $contract,
+                        'integration_exception_update',
+                        $erro,
+                        ['trace' => $e->getTraceAsString()],
+                        null,
+                        auth()->id()
+                    );
+                    return response()->json([
+                        'exec' => false,
+                        'mens' => $erro
+                    ], 500);
+                }
+            }
+
+            // Lógica para Alloyal
+            elseif ($supplier && (stripos($supplier, 'Alloyal') !== false)) {
+                \App\Services\ContractEventLogger::log(
+                    $contract,
+                    'debug_alloyal_attempt_update',
+                    'Tentativa de integração Alloyal (Update). Fornecedor: ' . $supplier,
+                    ['supplier' => $supplier],
+                    null,
+                    auth()->id()
+                );
+
+                try {
+                    $clientFn = Client::find($contract->client_id ?? 0);
+                    if($clientFn){
+                        $alloyalController = new AlloyalController();
+                        $retAlloyal = $alloyalController->create_user_atived([], $clientFn->id);
+
+                        Qlib::update_contract_meta($contract->id, 'integration_alloyal', json_encode($retAlloyal));
+                        Qlib::update_contract_meta($contract->id, 'ultimo_envio_fornecedor', json_encode($retAlloyal));
+
+                        $mens = $retAlloyal['message'] ?? 'Contrato atualizado com sucesso.';
+                        if (!is_string($mens)) {
+                            $mens = json_encode($mens, JSON_UNESCAPED_UNICODE) ?: 'Contrato atualizado com sucesso.';
+                        }
+                        $ret = [
+                            'exec' => true,
+                            'mens' => 'Contrato atualizado com sucesso. Alloyal: ' . $mens,
+                            'data' => $contract
+                        ];
+
+                        if (isset($retAlloyal['exec']) && $retAlloyal['exec'] === true) {
+                            $oldStatus = $contract->status;
+                            $contract->update(['status' => 'approved']);
+                            Qlib::update_contract_meta($contract->id, 'envio_fornecedor_sucesso', json_encode($retAlloyal));
+
+                            \App\Services\ContractEventLogger::logStatusChange(
+                                $contract,
+                                $oldStatus,
+                                'approved',
+                                'Contrato aprovado automaticamente via integração Alloyal (Update).',
+                                ['integration_response' => $retAlloyal],
+                                json_encode($retAlloyal),
+                                auth()->id()
+                            );
+
+                            $ret['mens'] .= ' | Integração Alloyal: Sucesso e Contrato Aprovado.';
+                            $ret['data'] = $contract->refresh();
+                        } else {
+                            $msgAlloyal = $retAlloyal['message'] ?? 'Erro Alloyal';
+                            if (!is_string($msgAlloyal)) {
+                                $msgAlloyal = json_encode($msgAlloyal, JSON_UNESCAPED_UNICODE) ?: 'Erro Alloyal';
+                            }
+                            $ret['mens'] .= ' | Falha Alloyal: ' . $msgAlloyal;
+
+                            \App\Services\ContractEventLogger::log(
+                                $contract,
+                                'integration_error',
+                                'Falha na integração Alloyal (Update): ' . $msgAlloyal,
+                                ['integration_response' => $retAlloyal],
+                                json_encode($retAlloyal),
+                                auth()->id()
+                            );
+                        }
+
+                        return response()->json($ret);
+                    }
+                } catch (\Throwable $e) {
+                    $erro = 'Exceção na integração Alloyal (Update): ' . $e->getMessage();
                     \App\Services\ContractEventLogger::log(
                         $contract,
                         'integration_exception_update',
@@ -1051,7 +1210,9 @@ class ContractController extends Controller
                 'mens' => $message,
                 'message' => $message,
                 'color' => 'success',
-                'data' => $contract
+                'data' => $contract,
+                'supplier' => $supplier,
+                'integration_response' => $integrationResult,
             ]);
         } else {
              $errorMsg = is_array($integrationResult)

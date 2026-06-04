@@ -75,6 +75,7 @@ class DatabaseSeeder extends Seeder
                     // AeronavesSeeder::class,
                     // AeronavesSeeder::class,
                     SupplierSeeder::class,
+                    AlloyalProductsSeeder::class,
                     SulamericaProductSeeder::class,
                     LsxProductSeeder::class,
                     ApiCredentialsSeeder::class,

@@ -5,7 +5,6 @@ namespace App\Observers;
 use App\Models\Contract;
 use App\Notifications\ContractApprovedNotification;
 use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\api\AlloyalController;
 
 class ContractObserver
 {
@@ -31,11 +30,6 @@ class ContractObserver
 
         if ($contract->status === 'approved') {
             $client = $contract->client;
-
-            // Integrar com Alloyal somente na aprovação do contrato
-            if ($client) {
-                $this->syncWithAlloyal($client);
-            }
 
             if ($client && $client->email) {
                 try {
@@ -95,11 +89,6 @@ class ContractObserver
         if ($contract->wasChanged('status') && $contract->status === 'approved') {
             $client = $contract->client;
 
-            // Integrar com Alloyal somente na aprovação do contrato
-            if ($client) {
-                $this->syncWithAlloyal($client);
-            }
-
             if ($client && $client->email) {
                 try {
                     $client->notify(new ContractApprovedNotification($contract));
@@ -130,37 +119,6 @@ class ContractObserver
             } else {
                 Log::warning('ContractObserver: Não foi possível enviar notificação, cliente não encontrado ou sem e-mail para o contrato ID: ' . $contract->id);
             }
-        }
-    }
-
-    /**
-     * Sincroniza o cliente com a Alloyal
-     * PT: Disparado apenas quando um contrato é aprovado
-     */
-    private function syncWithAlloyal($client): void
-    {
-        try {
-            $payloadAlloyal = [
-                'name' => (string)$client->name,
-                'cpf' => (string)$client->cpf,
-            ];
-            
-            $alloyalController = new AlloyalController();
-            $retAlloyal = $alloyalController->create_user_atived($payloadAlloyal, $client->id);
-            
-            \App\Services\UserEventLogger::log(
-                $client,
-                'integration_alloyal',
-                isset($retAlloyal['exec']) && $retAlloyal['exec']
-                    ? "Sincronização Alloyal realizada com sucesso (via Aprovação de Contrato)"
-                    : "Falha na sincronização Alloyal: " . ($retAlloyal['message'] ?? 'Erro desconhecido'),
-                [],
-                $retAlloyal,
-                ['source' => 'ContractObserver@syncWithAlloyal'],
-                $payloadAlloyal
-            );
-        } catch (\Throwable $e) {
-            Log::error('ContractObserver: Erro na integração Alloyal para o cliente ID ' . $client->id . ': ' . $e->getMessage());
         }
     }
 }

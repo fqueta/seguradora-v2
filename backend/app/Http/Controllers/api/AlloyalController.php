@@ -58,23 +58,19 @@ class AlloyalController extends Controller
                 $this->clientEmployeeToken = $cfg['pass'] ?? $this->clientEmployeeToken;
                 // Buscar business_id nos metacampos com chaves comuns
                 $meta = isset($cred['meta']) && is_array($cred['meta']) ? $cred['meta'] : [];
-                //buscar os dados da organização do usuario logado
-                $organization_id = Auth::user()->organization_id ?? null;
-                if ($organization_id) {
-                    $organization_data = Organization::find($organization_id);
-                    if (isset($organization_data->config['alloyal_business_id'])) {
-                        $this->business_id_alloyal = (string)$organization_data->config['alloyal_business_id'];
-                    }else{
-                        // $businessId = $this->findMetaValue($meta, ['bussness_id', 'business_id']);
-                        // if ($businessId) {
-                        //     $this->business_id_alloyal = (string)$businessId;
-                        // }
-                        $this->business_id_alloyal = '';
-                    }
-                }else{
-                    $businessId = $this->findMetaValue($meta, ['bussness_id', 'business_id']);
-                    if ($businessId) {
-                        $this->business_id_alloyal = '';
+                $businessId = $this->findMetaValue($meta, ['business_id_alloyal', 'business_id', 'bussness_id']);
+                if ($businessId) {
+                    $this->business_id_alloyal = (string)$businessId;
+                }
+
+                if (auth()->check()) {
+                    $organization_id = auth()->user()->organization_id ?? null;
+                    if ($organization_id) {
+                        $organization_data = Organization::find($organization_id);
+                        $orgBusinessId = $organization_data->config['alloyal_business_id'] ?? ($organization_data->alloyal_business_id ?? null);
+                        if ($orgBusinessId) {
+                            $this->business_id_alloyal = (string)$orgBusinessId;
+                        }
                     }
                 }
             }

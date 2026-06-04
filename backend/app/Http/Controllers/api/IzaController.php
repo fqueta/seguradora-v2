@@ -164,9 +164,9 @@ class IzaController extends Controller
         if ($perm >= 3) {
             return response()->json(['error' => 'Permissão insuficiente'], 403);
         }
-        if (!$this->permissionService->isHasPermission('view')) {
-            return response()->json(['error' => 'Acesso negado'], 403);
-        }
+        // if (!$this->permissionService->isHasPermission('view')) {
+        //     return response()->json(['error' => 'Acesso negado'], 403);
+        // }
 
         $contractId = $request->query('contract_id');
         if (!$contractId) {

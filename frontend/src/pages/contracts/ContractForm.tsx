@@ -59,7 +59,7 @@ export default function ContractForm() {
     const { data: contract, isLoading: isLoadingContract } = useContract(id as string, { enabled: isEdit });
     const createMutation = useCreateContract();
     const updateMutation = useUpdateContract();
-    const { data: users } = useUsersList({ per_page: 100 });
+    const { data: users } = useUsersList({ per_page: 100, fields: 'id,name,organization_id,permission_id' });
     const { data: clients } = useClientsList({ per_page: 100 });
     const { data: permissions } = usePermissionsList({ per_page: 100 });
     const { data: organizations } = useOrganizationsList({ per_page: 100 });

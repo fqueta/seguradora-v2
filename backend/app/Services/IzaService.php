@@ -387,6 +387,25 @@ class IzaService
             ]));
 
             if ($effectiveSuccess) {
+                $updatedIzaData = is_array($izaData) ? $izaData : [];
+                if (!isset($updatedIzaData['data']) || !is_array($updatedIzaData['data'])) {
+                    $updatedIzaData['data'] = [];
+                }
+                $updatedIzaData['data']['status'] = 'cancelled';
+                if (isset($body['data']) && is_array($body['data'])) {
+                    if (array_key_exists('cancellation_status', $body['data'])) {
+                        $updatedIzaData['data']['cancellation_status'] = $body['data']['cancellation_status'];
+                    }
+                    if (array_key_exists('cancellation_at', $body['data'])) {
+                        $updatedIzaData['data']['cancellation_at'] = $body['data']['cancellation_at'];
+                    }
+                }
+                $updatedIzaData['cancel'] = [
+                    'date_cancelled' => $dateCancelled,
+                    'already_cancelling' => $alreadyCancelling,
+                ];
+                Qlib::update_contract_meta($contract->id, 'integration_iza', json_encode($updatedIzaData));
+
                 ContractEventLogger::log(
                     $contract,
                     'integracao_iza_cancel',

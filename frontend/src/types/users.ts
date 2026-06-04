@@ -80,6 +80,7 @@ export interface UsersListParams {
   search?: string;
   page?: number;
   per_page?: number;
+  fields?: string;
   /**
    * pt-BR: Quando true, filtra apenas usuários consultores.
    * en-US: When true, filters only consultant users.

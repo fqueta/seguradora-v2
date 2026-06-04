@@ -32,6 +32,7 @@ export default function ContractView() {
     const [searchParams] = useSearchParams();
     const clientIdParam = searchParams.get('client_id');
     const { user } = useAuth();
+    const isSuperAdmin = Number((user as any)?.permission_id ?? (user as any)?.id_permission ?? 0) <= 1;
     const { data: contract, isLoading, error, refetch } = useContract(id as string);
     const { mutate: cancelContract, isPending: isCancelling } = useCancelContract();
     const [expandedEvents, setExpandedEvents] = useState<number[]>([]);
@@ -96,11 +97,8 @@ export default function ContractView() {
         
         cancelContract({ id: id as string, ...payload }, {
             onSuccess: async () => {
-                try { 
-                    await refetch();
-                    setShowSulAmericaCancel(false);
-                    setIsCancelDialogOpen(false);
-                } catch {}
+                setShowSulAmericaCancel(false);
+                setIsCancelDialogOpen(false);
             }
         });
     };
@@ -437,7 +435,23 @@ export default function ContractView() {
                                 Produto
                             </h3>
                              <div className="flex items-center gap-2">
-                                <span className="font-medium">{contract.product?.post_title || contract.product?.name || 'Produto não identificado'}</span>
+                                {(() => {
+                                    const canLinkToProduct = user && Number(user.permission_id ?? (user as any).id_permission ?? 99) < 3;
+                                    const productName = contract.product?.post_title || contract.product?.name || 'Produto não identificado';
+                                    const productId = contract.product?.id || contract.product_id;
+
+                                    if (canLinkToProduct && productId) {
+                                        return (
+                                            <Link 
+                                                to={`/admin/products/${productId}`}
+                                                className="underline print:no-underline text-primary hover:text-primary/80 transition-colors font-medium"
+                                            >
+                                                {productName}
+                                            </Link>
+                                        );
+                                    }
+                                    return <span className="font-medium">{productName}</span>;
+                                })()}
                             </div>
                         </div>
                     </CardContent>
@@ -477,7 +491,7 @@ export default function ContractView() {
                 </Card>
 
                 {/* Resumo da Integração SulAmérica */}
-                {integrationData && (
+                {integrationData && ((contract as any)?.supplier_tag?.toLowerCase?.().includes('sulamerica')) && (
                     <Card className="md:col-span-2">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -724,29 +738,42 @@ export default function ContractView() {
                     const izaContractId = izaSyncData?.contract_id || izaData?.data?.id || izaData?.data?.contract_id || izaData?.data?.uuid || '-';
                     const izaStatus = izaSyncData?.status || izaData?.data?.status || null;
                     const message = izaData?.sync_message || izaData?.message || '-';
+                    const cancellationStatus = izaSyncData?.cancellation_status || izaData?.data?.cancellation_status || null;
+                    const dateCancelled = izaData?.cancel?.date_cancelled || izaData?.date_cancelled || null;
+
+                    const effectiveStatusRaw = cancellationStatus || izaStatus || null;
+                    const effectiveStatusLower = typeof effectiveStatusRaw === 'string' ? effectiveStatusRaw.toLowerCase() : null;
+                    const normalizedStatus =
+                        effectiveStatusLower === 'active' ? 'opened' :
+                        effectiveStatusLower;
+                    const isCancelled = normalizedStatus === 'cancelled' || normalizedStatus === 'canceled';
+                    const isClosed = normalizedStatus === 'closed';
+                    const isOpened = normalizedStatus === 'opened';
 
                     const statusLabel = (() => {
+                        if (isCancelled) return 'Cancelado';
                         if (!syncSuccess && !isSuccess) return 'Pendente';
                         if (!syncSuccess) return 'Enviado';
-                        return izaStatus === 'opened' ? 'Aberto' :
-                               izaStatus === 'cancelled' ? 'Cancelado' :
-                               izaStatus === 'closed' ? 'Encerrado' :
-                               izaStatus ? izaStatus.charAt(0).toUpperCase() + izaStatus.slice(1) :
+                        return isOpened ? 'Aberto' :
+                               isClosed ? 'Encerrado' :
+                               normalizedStatus ? normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1) :
                                'Sincronizado';
                     })();
 
                     const statusBadgeVariant = (() => {
+                        if (isCancelled) return 'destructive';
                         if (!syncSuccess && !isSuccess) return 'destructive';
-                        if (izaStatus === 'opened') return 'default';
-                        if (izaStatus === 'cancelled' || izaStatus === 'closed') return 'secondary';
+                        if (isOpened) return 'default';
+                        if (isClosed) return 'secondary';
                         if (!syncSuccess) return 'default';
                         return 'default';
                     })();
 
                     const statusBadgeClass = (() => {
+                        if (isCancelled) return 'bg-red-600 hover:bg-red-700 h-6';
                         if (!syncSuccess && !isSuccess) return 'h-6';
-                        if (izaStatus === 'opened') return 'bg-blue-600 hover:bg-blue-700 h-6';
-                        if (izaStatus === 'cancelled' || izaStatus === 'closed') return 'bg-amber-600 hover:bg-amber-700 h-6';
+                        if (isOpened) return 'bg-blue-600 hover:bg-blue-700 h-6';
+                        if (isClosed) return 'bg-amber-600 hover:bg-amber-700 h-6';
                         if (!syncSuccess) return 'bg-green-600 h-6';
                         return 'bg-blue-600 hover:bg-blue-700 h-6';
                     })();
@@ -764,9 +791,9 @@ export default function ContractView() {
                     const displaySiesId = izaSyncData?.sies_id || null;
 
                     return (
-                        <Card className="md:col-span-2 border-l-4 border-l-blue-500">
+                        <Card className={`md:col-span-2 border-l-4 ${isCancelled ? 'border-l-red-500' : 'border-l-blue-500'}`}>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-blue-700">
+                                <CardTitle className={`flex items-center gap-2 ${isCancelled ? 'text-red-700' : 'text-blue-700'}`}>
                                     <Package className="h-5 w-5" />
                                     Integração IZA
                                 </CardTitle>
@@ -802,15 +829,17 @@ export default function ContractView() {
                             <CardContent className="space-y-4">
                                 <div className="space-y-6">
                                     {/* Status */}
-                                    <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                                    <div className={`flex items-center justify-between p-3 rounded-lg border ${isCancelled ? 'bg-red-50/50 border-red-100' : 'bg-blue-50/50 border-blue-100'}`}>
                                         <div className="space-y-0.5">
-                                            <Label className="text-sm font-semibold text-blue-900">
+                                            <Label className={`text-sm font-semibold ${isCancelled ? 'text-red-900' : 'text-blue-900'}`}>
                                                 Status na IZA
                                             </Label>
                                             <p className="text-xs text-muted-foreground">
-                                                {syncSuccess
-                                                    ? `Contrato ${izaStatus === 'opened' ? 'ativo' : izaStatus === 'cancelled' ? 'cancelado' : izaStatus === 'closed' ? 'encerrado' : izaStatus || 'sincronizado'}`
-                                                    : (isSuccess ? 'Contrato enviado, aguardando sincronização' : 'Aguardando envio')}
+                                                {isCancelled
+                                                    ? 'Contrato cancelado na IZA'
+                                                    : (syncSuccess
+                                                        ? `Contrato ${isOpened ? 'ativo' : isClosed ? 'encerrado' : normalizedStatus || 'sincronizado'}`
+                                                        : (isSuccess ? 'Contrato enviado, aguardando sincronização' : 'Aguardando envio'))}
                                             </p>
                                         </div>
                                         <Badge
@@ -822,7 +851,7 @@ export default function ContractView() {
                                     </div>
 
                                     {/* Dados do Segurado e Contrato (resposta da IZA ou payload) */}
-                                    {(hasResponseData || (izaPayloadData && Object.keys(izaPayloadData).length > 0)) && (
+                                    {(hasResponseData || (izaPayloadData && Object.keys(izaPayloadData).length > 0) || cancellationStatus || dateCancelled) && (
                                         <div className="rounded-md border">
                                             {hasResponseData && (
                                                 <div className="bg-blue-50/50 px-4 py-2 border-b border-blue-100">
@@ -875,6 +904,18 @@ export default function ContractView() {
                                                             <td className="px-4 py-2">{displaySiesId}</td>
                                                         </tr>
                                                     )}
+                                                    {dateCancelled && (
+                                                        <tr>
+                                                            <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Data do Cancelamento</td>
+                                                            <td className="px-4 py-2">{formatDate(dateCancelled)}</td>
+                                                        </tr>
+                                                    )}
+                                                    {cancellationStatus && (
+                                                        <tr>
+                                                            <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Status do Cancelamento</td>
+                                                            <td className="px-4 py-2">{String(cancellationStatus)}</td>
+                                                        </tr>
+                                                    )}
                                                     <tr>
                                                         <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">ID do Contrato IZA</td>
                                                         <td className="px-4 py-2 font-mono text-xs break-all">{izaContractId}</td>
@@ -923,7 +964,7 @@ export default function ContractView() {
                 })()}
 
                 <Dialog open={lsxModalOpen} onOpenChange={setLsxModalOpen}>
-                    <DialogContent className="max-w-2xl">
+                    <DialogContent className="max-w-5xl w-[95vw]">
                         <DialogHeader>
                             <DialogTitle>Resultado da Integração LSX</DialogTitle>
                         </DialogHeader>
@@ -933,7 +974,7 @@ export default function ContractView() {
                                     {lsxQueryResult.message} não foi encontrado na LSX
                                 </div>
                             )}
-                            {user?.permission_id == '1' && (
+                            {isSuperAdmin && (
                                 <div>
                                     <pre className="p-2 bg-slate-950 text-slate-50 rounded text-xs overflow-x-auto max-h-80">
                                         {(() => {
@@ -959,7 +1000,7 @@ export default function ContractView() {
                 </Dialog>
 
                 <Dialog open={izaModalOpen} onOpenChange={setIzaModalOpen}>
-                    <DialogContent className="max-w-2xl">
+                    <DialogContent className="max-w-5xl w-[95vw]">
                         <DialogHeader>
                             <DialogTitle>Resultado da Integração IZA</DialogTitle>
                         </DialogHeader>
@@ -974,7 +1015,59 @@ export default function ContractView() {
                                     {izaQueryResult.message || 'Sincronização realizada com sucesso'}
                                 </div>
                             )}
-                            {user?.permission_id == '1' && (
+                            {!isSuperAdmin && izaQueryResult?.exec && izaQueryResult?.data && (
+                                <div className="rounded-md border">
+                                    <table className="w-full text-sm">
+                                        <tbody className="divide-y">
+                                            <tr>
+                                                <td className="px-4 py-2 font-medium bg-muted/50 w-1/3 text-muted-foreground">Status</td>
+                                                <td className="px-4 py-2 font-medium">{izaQueryResult?.data?.status ? String(izaQueryResult.data.status) : '-'}</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Plano (ID)</td>
+                                                <td className="px-4 py-2 font-medium">{izaQueryResult?.data?.plan_id ? String(izaQueryResult.data.plan_id) : '-'}</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">ID do Contrato IZA</td>
+                                                <td className="px-4 py-2 font-mono text-xs break-all">{izaQueryResult?.data?.contract_id ? String(izaQueryResult.data.contract_id) : '-'}</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Organização</td>
+                                                <td className="px-4 py-2">{izaQueryResult?.data?.organization_name ? String(izaQueryResult.data.organization_name) : '-'}</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Segurado</td>
+                                                <td className="px-4 py-2">{izaQueryResult?.data?.insured_name ? String(izaQueryResult.data.insured_name) : '-'}</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Documento</td>
+                                                <td className="px-4 py-2">{izaQueryResult?.data?.insured_doc ? String(izaQueryResult.data.insured_doc) : '-'}</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Nascimento</td>
+                                                <td className="px-4 py-2">{izaQueryResult?.data?.insured_birth_date ? formatDate(String(izaQueryResult.data.insured_birth_date)) : '-'}</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Início Vigência</td>
+                                                <td className="px-4 py-2">{izaQueryResult?.data?.date_begin ? formatDate(String(izaQueryResult.data.date_begin)) : '-'}</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Fim Vigência</td>
+                                                <td className="px-4 py-2">{izaQueryResult?.data?.date_end ? formatDate(String(izaQueryResult.data.date_end)) : '-'}</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Emissão</td>
+                                                <td className="px-4 py-2">{izaQueryResult?.data?.emission ? formatDate(String(izaQueryResult.data.emission)) : '-'}</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="px-4 py-2 font-medium bg-muted/50 text-muted-foreground">Descrição do Plano</td>
+                                                <td className="px-4 py-2">{izaQueryResult?.data?.plan_description ? String(izaQueryResult.data.plan_description) : '-'}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                            {isSuperAdmin && (
                                 <div>
                                     <pre className="p-2 bg-slate-950 text-slate-50 rounded text-xs overflow-x-auto max-h-80">
                                         {(() => {

@@ -351,17 +351,6 @@ class ImportController extends Controller
                     ['source' => 'ImportController@commit']
                 );
 
-                // Integração Alloyal (sem falhar o commit caso haja erro)
-                try {
-                    $payloadAlloyal = [
-                        'name' => $name,
-                        'cpf' => (string)$cpf,
-                        'email' => (string)($email ?? ''),
-                        'password' => (string)$cpf,
-                    ];
-                    $alloyal = new \App\Http\Controllers\api\AlloyalController();
-                    $alloyal->create_user_atived($payloadAlloyal, $client->id);
-                } catch (\Throwable $e) {}
             }
 
             // Verificar contrato existente válido
@@ -457,6 +446,50 @@ class ImportController extends Controller
                         $contract,
                         'integration_exception_import',
                         'Exceção na integração LSX (import): ' . $e->getMessage(),
+                        ['trace' => $e->getTraceAsString()],
+                        json_encode(['error' => $e->getMessage()]),
+                        $user->id
+                    );
+                }
+            }
+            // Integração Alloyal quando aplicável
+            elseif ($supplier && stripos($supplier, 'Alloyal') !== false) {
+                try {
+                    $alloyal = new \App\Http\Controllers\api\AlloyalController();
+                    $retAlloyal = $alloyal->create_user_atived([], $client->id);
+                    Qlib::update_contract_meta($contract->id, 'integration_alloyal', json_encode($retAlloyal));
+                    Qlib::update_contract_meta($contract->id, 'ultimo_envio_fornecedor', json_encode($retAlloyal));
+
+                    if (isset($retAlloyal['exec']) && $retAlloyal['exec'] === true) {
+                        $oldStatus = $contract->status;
+                        $contract->update(['status' => 'approved']);
+                        Qlib::update_contract_meta($contract->id, 'envio_fornecedor_sucesso', json_encode($retAlloyal));
+                        \App\Services\ContractEventLogger::logStatusChange(
+                            $contract,
+                            $oldStatus,
+                            'approved',
+                            'Contrato aprovado automaticamente via integração Alloyal (import).',
+                            ['integration_response' => $retAlloyal],
+                            json_encode($retAlloyal),
+                            $user->id
+                        );
+                        $mens .= ' | Integração Alloyal aprovada';
+                    } else {
+                        $mens .= ' | Integração Alloyal falhou';
+                        \App\Services\ContractEventLogger::log(
+                            $contract,
+                            'integration_error_import',
+                            'Falha na integração Alloyal (import)',
+                            ['integration_response' => $retAlloyal],
+                            json_encode($retAlloyal),
+                            $user->id
+                        );
+                    }
+                } catch (\Throwable $e) {
+                    \App\Services\ContractEventLogger::log(
+                        $contract,
+                        'integration_exception_import',
+                        'Exceção na integração Alloyal (import): ' . $e->getMessage(),
                         ['trace' => $e->getTraceAsString()],
                         json_encode(['error' => $e->getMessage()]),
                         $user->id

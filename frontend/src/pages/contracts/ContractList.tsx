@@ -75,7 +75,8 @@ export default function ContractList() {
     const { data: orgs } = useOrganizationsList({ per_page: 100 });
     const { data: users } = useUsersList({ 
         per_page: 999, 
-        organization_id: orgId !== 'all' ? orgId : undefined 
+        organization_id: orgId !== 'all' ? orgId : undefined,
+        fields: 'id,name,organization_id,permission_id'
     });
 
     // Se mudar a organização e o vendedor selecionado não pertencer a ela, limpa o vendedor
