@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserEvent;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -24,14 +25,28 @@ class DashboardController extends Controller
             $orgId = $user->organization_id;
         }
 
-        return response()->json([
-            'success' => true,
-            'data' => [
+        $tenantId = function_exists('tenant') ? (tenant('id') ?? 'central') : 'central';
+        $permissionTier = $user ? (int) $user->permission_id : 0;
+        $cacheKey = "dashboard:index:tenant={$tenantId}:org={$orgId}:tier={$permissionTier}";
+
+        $resolver = function () use ($orgId) {
+            return [
                 'recent_activities' => $this->getRecentActivities($orgId),
                 'registration_data' => $this->getRegistrationData($orgId),
                 'pending_pre_registrations' => $this->getPendingPreRegistrations($orgId),
                 'totals' => $this->getTotals($orgId),
-            ]
+            ];
+        };
+
+        try {
+            $data = Cache::remember($cacheKey, 30, $resolver);
+        } catch (\BadMethodCallException $e) {
+            $data = $resolver();
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
         ]);
     }
 
@@ -158,8 +173,26 @@ class DashboardController extends Controller
 
         // Cálculo de variação (exemplo simples: total de hoje vs ontem)
         $variation = 0;
-        $totalToday = User::whereDate('created_at', now())->count();
-        $totalYesterday = User::whereDate('created_at', now()->subDay())->count();
+        $todayStart = Carbon::now()->startOfDay();
+        $todayEnd = Carbon::now()->endOfDay();
+        $yesterdayStart = Carbon::now()->subDay()->startOfDay();
+        $yesterdayEnd = Carbon::now()->subDay()->endOfDay();
+
+        $todayQuery = User::where('excluido', 'n')
+            ->where('deletado', 'n')
+            ->where('permission_id', 7)
+            ->whereBetween('created_at', [$todayStart, $todayEnd]);
+        $yesterdayQuery = User::where('excluido', 'n')
+            ->where('deletado', 'n')
+            ->where('permission_id', 7)
+            ->whereBetween('created_at', [$yesterdayStart, $yesterdayEnd]);
+        if ($orgId) {
+            $todayQuery->where('organization_id', $orgId);
+            $yesterdayQuery->where('organization_id', $orgId);
+        }
+
+        $totalToday = $todayQuery->count();
+        $totalYesterday = $yesterdayQuery->count();
         
         if ($totalYesterday > 0) {
             $variation = (($totalToday - $totalYesterday) / $totalYesterday) * 100;

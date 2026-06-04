@@ -8,6 +8,7 @@ use App\Services\PermissionService;
 use App\Services\Qlib;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -46,30 +47,89 @@ class OptionController extends Controller
      */
     public function publicBranding(Request $request)
     {
-        // Whitelisted keys to expose publicly
-        $allowedKeys = [
-            'app_logo_url',
-            'app_favicon_url',
-            'app_social_image_url',
-            'app_institution_name',
-            'app_institution_slogan',
-            'app_institution_description',
-            'app_institution_url',
-        ];
+        $tenantId = function_exists('tenant') ? (tenant('id') ?? 'central') : 'central';
+        $cacheKey = "public:branding:tenant={$tenantId}";
 
-        // Default values from env/config
-        $defaults = [
-            'app_logo_url' => env('APP_LOGO_URL', ''),
-            'app_favicon_url' => env('APP_FAVICON_URL', ''),
-            'app_social_image_url' => env('APP_SOCIAL_IMAGE_URL', ''),
-            'app_institution_name' => env('APP_NAME', config('app.name')),
-            'app_institution_slogan' => env('APP_SLOGAN', ''),
-            'app_institution_description' => env('APP_DESCRIPTION', ''),
-            'app_institution_url' => env('APP_INSTITUTION_URL', config('app.frontend_url')),
-        ];
+        $resolver = function () {
+            $allowedKeys = [
+                'app_logo_url',
+                'app_favicon_url',
+                'app_social_image_url',
+                'app_institution_name',
+                'app_institution_slogan',
+                'app_institution_description',
+                'app_institution_url',
+            ];
 
-        // Fetch options for allowed keys only
+            $defaults = [
+                'app_logo_url' => env('APP_LOGO_URL', ''),
+                'app_favicon_url' => env('APP_FAVICON_URL', ''),
+                'app_social_image_url' => env('APP_SOCIAL_IMAGE_URL', ''),
+                'app_institution_name' => env('APP_NAME', config('app.name')),
+                'app_institution_slogan' => env('APP_SLOGAN', ''),
+                'app_institution_description' => env('APP_DESCRIPTION', ''),
+                'app_institution_url' => env('APP_INSTITUTION_URL', config('app.frontend_url')),
+            ];
+
+            try {
+                $options = Option::query()
+                    ->whereIn('url', $allowedKeys)
+                    ->where(function($q) {
+                        $q->whereNull('deletado')->orWhere('deletado', '!=', 's');
+                    })
+                    ->where(function($q) {
+                        $q->whereNull('excluido')->orWhere('excluido', '!=', 's');
+                    })
+                    ->get(['url', 'value']);
+            } catch (\Throwable $e) {
+                $data = [];
+                foreach ($allowedKeys as $key) {
+                    $data[$key] = $defaults[$key] ?? '';
+                }
+                return $data;
+            }
+
+            $data = [];
+            foreach ($options as $opt) {
+                $val = $opt->value;
+                if (is_string($val)) {
+                    $decoded = json_decode($val, true);
+                    $val = (json_last_error() === JSON_ERROR_NONE) ? $decoded : $val;
+                }
+                $data[$opt->url] = $val;
+            }
+
+            foreach ($allowedKeys as $key) {
+                if (!array_key_exists($key, $data) || empty($data[$key])) {
+                    if (!empty($defaults[$key])) {
+                        $data[$key] = $defaults[$key];
+                    }
+                }
+            }
+
+            return $data;
+        };
+
         try {
+            $data = Cache::remember($cacheKey, 3600, $resolver);
+        } catch (\BadMethodCallException $e) {
+            $data = $resolver();
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function publicAppearance(Request $request)
+    {
+        $tenantId = function_exists('tenant') ? (tenant('id') ?? 'central') : 'central';
+        $cacheKey = "public:appearance:tenant={$tenantId}";
+
+        $resolver = function () {
+            $allowedKeys = [
+                'ui_primary_color',
+                'ui_secondary_color',
+            ];
+
             $options = Option::query()
                 ->whereIn('url', $allowedKeys)
                 ->where(function($q) {
@@ -79,65 +139,24 @@ class OptionController extends Controller
                     $q->whereNull('excluido')->orWhere('excluido', '!=', 's');
                 })
                 ->get(['url', 'value']);
-        } catch (\Throwable $e) {
-            // If DB fail, return defaults
+
             $data = [];
-            foreach ($allowedKeys as $key) {
-                $data[$key] = $defaults[$key] ?? '';
-            }
-            return response()->json(['data' => $data]);
-        }
-
-        $data = [];
-        // Populate from DB results
-        foreach ($options as $opt) {
-            // Ensure string values, decode arrays if stored as JSON
-            $val = $opt->value;
-            if (is_string($val)) {
-                // try decode, else keep original
-                $decoded = json_decode($val, true);
-                $val = (json_last_error() === JSON_ERROR_NONE) ? $decoded : $val;
-            }
-            $data[$opt->url] = $val;
-        }
-
-        // Fill missing keys with defaults
-        foreach ($allowedKeys as $key) {
-            if (!array_key_exists($key, $data) || empty($data[$key])) {
-                if (!empty($defaults[$key])) {
-                    $data[$key] = $defaults[$key];
+            foreach ($options as $opt) {
+                $val = $opt->value;
+                if (is_string($val)) {
+                    $decoded = json_decode($val, true);
+                    $val = (json_last_error() === JSON_ERROR_NONE) ? $decoded : $val;
                 }
+                $data[$opt->url] = $val;
             }
-        }
 
-        return response()->json(['data' => $data]);
-    }
+            return $data;
+        };
 
-    public function publicAppearance(Request $request)
-    {
-        $allowedKeys = [
-            'ui_primary_color',
-            'ui_secondary_color',
-        ];
-
-        $options = Option::query()
-            ->whereIn('url', $allowedKeys)
-            ->where(function($q) {
-                $q->whereNull('deletado')->orWhere('deletado', '!=', 's');
-            })
-            ->where(function($q) {
-                $q->whereNull('excluido')->orWhere('excluido', '!=', 's');
-            })
-            ->get(['url', 'value']);
-
-        $data = [];
-        foreach ($options as $opt) {
-            $val = $opt->value;
-            if (is_string($val)) {
-                $decoded = json_decode($val, true);
-                $val = (json_last_error() === JSON_ERROR_NONE) ? $decoded : $val;
-            }
-            $data[$opt->url] = $val;
+        try {
+            $data = Cache::remember($cacheKey, 3600, $resolver);
+        } catch (\BadMethodCallException $e) {
+            $data = $resolver();
         }
 
         return response()->json(['data' => $data]);

@@ -4,12 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { coursesService } from "@/services/coursesService";
 import { dashboardChartsService } from "@/services/dashboardChartsService";
 import { useRecentActivities } from "@/hooks/useDashboard";
 import { useRecentIntegrationEvents } from "@/hooks/useIntegrations";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEnrollmentsList } from "@/hooks/enrollments";
 import { Building2, Stethoscope, Gift } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -57,27 +55,6 @@ export default function Dashboard() {
       </Link>
     );
   }
-
-  /**
-   * pt-BR: Consulta rápida para obter o total de cursos.
-   * en-US: Quick query to get total number of courses.
-   */
-  const coursesTotalQuery = useQuery({
-    queryKey: ["courses", "count"],
-    queryFn: async () => coursesService.listCourses({ page: 1, per_page: 1 }),
-    staleTime: 5 * 60 * 1000,
-  });
-
-  /**
-   * pt-BR: Totais de matrículas por situação: "mat" (ativas) e "int" (interessados).
-   * en-US: Enrollment totals by situation: "mat" (active) and "int" (leads).
-   */
-  const { data: activeEnrollResp } = useEnrollmentsList({ page: 1, per_page: 1, situacao: "mat" } as any);
-  const { data: interestEnrollResp } = useEnrollmentsList({ page: 1, per_page: 1, situacao: "int" } as any);
-
-  const totalCursos = (coursesTotalQuery.data as any)?.total || 0;
-  const totalAlunos = (activeEnrollResp as any)?.total || 0;
-  const totalInteressados = (interestEnrollResp as any)?.total || 0;
 
   /**
    * pt-BR: Dados mockados para gráficos anuais (2024/2025) de interessados e matriculados.

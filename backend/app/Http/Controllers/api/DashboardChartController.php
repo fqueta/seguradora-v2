@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\api;
 
 use App\Http\Controllers\Controller;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -52,87 +54,90 @@ class DashboardChartController extends Controller
             $orgId = $user->organization_id;
         }
 
-        try {
-            // Contracts count
-            $qContracts = DB::table('contracts')->whereNull('deleted_at');
-            if ($orgId) {
-                $qContracts->where('organization_id', $orgId);
-            }
-            $contractsCount = $qContracts->count();
-            
-            // permission_id: 7 = Clientes
-            $qClients = DB::table('users')
-                ->where('permission_id', 7)
-                ->where('excluido', 'n')
-                ->where('deletado', 'n');
-            if ($orgId) {
-                $qClients->where('organization_id', $orgId);
-            }
-            $clientsCount = $qClients->count();
-                
-            // permission_id: 8 = Fornecedores
-            $qSuppliers = DB::table('users')
-                ->where('permission_id', 8)
-                ->where('excluido', 'n')
-                ->where('deletado', 'n');
-            if ($orgId) {
-                $qSuppliers->where('organization_id', $orgId);
-            }
-            $suppliersCount = $qSuppliers->count();
-                
-            // Total users
-            $qUsers = DB::table('users')
-                ->where('excluido', 'n')
-                ->where('deletado', 'n');
-            if ($orgId) {
-                $qUsers->where('organization_id', $orgId);
-            }
-            $usersCount = $qUsers->count();
-                
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Erro ao contar entidades no Dashboard: ' . $e->getMessage());
-            // Mantém counts como 0
-        }
+        $tenantId = function_exists('tenant') ? (tenant('id') ?? 'central') : 'central';
+        $cacheKey = "dashboard:summary:tenant={$tenantId}:org={$orgId}:year={$selectedYear}";
 
-        // Gráfico de Contratos: selecionado vs anterior
-        $contractsPrev = $this->getContractsMonthlyCounts($comparisonYear, $orgId);
-        $contractsCurr = $this->getContractsMonthlyCounts($selectedYear, $orgId);
+        $resolver = function () use ($orgId, $selectedYear, $comparisonYear, $months) {
+            $contractsCount = 0;
+            $clientsCount = 0;
+            $suppliersCount = 0;
+            $usersCount = 0;
 
-        // Monta séries no formato esperado pelo frontend, com chaves dinâmicas y{ano}
-        $keyPrev = 'y' . $comparisonYear;
-        $keyCurr = 'y' . $selectedYear;
+            try {
+                $qContracts = DB::table('contracts')->whereNull('deleted_at');
+                if ($orgId) {
+                    $qContracts->where('organization_id', $orgId);
+                }
+                $contractsCount = $qContracts->count();
 
-        $contractsChart = [];
-        for ($m = 1; $m <= 12; $m++) {
-            $contractsChart[] = [
-                'mes' => $months[$m - 1],
-                $keyPrev => $contractsPrev[$m] ?? 0,
-                $keyCurr => $contractsCurr[$m] ?? 0,
+                $qClients = DB::table('users')
+                    ->where('permission_id', 7)
+                    ->where('excluido', 'n')
+                    ->where('deletado', 'n');
+                if ($orgId) {
+                    $qClients->where('organization_id', $orgId);
+                }
+                $clientsCount = $qClients->count();
+
+                $qSuppliers = DB::table('users')
+                    ->where('permission_id', 8)
+                    ->where('excluido', 'n')
+                    ->where('deletado', 'n');
+                if ($orgId) {
+                    $qSuppliers->where('organization_id', $orgId);
+                }
+                $suppliersCount = $qSuppliers->count();
+
+                $qUsers = DB::table('users')
+                    ->where('excluido', 'n')
+                    ->where('deletado', 'n');
+                if ($orgId) {
+                    $qUsers->where('organization_id', $orgId);
+                }
+                $usersCount = $qUsers->count();
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Erro ao contar entidades no Dashboard: ' . $e->getMessage());
+            }
+
+            $contractsPrev = $this->getContractsMonthlyCounts($comparisonYear, $orgId);
+            $contractsCurr = $this->getContractsMonthlyCounts($selectedYear, $orgId);
+
+            $keyPrev = 'y' . $comparisonYear;
+            $keyCurr = 'y' . $selectedYear;
+
+            $contractsChart = [];
+            for ($m = 1; $m <= 12; $m++) {
+                $contractsChart[] = [
+                    'mes' => $months[$m - 1],
+                    $keyPrev => $contractsPrev[$m] ?? 0,
+                    $keyCurr => $contractsCurr[$m] ?? 0,
+                ];
+            }
+
+            return [
+                'data' => [
+                    'counts' => [
+                        'contracts' => $contractsCount,
+                        'clients' => $clientsCount,
+                        'suppliers' => $suppliersCount,
+                        'users' => $usersCount,
+                    ],
+                    'charts' => [
+                        'contracts' => $contractsChart,
+                    ],
+                    'meta' => [
+                        'selected_year' => $selectedYear,
+                        'comparison_year' => $comparisonYear,
+                    ],
+                ],
             ];
-        }
+        };
 
-        $payload = [
-            'data' => [
-                'counts' => [
-                    'contracts' => $contractsCount,
-                    'clients' => $clientsCount,
-                    'suppliers' => $suppliersCount,
-                    'users' => $usersCount,
-                ],
-                'charts' => [
-                    // Removemos old logic de matriculas/interessados
-                    // 'interested' => $interested,
-                    // 'enrolled'   => $enrolled,
-                    'contracts'  => $contractsChart,
-                ],
-                // pt-BR: Inclui metadados de ano selecionado e comparativo
-                // en-US: Include selected and comparison year metadata
-                'meta' => [
-                    'selected_year' => $selectedYear,
-                    'comparison_year' => $comparisonYear,
-                ],
-            ],
-        ];
+        try {
+            $payload = Cache::remember($cacheKey, 60, $resolver);
+        } catch (\BadMethodCallException $e) {
+            $payload = $resolver();
+        }
 
         return response()->json($payload);
     }
@@ -152,9 +157,13 @@ class DashboardChartController extends Controller
              // SQLite usa strftime('%m', created_at), MySQL usa MONTH(created_at).
              // Para compatibilidade simples com Laravel Query Builder + driver detection:
             
+            $start = CarbonImmutable::create($year, 1, 1, 0, 0, 0);
+            $end = $start->addYear();
+
             $query = DB::table('contracts')
                 ->whereNull('deleted_at')
-                ->whereYear('created_at', $year);
+                ->where('created_at', '>=', $start)
+                ->where('created_at', '<', $end);
 
             if ($orgId) {
                 $query->where('organization_id', $orgId);
