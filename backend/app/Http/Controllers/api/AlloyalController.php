@@ -175,7 +175,8 @@ class AlloyalController extends Controller
             'X-ClientEmployee-Token' => $this->clientEmployeeToken,
             'X-ClientEmployee-Email' => $this->clientEmployeeEmail,
             'Idempotency-Key' => $token,//Qlib::zerofill($idendificador,6),
-            'Content-Type' => 'application/json'
+            'Content-Type' => 'application/json',
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
         ];
         $client_id = Client::where('cpf',$data['document'])->value('id');
         if(!$client_id){
@@ -194,7 +195,7 @@ class AlloyalController extends Controller
         try {
             $endpoint = $this->endpoint . '/deposits';
             $url = $this->url_api_aloyall . $endpoint;
-            $response = Http::withHeaders($headers)->post($url, $body);
+            $response = Http::withOptions(['force_ip_resolve' => 'v4'])->withHeaders($headers)->post($url, $body);
             // dd($url,$headers,$response->json(),$body);
             $ret['exec'] = true;
             $ret['data'] = $response->json();
@@ -235,7 +236,8 @@ class AlloyalController extends Controller
         $headers = [
             'X-ClientEmployee-Email' => $this->clientEmployeeEmail,
             'X-ClientEmployee-Token' => $this->clientEmployeeToken,
-            'Content-Type' => 'application/json'
+            'Content-Type' => 'application/json',
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
         ];
         //se não tiver os dados para preencher o body, retornar erro
         if(!isset($d_send['name']) || !isset($d_send['cpf']) || !isset($d_send['email'])){
@@ -273,7 +275,7 @@ class AlloyalController extends Controller
 
             // dd($body,$endpoint);
             $url = $this->url_api_aloyall . $endpoint;
-            $response = Http::withHeaders($headers)->post($url, $body);
+            $response = Http::withOptions(['force_ip_resolve' => 'v4'])->withHeaders($headers)->post($url, $body);
             $ret['exec'] = true;
             $ret['message'] = 'Usuário criado com sucesso';
             $data = $response->json();
@@ -343,7 +345,8 @@ class AlloyalController extends Controller
          $headers = [
             'X-ClientEmployee-Email' => $this->clientEmployeeEmail,
             'X-ClientEmployee-Token' => $this->clientEmployeeToken,
-            'Content-Type' => 'application/json'
+            'Content-Type' => 'application/json',
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
         ];
         //manodar body atravez do esquema
         $body = [
@@ -355,7 +358,7 @@ class AlloyalController extends Controller
         try {
             $endpoint = $this->endpoint . '/authorized_users';
             $url = $this->url_api_aloyall . $endpoint;
-            $response = Http::withHeaders($headers)->post($url, $body);
+            $response = Http::withOptions(['force_ip_resolve' => 'v4'])->withHeaders($headers)->post($url, $body);
             // dd($url,$headers,$response->json(),$body);
             $ret['exec'] = true;
             $ret['message'] = 'Usuário ativado com sucesso';
@@ -478,12 +481,13 @@ class AlloyalController extends Controller
         $headers = [
             'X-ClientEmployee-Email' => $this->clientEmployeeEmail,
             'X-ClientEmployee-Token' => $this->clientEmployeeToken,
-            'Content-Type' => 'application/json'
+            'Content-Type' => 'application/json',
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
         ];
         $endpoint = $this->endpoint . '/users/'.$cpf.'/smart_link';
         // dd($endpoint);
         $url = $this->url_api_aloyall . $endpoint;
-        $response = Http::withHeaders($headers)->post($url);
+        $response = Http::withOptions(['force_ip_resolve' => 'v4'])->withHeaders($headers)->post($url);
         // dd($url,$headers,$response->json());
         if($response->status() != 200){
             $ret['exec'] = false;
@@ -516,14 +520,15 @@ class AlloyalController extends Controller
         $headers = [
             'X-ClientEmployee-Email' => $this->clientEmployeeEmail,
             'X-ClientEmployee-Token' => $this->clientEmployeeToken,
-            'Content-Type' => 'application/json'
+            'Content-Type' => 'application/json',
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
         ];
 
         $endpoint = $this->endpoint . '/users/'.$cpf.'/smart_link';
         $url = $this->url_api_aloyall . $endpoint;
         // dd($url);
         try {
-            $response = Http::withHeaders($headers)->post($url);
+            $response = Http::withOptions(['force_ip_resolve' => 'v4'])->withHeaders($headers)->post($url);
             // dd($url,$headers,$response->json());
             if($response->status() != 200){
                 $error = $response->json()['error'] ?? 'Erro desconhecido';
@@ -595,12 +600,13 @@ class AlloyalController extends Controller
         $headers = [
             'X-ClientEmployee-Email' => $this->clientEmployeeEmail,
             'X-ClientEmployee-Token' => $this->clientEmployeeToken,
-            'Content-Type' => 'application/json'
+            'Content-Type' => 'application/json',
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
         ];
         $endpoint = $this->endpoint . '/authorized_users/' . $cpf;
         $url = $this->url_api_aloyall . $endpoint;
 
-        $response = Http::withHeaders($headers)->delete($url);
+        $response = Http::withOptions(['force_ip_resolve' => 'v4'])->withHeaders($headers)->delete($url);
         // dd($url,$headers,$response->json());
         if($response->status() != 200){
             $ret['exec'] = false;
