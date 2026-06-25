@@ -279,9 +279,11 @@ class AlloyalController extends Controller
             $data = $response->json();
             $ret['data'] = $data;
             $ret['message'] = 'Usuário criado com sucesso, status: ' . $response->status();
+            $ret['response_body'] = $response->body();
+            $ret['response_status'] = $response->status();
             if($response->status() != 201 && $response->status() != 200){
-                $ret['message'] = 'Erro ao Integrar com o Clube:'. ($response['data']['error'] ?? $response['message'] ?? $response['error'] ?? '').', status: ' . $response->status();
                 $ret['exec'] = false;
+                $ret['message'] = 'Erro ao Integrar com o Clube: '. $response->body() .', status: ' . $response->status();
             }
             if(!$client_id){
                 $client_id = Client::where('cpf',$d_send['cpf'])->value('id');
