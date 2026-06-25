@@ -197,6 +197,18 @@ class AlloyalController extends Controller
             $url = $this->url_api_aloyall . $endpoint;
             $response = Http::withOptions(['force_ip_resolve' => 'v4'])->withHeaders($headers)->post($url, $body);
             // dd($url,$headers,$response->json(),$body);
+            $bodyResponse = $response->body();
+            $ret['response_body'] = $bodyResponse;
+            $ret['response_status'] = $response->status();
+            if($response->status() != 201 && $response->status() != 200){
+                $ret['exec'] = false;
+                if (str_contains($bodyResponse, '<!DOCTYPE html') || str_contains($bodyResponse, 'Cloudflare')) {
+                    $ret['message'] = 'Erro ao depositar: servidor bloqueou a requisição (Cloudflare), status: ' . $response->status();
+                } else {
+                    $ret['message'] = 'Erro ao depositar na conta do cliente, status: ' . $response->status();
+                }
+                return $ret;
+            }
             $ret['exec'] = true;
             $ret['data'] = $response->json();
             if(isset($ret['data']['error'])){
@@ -218,7 +230,7 @@ class AlloyalController extends Controller
             return $ret;
         } catch (\Throwable $th) {
             //throw $th;
-            $ret['message'] = 'Erro ao depositar na conta do cliente, status: ' . $response->status();
+            $ret['message'] = 'Erro ao depositar na conta do cliente, status: ' . ($response->status() ?? 'unknown');
             $ret['message'] .= $th->getMessage();
             $ret['error'] = $th->getMessage();
             $ret['data'] = $data;
@@ -285,7 +297,12 @@ class AlloyalController extends Controller
             $ret['response_status'] = $response->status();
             if($response->status() != 201 && $response->status() != 200){
                 $ret['exec'] = false;
-                $ret['message'] = 'Erro ao Integrar com o Clube: '. $response->body() .', status: ' . $response->status();
+                $body = $response->body();
+                if (str_contains($body, '<!DOCTYPE html') || str_contains($body, 'Cloudflare')) {
+                    $ret['message'] = 'Erro ao Integrar com o Clube: servidor bloqueou a requisição (Cloudflare), status: ' . $response->status();
+                } else {
+                    $ret['message'] = 'Erro ao Integrar com o Clube: '. $body .', status: ' . $response->status();
+                }
             }
             if(!$client_id){
                 $client_id = Client::where('cpf',$d_send['cpf'])->value('id');
@@ -360,11 +377,22 @@ class AlloyalController extends Controller
             $url = $this->url_api_aloyall . $endpoint;
             $response = Http::withOptions(['force_ip_resolve' => 'v4'])->withHeaders($headers)->post($url, $body);
             // dd($url,$headers,$response->json(),$body);
-            $ret['exec'] = true;
-            $ret['message'] = 'Usuário ativado com sucesso';
             $data = $response->json();
             $ret['data'] = $data;
-            $ret['message'] = 'Usuário ativado com sucesso, status: ' . $response->status();
+            $ret['response_body'] = $response->body();
+            $ret['response_status'] = $response->status();
+            if($response->status() != 201 && $response->status() != 200){
+                $ret['exec'] = false;
+                $body = $response->body();
+                if (str_contains($body, '<!DOCTYPE html') || str_contains($body, 'Cloudflare')) {
+                    $ret['message'] = 'Erro ao ativar usuário: servidor bloqueou a requisição (Cloudflare), status: ' . $response->status();
+                } else {
+                    $ret['message'] = 'Erro ao ativar usuário: '. $body .', status: ' . $response->status();
+                }
+            } else {
+                $ret['exec'] = true;
+                $ret['message'] = 'Usuário ativado com sucesso, status: ' . $response->status();
+            }
             if(!$client_id){
                 $client_id = Client::where('cpf',$d_send['cpf'])->value('id');
             }
@@ -491,8 +519,17 @@ class AlloyalController extends Controller
         // dd($url,$headers,$response->json());
         if($response->status() != 200){
             $ret['exec'] = false;
-            $ret['message'] = 'Erro ao solicitar smartlink, status: ' . $response->status();
-            $ret['message'] .= $response->json()['message'] ?? '';
+            $body = $response->body();
+            if (str_contains($body, '<!DOCTYPE html') || str_contains($body, 'Cloudflare')) {
+                $ret['message'] = 'Erro ao solicitar smartlink: servidor bloqueou a requisição (Cloudflare), status: ' . $response->status();
+            } else {
+                $ret['message'] = 'Erro ao solicitar smartlink, status: ' . $response->status();
+                $json = $response->json();
+                if (is_array($json) && isset($json['message'])) {
+                    $ret['message'] .= ': ' . $json['message'];
+                }
+            }
+            $ret['response_body'] = $body;
             return $ret;
         }
         $ret['exec'] = true;
@@ -531,12 +568,22 @@ class AlloyalController extends Controller
             $response = Http::withOptions(['force_ip_resolve' => 'v4'])->withHeaders($headers)->post($url);
             // dd($url,$headers,$response->json());
             if($response->status() != 200){
-                $error = $response->json()['error'] ?? 'Erro desconhecido';
-                $ret = [
-                    'exec' => false,
-                    'message' => $error ?? 'Erro ao solicitar smartlink, status: ' . $response->status(),
-                    'details' => $response->json()['message'] ?? 'Erro desconhecido'
-                ];
+                $body = $response->body();
+                if (str_contains($body, '<!DOCTYPE html') || str_contains($body, 'Cloudflare')) {
+                    $ret = [
+                        'exec' => false,
+                        'message' => 'Erro ao solicitar smartlink: servidor bloqueou a requisição (Cloudflare), status: ' . $response->status(),
+                        'response_body' => $body,
+                    ];
+                } else {
+                    $json = $response->json();
+                    $ret = [
+                        'exec' => false,
+                        'message' => ($json['error'] ?? 'Erro ao solicitar smartlink, status: ' . $response->status()),
+                        'details' => ($json['message'] ?? 'Erro desconhecido'),
+                        'response_body' => $body,
+                    ];
+                }
                 return response()->json($ret, $response->status());
             }
 
@@ -610,8 +657,17 @@ class AlloyalController extends Controller
         // dd($url,$headers,$response->json());
         if($response->status() != 200){
             $ret['exec'] = false;
-            $ret['message'] = 'Erro ao excluir usuário, status: ' . $response->status();
-            $ret['message'] .= $response->json()['message'] ?? '';
+            $body = $response->body();
+            if (str_contains($body, '<!DOCTYPE html') || str_contains($body, 'Cloudflare')) {
+                $ret['message'] = 'Erro ao excluir usuário: servidor bloqueou a requisição (Cloudflare), status: ' . $response->status();
+            } else {
+                $ret['message'] = 'Erro ao excluir usuário, status: ' . $response->status();
+                $json = $response->json();
+                if (is_array($json) && isset($json['message'])) {
+                    $ret['message'] .= ': ' . $json['message'];
+                }
+            }
+            $ret['response_body'] = $body;
             return $ret;
         }
         $client_id = $this->get_client_id($cpf);
