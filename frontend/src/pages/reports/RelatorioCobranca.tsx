@@ -18,6 +18,8 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { dataParaBR } from "@/lib/qlib";
+import { cpfApplyMask } from "@/lib/masks/cpf-apply-mask";
+import { cnpjApplyMask } from "@/lib/masks/cnpj-apply-mask";
 
 export default function RelatorioCobranca() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -144,6 +146,16 @@ export default function RelatorioCobranca() {
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
   };
 
+  // Auxiliar formatador de CPF/CNPJ
+  const formatCpfCnpj = (value: string) => {
+    if (!value) return "-";
+    const clean = value.replace(/\D/g, "");
+    if (clean.length <= 11) {
+      return cpfApplyMask(clean);
+    }
+    return cnpjApplyMask(clean);
+  };
+
   // Exportar para Excel (.xlsx) seguindo o layout exato da planilha de referência
   const handleExportExcel = () => {
     if (!reportData) return;
@@ -183,7 +195,7 @@ export default function RelatorioCobranca() {
       lines.forEach((line) => {
         aoaData.push([
           line.name,
-          line.cpf,
+          formatCpfCnpj(line.cpf),
           line.product_name,
           dataParaBR(line.validity_start),
           dataParaBR(line.cycle_start),
@@ -259,7 +271,7 @@ export default function RelatorioCobranca() {
 
       const tableRows = lines.map((l) => [
         l.name,
-        l.cpf,
+        formatCpfCnpj(l.cpf),
         l.product_name,
         dataParaBR(l.validity_start),
         l.calculated_start ? dataParaBR(l.calculated_start) : "-",
@@ -510,7 +522,7 @@ export default function RelatorioCobranca() {
                     {reportData.lines.map((line, idx) => (
                       <TableRow key={idx} className={line.covered_days === 0 ? "bg-slate-50 text-slate-400" : ""}>
                         <TableCell className="font-semibold text-slate-800">{line.name}</TableCell>
-                        <TableCell>{line.cpf || "-"}</TableCell>
+                        <TableCell>{formatCpfCnpj(line.cpf)}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="font-normal text-slate-600 bg-slate-50 border-slate-200">
                             {line.product_name}
