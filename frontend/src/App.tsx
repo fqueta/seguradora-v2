@@ -107,6 +107,7 @@ import CertificateGenerate from "./pages/school/CertificateGenerate";
 import CertificateView from "./pages/school/CertificateView";
 import CertificateValidate from "./pages/school/CertificateValidate";
 import RelatorioGeral from "./pages/reports/RelatorioGeral";
+import RelatorioCobranca from "./pages/reports/RelatorioCobranca";
 import ClientsContractsImport from "./pages/imports/ClientsContractsImport";
 
 const queryClient = new QueryClient({
@@ -243,6 +244,14 @@ const App = () => {
                 <AdminProtectedRoute>
                   <AppLayout>
                     <RelatorioGeral />
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+
+              <Route path="/admin/reports/relatorio-cobranca" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <RelatorioCobranca />
                   </AppLayout>
                 </AdminProtectedRoute>
               } />

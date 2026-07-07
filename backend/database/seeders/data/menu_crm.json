@@ -47,6 +47,7 @@
     "icon": "LineChart",
     "submenu": [
       { "title": "Geral", "url": "/reports/relatorio-geral" },
+      { "title": "Cobrança Mensal", "url": "/reports/relatorio-cobranca" },
       { "title": "Vendas", "url": "/reports/relatorio-vendas" },
       { "title": "Pós Venda", "url": "/reports/relatorio-escola" },
       { "title": "Balanço", "url": "/reports/relatorio-balanco" },

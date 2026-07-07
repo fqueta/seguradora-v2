@@ -26,4 +26,14 @@ class Organization extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    public function clients()
+    {
+        return $this->hasMany(Client::class);
+    }
+
+    public function contracts()
+    {
+        return $this->hasMany(Contract::class);
+    }
 }

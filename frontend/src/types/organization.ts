@@ -13,6 +13,17 @@ export interface Organization {
     users?: any[];
 }
 
+export interface ProductPricing {
+    product_id: string;
+    product_name?: string;
+    monthly_value_per_life: number;
+}
+
+export interface BillingConfig {
+    cycle_start_day?: number;
+    products_pricing?: ProductPricing[];
+}
+
 export interface OrganizationCreateInput {
     name: string;
     document?: string | null;

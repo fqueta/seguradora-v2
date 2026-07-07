@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -18,10 +18,13 @@ import EditFooterBar from '@/components/ui/edit-footer-bar';
 import { useUsersList, useUpdateUser } from '@/hooks/users';
 import { Combobox, useComboboxOptions } from '@/components/ui/combobox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { User, UserMinus, Package } from 'lucide-react';
+import { User, UserMinus, Package, Receipt, HelpCircle } from 'lucide-react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { UserRecord } from '@/types/users';
 import { useProductsList } from '@/hooks/products';
 import { MultiSelect } from '@/components/ui/multi-select';
+import { CurrencyInput } from '@/components/ui/currency-input';
+import { currencyRemoveMaskToNumber } from '@/lib/masks/currency';
 
 const organizationSchema = z.object({
     name: z.string().min(1, "Nome é obrigatório"),
@@ -39,6 +42,13 @@ const organizationSchema = z.object({
         uf: z.string().optional().nullable(),
         allowed_products: z.array(z.string()).optional().default([]),
         alloyal_business_id: z.string().optional().nullable(),
+        billing: z.object({
+            cycle_start_day: z.coerce.number().min(1).max(28).optional().default(1),
+            products_pricing: z.array(z.object({
+                product_id: z.string(),
+                monthly_value_per_life: z.any(),
+            })).optional().default([]),
+        }).optional().default({ cycle_start_day: 1, products_pricing: [] }),
     }),
 });
 
@@ -81,6 +91,10 @@ export default function OrganizationForm() {
                 uf: '',
                 allowed_products: [],
                 alloyal_business_id: '',
+                billing: {
+                    cycle_start_day: 1,
+                    products_pricing: [],
+                },
             },
         }
     });
@@ -104,6 +118,10 @@ export default function OrganizationForm() {
                     uf: config.uf || '',
                     allowed_products: config.allowed_products?.map(String) || [],
                     alloyal_business_id: config.alloyal_business_id || '',
+                    billing: {
+                        cycle_start_day: config.billing?.cycle_start_day || 1,
+                        products_pricing: config.billing?.products_pricing || [],
+                    },
                 },
             });
         }
@@ -129,6 +147,16 @@ export default function OrganizationForm() {
                 bairro: data.config?.bairro || null,
                 cidade: data.config?.cidade || null,
                 uf: data.config?.uf || null,
+                billing: data.config?.billing ? {
+                    ...data.config.billing,
+                    cycle_start_day: Number(data.config.billing.cycle_start_day || 1),
+                    products_pricing: (data.config.billing.products_pricing || []).map((p: any) => ({
+                        product_id: String(p.product_id),
+                        monthly_value_per_life: typeof p.monthly_value_per_life === 'string'
+                            ? currencyRemoveMaskToNumber(p.monthly_value_per_life)
+                            : Number(p.monthly_value_per_life || 0)
+                    }))
+                } : undefined
             }
         };
 
@@ -206,6 +234,37 @@ export default function OrganizationForm() {
         undefined,
         (u) => u.email
     );
+
+    const allowedProducts = useWatch({
+        control: form.control,
+        name: 'config.allowed_products',
+    }) || [];
+
+    const productsPricing = useWatch({
+        control: form.control,
+        name: 'config.billing.products_pricing',
+    }) || [];
+
+    useEffect(() => {
+        const currentPricing = form.getValues('config.billing.products_pricing') || [];
+
+        // Mapear os produtos permitidos atuais mantendo os preços já configurados
+        const updatedPricing = allowedProducts.map((productId: string) => {
+            const existing = currentPricing.find((p: any) => String(p.product_id) === String(productId));
+            return {
+                product_id: productId,
+                monthly_value_per_life: existing ? existing.monthly_value_per_life : 0,
+            };
+        });
+
+        // Verificar se houve alteração na lista de produtos permitidos (adicionados ou removidos)
+        const currentKeys = currentPricing.map((p: any) => String(p.product_id)).sort().join(',');
+        const updatedKeys = updatedPricing.map((p: any) => String(p.product_id)).sort().join(',');
+
+        if (currentKeys !== updatedKeys) {
+            form.setValue('config.billing.products_pricing', updatedPricing);
+        }
+    }, [allowedProducts, form]);
 
     if (isEdit && isLoadingOrganization) return <div>Carregando...</div>;
 
@@ -357,6 +416,110 @@ export default function OrganizationForm() {
                                     </FormItem>
                                 )}
                             />
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="flex flex-row items-center gap-2">
+                            <Receipt className="h-5 w-5 text-muted-foreground" />
+                            <CardTitle>Configuração de Cobrança</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <FormField
+                                control={form.control}
+                                name="config.billing.cycle_start_day"
+                                render={({ field }) => (
+                                    <FormItem className="max-w-[240px]">
+                                        <div className="flex items-center gap-2">
+                                            <FormLabel>Dia de início do ciclo de cobrança</FormLabel>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <button type="button" className="text-muted-foreground hover:text-slate-900 transition-colors">
+                                                        <HelpCircle className="h-4 w-4" />
+                                                    </button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-80 space-y-2 text-xs">
+                                                    <p className="font-bold text-slate-800">Como funciona o ciclo mensal?</p>
+                                                    <p>
+                                                        O sistema gerencia os ciclos de faturamento de forma **automática** e **contínua**:
+                                                    </p>
+                                                    <ul className="list-disc pl-4 space-y-1">
+                                                        <li><strong>Dia de início</strong>: É o dia configurado neste campo.</li>
+                                                        <li><strong>Dia de término</strong>: É calculado automaticamente como o dia anterior do mês subsequente (ex: de 19/05 a 18/06).</li>
+                                                        <li><strong>Sem lacunas</strong>: O ciclo seguinte inicia exatamente no dia seguinte, prevenindo dias sem cobrança.</li>
+                                                        <li><strong>Adaptação automática</strong>: O cálculo ajusta-se dinamicamente a meses com 28, 29, 30 ou 31 dias (inclusive em anos bissextos).</li>
+                                                    </ul>
+                                                </PopoverContent>
+                                            </Popover>
+                                        </div>
+                                        <FormControl>
+                                            <Input
+                                                type="number"
+                                                min={1}
+                                                max={28}
+                                                {...field}
+                                                onChange={(e) => field.onChange(Number(e.target.value))}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            {allowedProducts.length > 0 ? (
+                                <div className="space-y-2 mt-4">
+                                    <FormLabel>Valores de venda por vida ativa (mensal)</FormLabel>
+                                    <div className="border rounded-md overflow-hidden">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Produto</TableHead>
+                                                    <TableHead className="w-[200px]">Valor por Vida (R$)</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {allowedProducts.map((productId: string) => {
+                                                    const product = allProducts.find((p) => String(p.id) === productId);
+                                                    const pricingIndex = productsPricing.findIndex((p: any) => p.product_id === productId);
+
+                                                    if (pricingIndex === -1) return null;
+
+                                                    return (
+                                                        <TableRow key={productId}>
+                                                            <TableCell className="font-medium">
+                                                                {product ? product.name : `Produto #${productId}`}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <FormField
+                                                                    control={form.control}
+                                                                    name={`config.billing.products_pricing.${pricingIndex}.monthly_value_per_life`}
+                                                                    render={({ field }) => (
+                                                                        <FormItem>
+                                                                            <FormControl>
+                                                                                <CurrencyInput
+                                                                                    placeholder="R$ 0,00"
+                                                                                    {...field}
+                                                                                    value={field.value}
+                                                                                    onValueChange={(val) => field.onChange(val)}
+                                                                                />
+                                                                            </FormControl>
+                                                                            <FormMessage />
+                                                                        </FormItem>
+                                                                    )}
+                                                                />
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground italic">
+                                    Selecione produtos no card acima para definir os valores de cobrança.
+                                </p>
+                            )}
                         </CardContent>
                     </Card>
                 </form>

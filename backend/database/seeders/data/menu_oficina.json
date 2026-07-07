@@ -62,9 +62,10 @@
     "order": 8,
     "submenu": [
       { "title": "Faturamento", "url": "/reports/revenue", "order": 1 },
-      { "title": "OS por Período", "url": "/reports/service-orders", "order": 2 },
-      { "title": "Produtos Mais Vendidos", "url": "/reports/top-products", "order": 3 },
-      { "title": "Análise Financeira", "url": "/reports/financial", "order": 4 }
+      { "title": "Cobrança Mensal", "url": "/reports/relatorio-cobranca", "order": 2 },
+      { "title": "OS por Período", "url": "/reports/service-orders", "order": 3 },
+      { "title": "Produtos Mais Vendidos", "url": "/reports/top-products", "order": 4 },
+      { "title": "Análise Financeira", "url": "/reports/financial", "order": 5 }
     ]
   },
   {

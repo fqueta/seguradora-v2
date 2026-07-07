@@ -677,6 +677,13 @@ Route::name('api.')->prefix('api/v1')->middleware([
             Route::get('enrolled-monthly', [DashboardChartController::class, 'enrolledMonthly'])
                 ->name('dashboard.charts.enrolled-monthly');
         });
+
+        // Relatórios de cobrança
+        Route::prefix('reports/billing')->group(function () {
+            Route::post('generate', [\App\Http\Controllers\api\BillingReportController::class, 'generate'])->name('reports.billing.generate');
+            Route::post('export-excel', [\App\Http\Controllers\api\BillingReportController::class, 'exportExcel'])->name('reports.billing.export-excel');
+            Route::post('export-pdf', [\App\Http\Controllers\api\BillingReportController::class, 'exportPdf'])->name('reports.billing.export-pdf');
+        });
     });
     // Rotas para tracking events
     Route::post('tracking/whatsapp-contact', [TrackingEventController::class, 'whatsappContact'])->name('tracking.whatsapp-contact');

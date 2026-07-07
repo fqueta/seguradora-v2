@@ -54,6 +54,11 @@ class OrganizationController extends Controller
             'config.uf' => 'nullable|string',
             'config.allowed_products' => 'nullable|array',
             'config.alloyal_business_id' => 'nullable|string',
+            'config.billing' => 'nullable|array',
+            'config.billing.cycle_start_day' => 'nullable|integer|min:1|max:28',
+            'config.billing.products_pricing' => 'nullable|array',
+            'config.billing.products_pricing.*.product_id' => 'required_with:config.billing.products_pricing|string',
+            'config.billing.products_pricing.*.monthly_value_per_life' => 'required_with:config.billing.products_pricing|numeric|min:0',
         ]);
 
         $organization = Organization::create($validated);
@@ -94,6 +99,11 @@ class OrganizationController extends Controller
             'config.uf' => 'nullable|string',
             'config.allowed_products' => 'nullable|array',
             'config.alloyal_business_id' => 'nullable|string',
+            'config.billing' => 'nullable|array',
+            'config.billing.cycle_start_day' => 'nullable|integer|min:1|max:28',
+            'config.billing.products_pricing' => 'nullable|array',
+            'config.billing.products_pricing.*.product_id' => 'required_with:config.billing.products_pricing|string',
+            'config.billing.products_pricing.*.monthly_value_per_life' => 'required_with:config.billing.products_pricing|numeric|min:0',
         ]);
 
         $organization->update($validated);
