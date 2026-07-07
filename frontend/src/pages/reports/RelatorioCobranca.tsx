@@ -12,7 +12,7 @@ import type { Organization } from "@/types/organization";
 import type { Product } from "@/types/products";
 import type { BillingReportData } from "@/types/billingReport";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, FileDown, FileSpreadsheet, Filter, RotateCcw, Receipt } from "lucide-react";
+import { Loader2, FileDown, FileSpreadsheet, Filter, RotateCcw, Receipt, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -39,22 +39,24 @@ export default function RelatorioCobranca() {
   const [loadingFilters, setLoadingFilters] = useState<boolean>(true);
   const [generating, setGenerating] = useState<boolean>(false);
   const [reportData, setReportData] = useState<BillingReportData | null>(null);
+  const [hasAutoLoaded, setHasAutoLoaded] = useState<boolean>(false);
 
   // Carregar organizações com billing configurado e produtos
   useEffect(() => {
     const loadFiltersData = async () => {
       try {
         setLoadingFilters(true);
-        // Carrega todas as organizações
-        const orgsRes = await organizationService.list({ per_page: 999 });
+        // Carrega organizações e produtos em paralelo para otimizar velocidade
+        const [orgsRes, productsRes] = await Promise.all([
+          organizationService.list({ per_page: 999 }),
+          productsService.list({ per_page: 999 })
+        ]);
+
         // Filtra organizações que possuem billing configurado
         const orgsWithBilling = (orgsRes.data || []).filter(
           (o) => o.config?.billing?.cycle_start_day && o.config?.billing?.products_pricing?.length > 0
         );
         setOrganizations(orgsWithBilling);
-
-        // Carrega todos os produtos para ter mapeamento de nomes
-        const productsRes = await productsService.list({ per_page: 999 });
         setAllProducts(productsRes.data || []);
       } catch (err) {
         console.error(err);
@@ -69,6 +71,9 @@ export default function RelatorioCobranca() {
 
   // Atualizar produtos permitidos quando a organização selecionada mudar
   useEffect(() => {
+    // Se ainda estiver carregando os dados de filtro, não executa validação/reset dos estados
+    if (loadingFilters) return;
+
     if (!orgId || organizations.length === 0) {
       setAllowedProducts([]);
       setProductId("");
@@ -89,7 +94,7 @@ export default function RelatorioCobranca() {
       setAllowedProducts([]);
       setProductId("");
     }
-  }, [orgId, organizations, allProducts, productId]);
+  }, [orgId, organizations, allProducts, productId, loadingFilters]);
 
   // Sincronizar parâmetros de filtro com a URL
   useEffect(() => {
@@ -101,6 +106,44 @@ export default function RelatorioCobranca() {
 
     setSearchParams(params, { replace: true });
   }, [orgId, productId, referenceMonth, referenceYear, setSearchParams]);
+
+  // Carregamento automático quando os parâmetros estão presentes na URL
+  useEffect(() => {
+    if (
+      !hasAutoLoaded &&
+      !loadingFilters &&
+      organizations.length > 0 &&
+      orgId &&
+      productId &&
+      referenceMonth &&
+      referenceYear
+    ) {
+      const selectedOrg = organizations.find((o) => String(o.id) === orgId);
+      if (selectedOrg && selectedOrg.config?.billing?.products_pricing) {
+        const pricingProductIds = selectedOrg.config.billing.products_pricing.map((p: any) => String(p.product_id));
+        if (productId === "all" || pricingProductIds.includes(productId)) {
+          const autoFetch = async () => {
+            try {
+              setGenerating(true);
+              const data = await billingReportService.generate({
+                organization_id: Number(orgId),
+                product_id: productId,
+                reference_month: referenceMonth,
+                reference_year: referenceYear,
+              });
+              setReportData(data);
+              setHasAutoLoaded(true);
+            } catch (err) {
+              console.error("Erro no autoload do relatório", err);
+            } finally {
+              setGenerating(false);
+            }
+          };
+          autoFetch();
+        }
+      }
+    }
+  }, [loadingFilters, organizations, orgId, productId, referenceMonth, referenceYear, hasAutoLoaded]);
 
   // Gerar Relatório
   const handleGenerateReport = async () => {
@@ -154,6 +197,19 @@ export default function RelatorioCobranca() {
       return cpfApplyMask(clean);
     }
     return cnpjApplyMask(clean);
+  };
+
+  // Copiar link de compartilhamento
+  const handleShare = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url)
+      .then(() => {
+        toast.success("Link do relatório copiado para a área de transferência!");
+      })
+      .catch((err) => {
+        console.error(err);
+        toast.error("Erro ao copiar link.");
+      });
   };
 
   // Exportar para Excel (.xlsx) seguindo o layout exato da planilha de referência
@@ -493,6 +549,9 @@ export default function RelatorioCobranca() {
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-lg font-bold">Listagem Detalhada de Vidas</CardTitle>
               <div className="flex gap-2">
+                <Button variant="outline" className="gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50" onClick={handleShare}>
+                  <Share2 className="h-4 w-4" /> Compartilhar Consulta
+                </Button>
                 <Button variant="outline" className="gap-2" onClick={handleExportExcel}>
                   <FileSpreadsheet className="h-4 w-4 text-emerald-600" /> Exportar Excel
                 </Button>
