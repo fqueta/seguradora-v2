@@ -101,11 +101,20 @@ export default function ContractForm() {
         const permissionId = Number(currentUser?.permission_id);
         const isSuperAdmin = permissionId > 0 && permissionId < 3;
         
+        const getProductLabel = (p: any) => {
+            let name = p.name || '';
+            if (permissionId > 2 && p.supplierData?.config?.nome_visivel_clientes) {
+                const publicName = p.supplierData.config.nome_visivel_clientes;
+                name = name.replace(/LSX Medical/gi, publicName).replace(/LSX/gi, publicName);
+            }
+            return p.plan ? `${name} - Plano ${p.plan}` : name;
+        };
+
         // 1. Super-admins podem ver todos os produtos ( permission_id < 3 )
         if (isSuperAdmin) {
             return allProducts.map(p => ({ 
                 value: String(p.id), 
-                label: p.plan ? `${p.name} - Plano ${p.plan}` : p.name 
+                label: getProductLabel(p)
             }));
         }
 
@@ -129,7 +138,7 @@ export default function ContractForm() {
         const filtered = allProducts.filter(p => allowedProductIds.map(String).includes(String(p.id)));
         return filtered.map(p => ({ 
             value: String(p.id), 
-            label: p.plan ? `${p.name} - Plano ${p.plan}` : p.name 
+            label: getProductLabel(p)
         }));
     }, [products?.data, currentUser]);
 

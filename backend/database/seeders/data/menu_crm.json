@@ -71,7 +71,8 @@
         { "title": "Categorias", "url": "/categories" },
         { "title": "Tabelas de parcelamento", "url": "/settings/table-installment" },
         { "title": "Tabelas de desconto", "url": "/settings/table-discount" },
-        { "title": "Sistema", "url": "/settings/system"}
+        { "title": "Sistema", "url": "/settings/system"},
+        { "title": "Documentação da API", "url": "/settings/api-docs"}
     ]
   }
 ]

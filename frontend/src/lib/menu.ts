@@ -316,6 +316,12 @@ export const defaultMenu: MenuItemDTO[] = [
         url: "/admin/settings/system",
         permission: "settings.system.view",
         can_view: true
+      },
+      {
+        title: "Documentação da API",
+        url: "/admin/settings/api-docs",
+        permission: "settings.system.view",
+        can_view: true
       }
     ]
   }

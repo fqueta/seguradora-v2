@@ -116,6 +116,28 @@ export function SupplierForm({ form, isLoading = false }: SupplierFormProps) {
             </div>
 
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <Label htmlFor="config.tag">Tag (Identificação do Fornecedor)</Label>
+              <Input
+                id="config.tag"
+                {...register('config.tag')}
+                disabled={isLoading}
+                placeholder="Ex: IZA, SulAmerica, LSX"
+              />
+            </div>
+            <div>
+              <Label htmlFor="config.nome_visivel_clientes">Nome Visível para Clientes</Label>
+              <Input
+                id="config.nome_visivel_clientes"
+                {...register('config.nome_visivel_clientes')}
+                disabled={isLoading}
+                placeholder="Ex: Nome amigável para exibir aos clientes"
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1">
             <div>
               <Label htmlFor="password">Senha</Label>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Organization;
+use App\Models\Product;
 
 class OrganizationController extends Controller
 {
@@ -120,5 +121,70 @@ class OrganizationController extends Controller
         $organization->delete();
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * Retorna a lista de produtos permitidos/liberados para a organização.
+     * Retorna formato: [id =>, nome =>]
+     */
+    public function products(string $id)
+    {
+        $organization = Organization::findOrFail($id);
+
+        $allowedProductIds = $organization->config['allowed_products'] ?? [];
+
+        if (empty($allowedProductIds)) {
+            return response()->json([]);
+        }
+
+        $products = Product::whereIn('ID', $allowedProductIds)
+            ->get(['ID', 'post_title'])
+            ->map(function ($product) {
+                return [
+                    'id' => $product->ID,
+                    'nome' => $product->post_title,
+                ];
+            });
+
+        return response()->json($products);
+    }
+
+    /**
+     * Retorna a lista de produtos permitidos/liberados para a organização do usuário logado.
+     * Retorna formato: [id =>, nome =>]
+     */
+    public function allowedProducts(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Não autenticado'], 401);
+        }
+
+        $organizationId = $user->organization_id;
+        if (!$organizationId) {
+            return response()->json(['message' => 'Usuário não possui organização associada'], 400);
+        }
+
+        $organization = Organization::find($organizationId);
+        if (!$organization) {
+            return response()->json(['message' => 'Organização não encontrada'], 404);
+        }
+
+        $allowedProductIds = $organization->config['allowed_products'] ?? [];
+
+        if (empty($allowedProductIds)) {
+            return response()->json([]);
+        }
+
+        $products = Product::whereIn('ID', $allowedProductIds)
+            ->get(['ID', 'post_title'])
+            ->map(function ($product) {
+                return [
+                    'id' => $product->ID,
+                    'nome' => $product->post_title,
+                ];
+            });
+
+        return response()->json($products);
     }
 }

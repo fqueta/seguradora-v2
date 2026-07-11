@@ -34,6 +34,20 @@ export default function ContractView() {
     const { user } = useAuth();
     const isSuperAdmin = Number((user as any)?.permission_id ?? (user as any)?.id_permission ?? 0) <= 1;
     const { data: contract, isLoading, error, refetch } = useContract(id as string);
+    const isClientUser = Number(user?.permission_id ?? (user as any)?.id_permission ?? 99) > 2;
+
+    const getLabel = (defaultLabel: string) => {
+        if (isClientUser && (contract as any)?.supplier_tag === 'LSX') {
+            const publicName = contract?.product?.supplierData?.config?.nome_visivel_clientes;
+            if (publicName) {
+                return defaultLabel
+                    .replace(/LSX Medical/g, publicName)
+                    .replace(/LSX medical/g, publicName)
+                    .replace(/lsx medical/g, publicName);
+            }
+        }
+        return defaultLabel;
+    };
     const { mutate: cancelContract, isPending: isCancelling } = useCancelContract();
     const [expandedEvents, setExpandedEvents] = useState<number[]>([]);
     const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
@@ -277,13 +291,16 @@ export default function ContractView() {
             'debug_lsx_attempt': 'Início Integração LSX',
             'integracao_lsx_medical': 'Retorno LSX Medical',
             'lsx_medical_create_patient': 'Criação de Paciente LSX',
+            'debug_iza_attempt': 'Início Integração IZA',
+            'integracao_iza': 'Retorno IZA',
+            'integracao_iza_cancel': 'Cancelamento IZA',
             'reativacao': 'Reativação de Contrato',
             'cancelamento': 'Cancelamento de Contrato',
             'importacao': 'Importação de Dados',
             'integration_consult': 'Consulta de Status',
             'cancelamento_integracao': 'Cancelamento de Integração',
         };
-        return labels[type] || type;
+        return getLabel(labels[type] || type);
     };
 
     const getStatusVariant = (status: string) => {
@@ -440,7 +457,7 @@ export default function ContractView() {
                              <div className="flex items-center gap-2">
                                 {(() => {
                                     const canLinkToProduct = user && Number(user.permission_id ?? (user as any).id_permission ?? 99) < 3;
-                                    const productName = contract.product?.post_title || contract.product?.name || 'Produto não identificado';
+                                    const productName = getLabel(contract.product?.post_title || contract.product?.name || 'Produto não identificado');
                                     const productId = contract.product?.id || contract.product_id;
 
                                     if (canLinkToProduct && productId) {
@@ -498,7 +515,7 @@ export default function ContractView() {
                     <Card className="md:col-span-2">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <Badge variant="outline" className="bg-blue-600/10 text-blue-700 border-0">Integração SulAmérica</Badge>
+                                {!isClientUser && <Badge variant="outline" className="bg-blue-600/10 text-blue-700 border-0">Integração SulAmérica</Badge>}
                                 Resumo da Integração
                             </CardTitle>
                         </CardHeader>
@@ -568,7 +585,7 @@ export default function ContractView() {
                              <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-teal-700">
                                     <Package className="h-5 w-5" />
-                                    Integração LSX Medical
+                                    {getLabel('Integração LSX Medical')}
                                 </CardTitle>
                                 {(user && Number(user.permission_id ?? (user as any).id_permission ?? 99) < 3) && (
                                 <div className="mt-2 flex gap-2">
@@ -604,7 +621,7 @@ export default function ContractView() {
                                     <div className="flex items-center justify-between bg-teal-50/50 p-3 rounded-lg border border-teal-100">
                                         <div className="space-y-0.5">
                                             <Label htmlFor="lsx-status-toggle" className="text-sm font-semibold text-teal-900">
-                                                Status na LSX Medical
+                                                {getLabel('Status na LSX Medical')}
                                             </Label>
                                             <p className={`text-xs ${(remoteStatus === 'INACTIVE' || remoteStatus === 'NOT_FOUND') ? 'text-destructive font-medium' : 'text-teal-600'}`}>
                                                 {remoteStatus === 'ACTIVE' ? 'Paciente está ativo' : (remoteStatus === 'INACTIVE' ? 'Paciente está inativado' : 'Paciente está inativo')}
@@ -709,7 +726,7 @@ export default function ContractView() {
                                         <AlertDialogHeader>
                                             <AlertDialogTitle>Confirmar alteração de status?</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                                Você está prestes a {pendingLsxStatus ? 'ATIVAR' : 'INATIVAR'} o paciente na LSX Medical. 
+                                                Você está prestes a {pendingLsxStatus ? 'ATIVAR' : 'INATIVAR'} o paciente na {getLabel('LSX Medical')}. 
                                                 Esta ação pode afetar o status deste contrato no sistema. Deseja continuar?
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
@@ -731,7 +748,7 @@ export default function ContractView() {
                 })()}
 
                 {/* Resumo da Integração IZA */}
-                {((contract as any)?.supplier_tag?.toUpperCase() === 'IZA') && (() => {
+                {!isClientUser && ((contract as any)?.supplier_tag?.toUpperCase() === 'IZA') && (() => {
                     const izaData = (contract as any)?.integration_iza || {};
                     const izaSyncData = izaData?.sync_data || {};
                     const izaPayloadData = izaData?.payload || {};
@@ -1205,7 +1222,7 @@ export default function ContractView() {
                         </Card>
 
                         {/* Histórico de Ações e Auditoria */}
-                        <Card>
+                        {!isClientUser && <Card>
                             <CardHeader>
                                 <CardTitle className="text-lg font-semibold">Histórico de Ações e Auditoria</CardTitle>
                             </CardHeader>
@@ -1296,7 +1313,7 @@ export default function ContractView() {
                                     )}
                                 </div>
                             </CardContent>
-                        </Card>
+                        </Card>}
                     </div>
                 )}
             </div>

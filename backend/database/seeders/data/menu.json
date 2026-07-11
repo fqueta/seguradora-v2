@@ -51,7 +51,8 @@
         { "title": "Organizações", "url": "/settings/organizations" },
         { "title": "Integrações", "url": "/settings/integration" },
         { "title": "Templates de E-mail", "url": "/settings/email-templates" },
-        { "title": "Sistema", "url": "/settings/system"}
+        { "title": "Sistema", "url": "/settings/system"},
+        { "title": "Documentação da API", "url": "/settings/api-docs"}
     ]
   }
 ]

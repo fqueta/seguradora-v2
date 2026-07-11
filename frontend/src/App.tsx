@@ -52,6 +52,7 @@ import OrganizationList from "./pages/settings/organizations/OrganizationList";
 import OrganizationForm from "./pages/settings/organizations/OrganizationForm";
 import UserProfiles from "./pages/settings/UserProfiles";
 import SystemSettings from "./pages/settings/SystemSettings";
+import ApiDocs from "./pages/settings/ApiDocs";
 import Stages from "./pages/settings/Stages";
 import TableInstallment from "./pages/settings/TableInstallment";
 import ApiCredentials from "./pages/settings/ApiCredentials";
@@ -642,6 +643,19 @@ const App = () => {
                       requireRemote={false}
                     >
                       <SystemSettings />
+                    </PermissionGuard>
+                  </AppLayout>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/settings/api-docs" element={
+                <AdminProtectedRoute>
+                  <AppLayout>
+                    <PermissionGuard 
+                      required="settings.system.view" 
+                      menuPath="/admin/settings/api-docs"
+                      requireRemote={false}
+                    >
+                      <ApiDocs />
                     </PermissionGuard>
                   </AppLayout>
                 </AdminProtectedRoute>

@@ -6,7 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useProductsList, useCreateProduct, useUpdateProduct, useDeleteProduct, useProductCategories, useProductUnits } from "@/hooks/products";
 import type { Product, CreateProductInput, UpdateProductInput } from "@/types/products";
-import { Plus, Edit } from "lucide-react";
+import { Plus, Edit, ChevronLeft, ChevronRight } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ProductsStats from "@/components/products/ProductsStats";
 import ProductsTable from "@/components/products/ProductsTable";
 import ProductFormDialog from "@/components/products/ProductFormDialog";
@@ -19,9 +20,11 @@ export default function Products() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
 
   // Hooks para produtos
-  const { data: productsData, isLoading: isLoadingProducts, error: productsError, refetch } = useProductsList();
+  const { data: productsData, isLoading: isLoadingProducts, error: productsError, refetch } = useProductsList({ page: currentPage, per_page: perPage });
   const createMutation = useCreateProduct({
     onSuccess: () => {
       toast.success('Produto criado com sucesso!');
@@ -62,6 +65,17 @@ export default function Products() {
 
   // Extrai os produtos da resposta paginada
   const products = Array.isArray(productsData) ? productsData : productsData?.data || [];
+  const total = !Array.isArray(productsData) ? productsData?.total ?? 0 : products.length;
+  const lastPage = !Array.isArray(productsData) ? productsData?.last_page ?? 1 : 1;
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(lastPage, page)));
+  };
+
+  const handlePerPageChange = (value: string) => {
+    setPerPage(Number(value));
+    setCurrentPage(1);
+  };
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -174,6 +188,48 @@ export default function Products() {
         onDeleteProduct={handleDeleteProduct}
         onRefetch={refetch}
       />
+
+      {/* Pagination */}
+      {total > 0 && (
+        <div className="flex items-center justify-between mt-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Itens por página</span>
+            <Select value={String(perPage)} onValueChange={handlePerPageChange}>
+              <SelectTrigger className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-muted-foreground">Total: {total}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage <= 1 || isLoadingProducts}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm">
+              Página {currentPage} de {lastPage}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage >= lastPage || isLoadingProducts}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Product Form Dialog */}
       <ProductFormDialog

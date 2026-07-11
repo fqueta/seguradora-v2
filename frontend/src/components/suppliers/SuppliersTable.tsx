@@ -36,6 +36,8 @@ export function SuppliersTable({ suppliers, onEdit, onDelete, onView, isLoading 
       <TableHeader>
         <TableRow>
           <TableHead>Nome</TableHead>
+          <TableHead>Tag</TableHead>
+          <TableHead>Nome Visível</TableHead>
           <TableHead>Contato</TableHead>
           <TableHead>Documento</TableHead>
           <TableHead>Localização</TableHead>
@@ -47,6 +49,12 @@ export function SuppliersTable({ suppliers, onEdit, onDelete, onView, isLoading 
         {suppliersList.map((supplier) => (
           <TableRow key={supplier.id}>
             <TableCell className="font-medium">{supplier.name}</TableCell>
+            <TableCell>
+              {supplier.config?.tag ? (
+                <Badge variant="outline">{supplier.config.tag}</Badge>
+              ) : '-'}
+            </TableCell>
+            <TableCell>{supplier.config?.nome_visivel_clientes || '-'}</TableCell>
             <TableCell>
               {supplier.email && <div className="flex items-center gap-1"><Mail className="h-3 w-3" /> {supplier.email}</div>}
               {supplier.config?.celular && <div className="flex items-center gap-1"><Phone className="h-3 w-3" /> {supplier.config.celular}</div>}

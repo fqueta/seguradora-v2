@@ -57,7 +57,9 @@ const supplierSchema = z.object({
   genero: z.enum(["m", "f", "ni"]),
   ativo: z.enum(["s", "n"]),
   config: z.object({
+    tag: z.string().nullable().optional(),
     nome_fantasia: z.string().nullable().optional(),
+    nome_visivel_clientes: z.string().nullable().optional(),
     celular: z.string().nullable().optional(),
     telefone_residencial: z.string().nullable().optional(),
     telefone_comercial: z.string().nullable().optional(),
@@ -113,7 +115,9 @@ export default function Suppliers() {
       genero: "ni",
       ativo: "s",
       config: {
+        tag: "",
         nome_fantasia: "",
+        nome_visivel_clientes: "",
         celular: "",
         telefone_residencial: "",
         telefone_comercial: "",
@@ -147,7 +151,9 @@ export default function Suppliers() {
       genero: "ni",
       ativo: "s",
       config: {
+        tag: "",
         nome_fantasia: "",
+        nome_visivel_clientes: "",
         celular: "",
         telefone_residencial: "",
         telefone_comercial: "",
@@ -181,7 +187,9 @@ export default function Suppliers() {
       genero: supplier.genero,
       ativo: supplier.ativo,
       config: {
+        tag: supplier.config?.tag || "",
         nome_fantasia: supplier.config?.nome_fantasia || "",
+        nome_visivel_clientes: supplier.config?.nome_visivel_clientes || "",
         celular: supplier.config?.celular || "",
         telefone_residencial: supplier.config?.telefone_residencial || "",
         telefone_comercial: supplier.config?.telefone_comercial || "",

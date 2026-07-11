@@ -309,7 +309,11 @@ class FornecedorController extends Controller
         }
 
         if (isset($validated['config']) && is_array($validated['config'])) {
-            $validated['config'] = json_encode($validated['config']);
+            $existingConfig = $userToUpdate->config;
+            if (is_string($existingConfig)) {
+                $existingConfig = json_decode($existingConfig, true) ?? [];
+            }
+            $validated['config'] = json_encode(array_merge($existingConfig ?: [], $validated['config']));
         }
 
         if (array_key_exists('email', $validated) && ($validated['email'] === '' || $validated['email'] === null)) {

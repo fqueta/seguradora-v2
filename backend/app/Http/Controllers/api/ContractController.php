@@ -308,18 +308,44 @@ class ContractController extends Controller
                  );
 
                  try {
-                     $integrationRet = $this->izaService->processIntegration($contract, auth()->id());
+                     if ($this->izaService->isIntegrationActive()) {
+                         $clientFn = Client::find($data['client_id'] ?? 0);
+                         if ($clientFn) {
+                             $retIza = $this->izaService->submitContract($clientFn, $request->all(), $contract);
 
-                     if (isset($integrationRet['exec']) && $integrationRet['exec'] === true) {
-                         $ret['data'] = $contract->refresh();
-                         $ret['mens'] = 'Contrato criado e integrado com IZA com sucesso.';
-                     } else {
-                         if (!empty($integrationRet['mens'])) {
-                            $mensIza = $integrationRet['mens'];
-                            if (!is_string($mensIza)) {
-                                $mensIza = json_encode($mensIza, JSON_UNESCAPED_UNICODE) ?: 'Erro IZA';
-                            }
-                            $ret['mens'] = 'Contrato cadastrado com sucesso, porém houve falha na integração IZA: ' . $mensIza;
+                             Qlib::update_contract_meta($contract->id, 'ultimo_envio_fornecedor', json_encode($retIza));
+
+                             if (isset($retIza['exec']) && $retIza['exec'] === true) {
+                                 Qlib::update_contract_meta($contract->id, 'envio_fornecedor_sucesso', json_encode($retIza));
+
+                                 $oldStatus = $contract->status;
+                                 $contract->update(['status' => 'approved']);
+
+                                 \App\Services\ContractEventLogger::logStatusChange(
+                                     $contract,
+                                     $oldStatus,
+                                     'approved',
+                                     'Contrato aprovado automaticamente via integração IZA.',
+                                     ['integration_response' => $retIza],
+                                     json_encode($retIza),
+                                     auth()->id()
+                                 );
+
+                                 $ret['mens'] .= ' | Integração IZA: Sucesso e Contrato Aprovado.';
+                                 $ret['data'] = $contract->refresh();
+                             } else {
+                                 $msgIza = $retIza['message'] ?? 'Erro IZA';
+                                 $ret['mens'] .= ' | Falha IZA: ' . $msgIza;
+
+                                 \App\Services\ContractEventLogger::log(
+                                     $contract,
+                                     'integration_error',
+                                     'Falha na integração IZA: ' . $msgIza,
+                                     ['integration_response' => $retIza],
+                                     json_encode($retIza),
+                                     auth()->id()
+                                 );
+                             }
                          }
                      }
                  } catch (\Throwable $e) {
@@ -677,26 +703,55 @@ class ContractController extends Controller
                 );
 
                 try {
-                    $integrationRet = $this->izaService->processIntegration($contract, auth()->id());
+                    if ($this->izaService->isIntegrationActive()) {
+                        $clientFn = Client::find($contract->client_id ?? 0);
+                        if ($clientFn) {
+                            $retIza = $this->izaService->submitContract($clientFn, [], $contract);
 
-                    $ret = [
-                        'exec' => true,
-                        'mens' => 'Contrato atualizado com sucesso.',
-                        'data' => $contract
-                    ];
+                            Qlib::update_contract_meta($contract->id, 'ultimo_envio_fornecedor', json_encode($retIza));
 
-                    if (isset($integrationRet['exec']) && $integrationRet['exec'] === true) {
-                        $ret['mens'] .= ' | Integração IZA: Sucesso e Contrato Aprovado.';
-                        $ret['data'] = $contract->refresh();
-                    } else {
-                        $msgIza = $integrationRet['mens'] ?? 'Erro IZA';
-                        if (!is_string($msgIza)) {
-                            $msgIza = json_encode($msgIza, JSON_UNESCAPED_UNICODE) ?: 'Erro IZA';
+                            $mens = $retIza['message'] ?? $retIza['error'] ?? 'Contrato atualizado com sucesso.';
+                            $ret = [
+                                'exec' => true,
+                                'mens' => 'Contrato atualizado com sucesso. IZA: ' . $mens,
+                                'data' => $contract
+                            ];
+
+                            if (isset($retIza['exec']) && $retIza['exec'] === true) {
+                                Qlib::update_contract_meta($contract->id, 'envio_fornecedor_sucesso', json_encode($retIza));
+
+                                $oldStatus = $contract->status;
+                                $contract->update(['status' => 'approved']);
+
+                                \App\Services\ContractEventLogger::logStatusChange(
+                                    $contract,
+                                    $oldStatus,
+                                    'approved',
+                                    'Contrato aprovado automaticamente via integração IZA (Update).',
+                                    ['integration_response' => $retIza],
+                                    json_encode($retIza),
+                                    auth()->id()
+                                );
+
+                                $ret['mens'] .= ' | Integração IZA: Sucesso e Contrato Aprovado.';
+                                $ret['data'] = $contract->refresh();
+                            } else {
+                                $msgIza = $retIza['message'] ?? 'Erro IZA';
+                                $ret['mens'] .= ' | Falha IZA: ' . $msgIza;
+
+                                \App\Services\ContractEventLogger::log(
+                                    $contract,
+                                    'integration_error',
+                                    'Falha na integração IZA (Update): ' . $msgIza,
+                                    ['integration_response' => $retIza],
+                                    json_encode($retIza),
+                                    auth()->id()
+                                );
+                            }
+
+                            return response()->json($ret);
                         }
-                        $ret['mens'] .= ' | Falha IZA: ' . $msgIza;
                     }
-
-                    return response()->json($ret);
                 } catch (\Throwable $e) {
                     $erro = 'Exceção na integração IZA (Update): ' . $e->getMessage();
                     \App\Services\ContractEventLogger::log(

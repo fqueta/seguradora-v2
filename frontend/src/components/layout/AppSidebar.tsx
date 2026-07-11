@@ -1,4 +1,4 @@
-import { ChevronUp, ChevronDown, User, Wrench } from "lucide-react";
+import { ChevronUp, ChevronDown, User, Wrench, FileText } from "lucide-react";
 import * as React from "react";
 import { NavLink, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,7 +41,7 @@ import { getInstitutionName, hydrateBrandingFromPublicApi } from "@/lib/branding
  */
 export function AppSidebar() {
   const { state } = useSidebar();
-  const { menu: apiMenu, logout } = useAuth();
+  const { menu: apiMenu, permissions, logout } = useAuth();
   const location = useLocation();
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
@@ -120,6 +120,25 @@ export function AppSidebar() {
   const baseMenu = apiMenu && apiMenu.length > 0 
     ? buildMenuFromDTO(apiMenu) 
     : buildMenuFromDTO(defaultMenu);
+
+  // Inject "Documentação da API" menu item dynamically under "Configurações" if not already present
+  const hasSettingsSystemPermission = permissions?.includes("settings.system.view") || permissions?.includes("settings.view");
+  if (hasSettingsSystemPermission) {
+    const configGroup = baseMenu.find(item => item.title === "Configurações" || item.permission === "settings.view");
+    if (configGroup) {
+      if (!configGroup.items) configGroup.items = [];
+      const hasApiDocs = configGroup.items.some(child => child.url?.includes("api-docs"));
+      if (!hasApiDocs) {
+        configGroup.items.push({
+          title: "Documentação da API",
+          url: "/admin/settings/api-docs",
+          permission: "settings.system.view",
+          can_view: true,
+          icon: FileText
+        });
+      }
+    }
+  }
 
   // Filter by can_view access
   const menuItems = filterMenuByViewAccess(baseMenu);

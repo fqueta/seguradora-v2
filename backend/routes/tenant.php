@@ -168,6 +168,8 @@ Route::name('api.')->prefix('api/v1')->middleware([
 
 
     Route::middleware(['auth:sanctum','auth.active'])->group(function () {
+        Route::get('allowed-products', [\App\Http\Controllers\OrganizationController::class, 'allowedProducts'])
+            ->name('organizations.allowed-products');
         // Gestão de convites (admin)
         // EN: Invite management (admin)
         Route::get('invites', [\App\Http\Controllers\api\InviteController::class, 'index'])->name('invites.index');

@@ -343,6 +343,8 @@ Route::name('api.')->prefix('v1')->middleware([
         });
 
         // Rotas para Organizations
+        Route::get('allowed-products', [\App\Http\Controllers\OrganizationController::class, 'allowedProducts'])
+            ->name('organizations.allowed-products');
         Route::apiResource('organizations', \App\Http\Controllers\OrganizationController::class);
     });
     // Rotas para tracking events

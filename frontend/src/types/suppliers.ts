@@ -1,5 +1,7 @@
 export interface SupplierConfig {
+  tag?: string;
   nome_fantasia?: string;
+  nome_visivel_clientes?: string;
   celular?: string;
   telefone_residencial?: string;
   telefone_comercial?: string;

@@ -137,9 +137,17 @@ class ProductController extends Controller
         // dd($product);
         $supplierid = $product->config['supplier_id'] ?? $product->post_author;
         $supplierData = Qlib::getSupplierById($supplierid);
+        
+        $name = $product->post_title;
+        $user = auth()->user();
+        if ($user && $user->permission_id > 2 && $supplierData && !empty($supplierData['config']['nome_visivel_clientes'])) {
+            $publicName = $supplierData['config']['nome_visivel_clientes'];
+            $name = str_ireplace('LSX Medical', $publicName, $name);
+        }
+
         return [
             'id' => $product->ID,
-            'name' => $product->post_title,
+            'name' => $name,
             'description' => $product->post_content,
             'slug' => $product->post_name,
             'active' => $this->decode_status($product->post_status),
