@@ -13,7 +13,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { contractsService } from '@/services/contractsService';
-import { aircraftService } from '@/services/aircraftService';
+
 
 /**
  * PeriodForm
@@ -203,14 +203,7 @@ export function PeriodForm({
    * en-US: Lists aircraft for multi-selection.
    */
   const [aircraftSearch, setAircraftSearch] = useState('');
-  const aircraftQuery = useQuery({
-    queryKey: ['aeronaves', 'list', 200, aircraftSearch],
-    queryFn: async () => aircraftService.listAircraft({ page: 1, per_page: 200, search: aircraftSearch }),
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  });
-  const aircraftItems = (aircraftQuery.data?.data || aircraftQuery.data?.items || []) as any[];
+  const aircraftItems: any[] = [];
 
   /**
    * formatCurrencyBRL

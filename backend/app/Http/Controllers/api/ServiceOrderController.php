@@ -10,7 +10,6 @@ use App\Models\Service;
 use App\Models\User;
 use App\Models\Client;
 use App\Models\Aircraft;
-use App\Http\Controllers\api\AircraftController;
 use App\Models\Funnel;
 use App\Models\Stage;
 use App\Services\PermissionService;
@@ -839,7 +838,7 @@ class ServiceOrderController extends Controller
             'object_id' => $serviceOrder['object_id'],
             'object_type' => $serviceOrder['object_type'],
             'aircraft_id' => $serviceOrder['object_type'] === 'aircraft' ? $serviceOrder['object_id'] : null, // Para compatibilidade
-            'aricraft_data' => $serviceOrder['object_type'] === 'aircraft' ? (new AircraftController())->get_data($serviceOrder['object_id']) : null,
+            'aricraft_data' => $serviceOrder['object_type'] === 'aircraft' ? Aircraft::find($serviceOrder['object_id'])?->toArray() : null,
             'assigned_to' => $serviceOrder['assigned_to'],
             'assigned_user' => $assigned_user,
             'client_id' => $serviceOrder['client_id'],
@@ -862,9 +861,7 @@ class ServiceOrderController extends Controller
         ];
         // Add relationships
         if (isset($serviceOrder['aircraft'])) {
-            // dd($serviceOrder['aircraft']);
-            $data['aircraft'] = (new AircraftController())->map_aircraft($serviceOrder['aircraft']);
-            // dd($data->toArray());
+            $data['aircraft'] = $serviceOrder['aircraft'];
         }
         if (isset($serviceOrder['client'])) {
             $data['client'] = $serviceOrder['client'];
@@ -1024,31 +1021,7 @@ class ServiceOrderController extends Controller
             return (int) $existingAircraft['ID'];
         }
 
-        // Criar nova aeronave usando o AircraftController
-        $aircraftController = new AircraftController();
-
-        // Preparar dados para o AircraftController->store()
-        $aircraftRequest = new Request([
-            'matricula' => $aircraftRegistration,
-            'description' => $description,
-            'config' => $rabData,
-            'client_id' => $clientId
-        ]);
-
-        // Simular o usuário atual para o AircraftController
-        $aircraftRequest->setUserResolver(function () {
-            return request()->user();
-        });
-
-        // Chamar o método store do AircraftController
-        $response = $aircraftController->store($aircraftRequest);
-        $responseData = $response->getData(true);
-
-        if ($response->getStatusCode() === 201 && isset($responseData['data']['id'])) {
-            return (int) $responseData['data']['id'];
-        }
-
-        // Se falhar, criar diretamente no modelo Aircraft
+        // Criar nova aeronave
         $aircraftData = [
             'post_title' => $aircraftRegistration,
             'post_content' => $description ?? '',

@@ -42,7 +42,6 @@ import {
   ServiceOrderServiceItem,
   ServiceOrderProductItem
 } from "@/types/serviceOrders";
-import { QuickCreateAircraftModal } from "./QuickCreateAircraftModal";
 import { QuickCreateProductModal } from "./QuickCreateProductModal";
 import { QuickCreateServiceModal } from "./QuickCreateServiceModal";
 
@@ -73,33 +72,16 @@ interface AvailableProduct {
   stock?: number;
 }
 
-interface Aircraft {
-  id: string;
-  matricula: string;
-  config?: string;
-  description?: string;
-  client_id: string;
-  client?: {
-    id: string;
-    name: string;
-  };
-  active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
 interface ServiceOrderFormProps {
   form: UseFormReturn<ServiceOrderFormData>;
   onSubmit: (data: ServiceOrderFormData & { services: ServiceOrderServiceItem[]; products: ServiceOrderProductItem[] }) => void;
   isSubmitting: boolean;
   clients: Client[];
   users: User[];
-  aircraft: Aircraft[];
   availableServices: AvailableService[];
   availableProducts: AvailableProduct[];
   isLoadingClients: boolean;
   isLoadingUsers: boolean;
-  isLoadingAircraft: boolean;
   isLoadingServices: boolean;
   isLoadingProducts: boolean;
   onCancel: () => void;
@@ -109,17 +91,14 @@ interface ServiceOrderFormProps {
   // Funções de busca dinâmica
   searchClients?: (searchTerm: string) => void;
   searchUsers?: (searchTerm: string) => void;
-  searchAircraft?: (searchTerm: string) => void;
   searchServices?: (searchTerm: string) => void;
   searchProducts?: (searchTerm: string) => void;
   // Termos de busca atuais
   clientsSearchTerm?: string;
   usersSearchTerm?: string;
-  aircraftSearchTerm?: string;
   servicesSearchTerm?: string;
   productsSearchTerm?: string;
   // Callbacks para atualização das listas após cadastro rápido
-  onAircraftCreated?: () => void;
   onServiceCreated?: () => void;
   onProductCreated?: () => void;
   // Permite substituir os botões internos por um componente customizado
@@ -127,23 +106,16 @@ interface ServiceOrderFormProps {
   renderActions?: React.ReactNode;
 }
 
-/**
- * Componente de formulário para criação e edição de ordens de serviço
- * Inclui validação de dados, seleção de serviços e produtos
- */
-
 export default function ServiceOrderForm({
   form,
   onSubmit,
   isSubmitting,
   clients,
   users,
-  aircraft,
   availableServices,
   availableProducts,
   isLoadingClients,
   isLoadingUsers,
-  isLoadingAircraft,
   isLoadingServices,
   isLoadingProducts,
   onCancel,
@@ -152,55 +124,24 @@ export default function ServiceOrderForm({
   initialProducts = [],
   searchClients,
   searchUsers,
-  searchAircraft,
   searchServices,
   searchProducts,
   clientsSearchTerm,
   usersSearchTerm,
-  aircraftSearchTerm,
   servicesSearchTerm,
   productsSearchTerm,
-  onAircraftCreated,
   onServiceCreated,
   onProductCreated
   ,
   renderActions
 }: ServiceOrderFormProps) {
-  /**
-   * handleSubmit
-   * Função de submissão do formulário, agregando serviços e produtos selecionados.
-   * English: Form submit handler that aggregates selected services and products.
-   */
-  // Estados para controlar os modais de cadastro rápido
-  const [showAircraftModal, setShowAircraftModal] = useState(false);
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
-  // console.log('availableServices', availableServices);
   const [selectedServices, setSelectedServices] = useState<ServiceOrderServiceItem[]>(initialServices);
   const [selectedProducts, setSelectedProducts] = useState<ServiceOrderProductItem[]>(initialProducts);
   const [servicesTotal, setServicesTotal] = useState(0);
   const [productsTotal, setProductsTotal] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
-  const [selectedAircraft, setSelectedAircraft] = useState<Aircraft | null>(null);
-  
-  // Sincroniza selectedAircraft com o aircraft_id do formulário quando carregado
-  useEffect(() => {
-    const aircraftId = form.watch('aircraft_id');
-    
-    if (aircraftId && aircraft.length > 0) {
-      const foundAircraft = aircraft.find(a => String(a.id) === String(aircraftId));
-      if (foundAircraft) {
-        setSelectedAircraft(foundAircraft);
-        // Força a atualização do valor do formulário se necessário
-        const currentValue = form.getValues('aircraft_id');
-        if (currentValue !== String(foundAircraft.id)) {
-          form.setValue('aircraft_id', String(foundAircraft.id), { shouldValidate: true });
-        }
-      }
-    } else if (!aircraftId) {
-      setSelectedAircraft(null);
-    }
-  }, [form.watch('aircraft_id'), aircraft, form]);
   
   // Calcula totais quando serviços ou produtos mudam
   useEffect(() => {
@@ -330,19 +271,6 @@ export default function ServiceOrderForm({
     });
   };
 
-  // Callbacks para quando novos itens são criados nos modais
-  const handleAircraftCreated = (aircraft: any) => {
-    // Atualiza a lista de aeronaves
-    onAircraftCreated?.();
-    // Seleciona automaticamente a nova aeronave
-    form.setValue('aircraft_id', String(aircraft.id));
-    // Se a aeronave tem cliente, seleciona automaticamente
-    if (aircraft.client_id) {
-      form.setValue('client_id', String(aircraft.client_id));
-      // form.setValue('client_name', aircraft.client?.name || '');
-    }
-  };
-
   const handleServiceCreated = (service: any) => {
     // Atualiza a lista de serviços
     console.log('service:', service);
@@ -397,60 +325,6 @@ export default function ServiceOrderForm({
                 )}
               />
 
-              {/* Aeronave */}
-              <FormField
-                control={form.control}
-                name="aircraft_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Aeronave</FormLabel>
-                    <FormControl>
-                      <div className="flex gap-2">
-                        <Combobox
-                          options={aircraft.map(aircraftItem => ({
-                            value: String(aircraftItem.id),
-                            label: `${aircraftItem.matricula}${aircraftItem.client_name ? ` (${aircraftItem.client_name})` : ''}`
-                          }))}
-                          value={field.value}
-                          onValueChange={(value) => {
-                             field.onChange(value);
-                             // Quando uma aeronave é selecionada, carrega automaticamente o cliente
-                             if (value) {
-                             const aircraftFound = aircraft.find(a => String(a.id) === String(value));
-                             if (aircraftFound && aircraftFound.client_id) {
-                               form.setValue('client_id', String(aircraftFound.client_id));
-                               form.setValue('title', 'O.S. '+String(aircraftFound.matricula));
-                               setSelectedAircraft(aircraftFound);
-                             }
-                           } else {
-                             setSelectedAircraft(null);
-                             form.setValue('client_id', '');
-                           }
-                         }}
-                        placeholder="Selecione uma aeronave"
-                        searchPlaceholder="Buscar aeronave..."
-                        emptyText="Nenhuma aeronave encontrada"
-                        disabled={isSubmitting || isLoadingAircraft}
-                        loading={isLoadingAircraft}
-                        onSearch={searchAircraft}
-                        searchTerm={aircraftSearchTerm}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowAircraftModal(true)}
-                        disabled={isSubmitting}
-                        className="shrink-0"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <FormField
                 control={form.control}
                 name="title"
@@ -468,27 +342,6 @@ export default function ServiceOrderForm({
                   </FormItem>
                 )}
               />
-              {/* Card do Cliente Selecionado */}
-               {selectedAircraft && selectedAircraft.client && (
-                 <Card className="bg-blue-50 border-blue-200 md:col-span-2">
-                   <CardContent className="pt-4">
-                     <div className="flex items-center gap-3">
-                       <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                         <span className="text-blue-600 font-semibold text-sm">
-                           {selectedAircraft.client.name.charAt(0).toUpperCase()}
-                         </span>
-                       </div>
-                       <div>
-                         <p className="text-sm text-blue-600">Cliente proprietário da aeronave</p>
-                         <p className="font-medium text-blue-900">{selectedAircraft.client.name}</p>
-                         <p className="font-medium text-blue-900">{selectedAircraft.client.email}</p>
-                         <p className="font-medium text-blue-900">{selectedAircraft.client.config.celular}</p>
-                       </div>
-                     </div>
-                   </CardContent>
-                 </Card>
-               )}
-
                {/* Campo Hidden para Client ID */}
                <FormField
                  control={form.control}
@@ -958,12 +811,6 @@ export default function ServiceOrderForm({
       </form>
 
       {/* Modais de cadastro rápido */}
-      <QuickCreateAircraftModal
-        open={showAircraftModal}
-        onOpenChange={setShowAircraftModal}
-        onAircraftCreated={handleAircraftCreated}
-      />
-
       <QuickCreateServiceModal
         open={showServiceModal}
         onOpenChange={setShowServiceModal}
@@ -980,4 +827,4 @@ export default function ServiceOrderForm({
 }
 
 // Exports movidos para fora do componente para evitar problemas com Fast Refresh
-export type { Client, User, Aircraft, AvailableService, AvailableProduct };
+export type { Client, User, AvailableService, AvailableProduct };

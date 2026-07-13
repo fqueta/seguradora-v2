@@ -54,17 +54,14 @@ export default function CreateServiceOrder() {
     products,
     isLoadingClients,
     isLoadingUsers,
-    isLoadingAircraft,
     isLoadingServices,
     isLoadingProducts,
     searchClients,
     searchUsers,
-    searchAircraft,
     searchServices,
     searchProducts,
     clientsSearchTerm,
     usersSearchTerm,
-    aircraftSearchTerm,
     servicesSearchTerm,
     productsSearchTerm,
   } = useServiceOrderFormData();
@@ -220,12 +217,7 @@ export default function CreateServiceOrder() {
     queryClient.invalidateQueries({ queryKey: ['products'] });
   };
 
-  // Callback para quando uma aeronave é criada via cadastro rápido
-  const handleAircraftCreated = () => {
-    // Invalida o cache das queries de aeronaves para atualizar as listas
-    queryClient.invalidateQueries({ queryKey: ['search-aircraft'] });
-    queryClient.invalidateQueries({ queryKey: ['aircraft'] });
-  };
+
   
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -267,22 +259,18 @@ export default function CreateServiceOrder() {
             isSubmitting={createServiceOrderMutation.isPending}
             clients={clients}
             users={users}
-            aircraft={aircraft}
             availableServices={services}
             availableProducts={products}
             isLoadingClients={isLoadingClients}
             isLoadingUsers={isLoadingUsers}
-            isLoadingAircraft={isLoadingAircraft}
             isLoadingServices={isLoadingServices}
             isLoadingProducts={isLoadingProducts}
             searchClients={searchClients}
             searchUsers={searchUsers}
-            searchAircraft={searchAircraft}
             searchServices={searchServices}
             searchProducts={searchProducts}
             clientsSearchTerm={clientsSearchTerm}
             usersSearchTerm={usersSearchTerm}
-            aircraftSearchTerm={aircraftSearchTerm}
             servicesSearchTerm={servicesSearchTerm}
             productsSearchTerm={productsSearchTerm}
             onCancel={handleCancel}
@@ -291,7 +279,6 @@ export default function CreateServiceOrder() {
             initialProducts={duplicateData?.products || []}
             onServiceCreated={handleServiceCreated}
             onProductCreated={handleProductCreated}
-            onAircraftCreated={handleAircraftCreated}
             // Usa FormActionBar padronizado dentro do formulário
             renderActions={
               <FormActionBar

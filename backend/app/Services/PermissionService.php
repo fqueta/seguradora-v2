@@ -114,10 +114,6 @@ class PermissionService
             $url = '/settings/integration';
         }elseif($name=='api.posts.index' || $name == 'api.posts.update' || $name == 'api.posts.show' || $name == 'api.posts.store' || $name == 'api.posts.destroy' || $name == 'api.posts.restore' || $name == 'api.posts.forceDelete' || $name == 'api.posts.trash'){
             $url = '/posts';
-        }elseif($name=='api.aircraft.index' || $name == 'api.aircraft.update' || $name == 'api.aircraft.show' || $name == 'api.aircraft.store' || $name == 'api.aircraft.destroy' || $name == 'api.aircraft.restore' || $name == 'api.aircraft.forceDelete' || $name == 'api.aircraft.trash'){
-            $url = '/aircraft';
-        }elseif($name=='api.aeronaves.index' || $name=='api.aeronaves.store' || $name == 'api.aeronaves.update' || $name == 'api.aeronaves.show' || $name == 'api.aeronaves.destroy' || $name == 'api.aeronaves.restore' || $name == 'api.aeronaves.forceDelete' || $name == 'api.aeronaves.trash'){
-            $url = '/settings/aircrafts';
         }
         if($name=='api.options.index' || $name == 'api.options.update' || $name == 'api.options.show' || $name == 'api.options.store' || $name == 'api.options.destroy' || $name == 'api.options.all.get' || $name == 'api.options.all'){
             $url = '/settings/system';

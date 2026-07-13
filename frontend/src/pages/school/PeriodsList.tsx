@@ -15,7 +15,7 @@ import { Search, ChevronLeft, ChevronRight, MoreHorizontal, Plus } from 'lucide-
 import { Combobox, useComboboxOptions } from '@/components/ui/combobox';
 import { coursesService } from '@/services/coursesService';
 import { contractsService } from '@/services/contractsService';
-import { aircraftService } from '@/services/aircraftService';
+
 import { Badge } from '@/components/ui/badge';
 import { currencyApplyMask } from '@/lib/masks/currency';
 
@@ -200,19 +200,7 @@ export default function PeriodsList() {
     return ids.map((id) => labelById.get(id) || id);
   }
 
-  /**
-   * aircraftQuery
-   * pt-BR: Busca aeronaves para exibir labels na listagem.
-   * en-US: Fetches aircraft to display labels in the listing.
-   */
-  const { data: aircraftList } = useQuery({
-    queryKey: ['aeronaves', 'list', 200],
-    queryFn: async () => aircraftService.listAircraft({ page: 1, per_page: 200 }),
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  });
-  const aircraftItems = ((aircraftList as any)?.data || (aircraftList as any)?.items || []) as any[];
+  const aircraftItems: any[] = [];
   const aircraftLabelById = useMemo(() => {
     const map = new Map<string, string>();
     aircraftItems.forEach((a: any) => {

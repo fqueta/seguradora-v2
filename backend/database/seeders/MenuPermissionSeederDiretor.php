@@ -141,7 +141,7 @@ class MenuPermissionSeederDiretor extends Seeder
                         'parent_id' => 12,
                         'url' => '/reports/relatorio-cobranca',
                         'icon' => null,
-                        'can_view' => 0,
+                        'can_view' => 1,
                     ],
                     [
                         'id' => 15,
@@ -175,7 +175,7 @@ class MenuPermissionSeederDiretor extends Seeder
                         'parent_id' => 16,
                         'url' => '/suppliers',
                         'icon' => null,
-                        'can_view' => 0,
+                        'can_view' => 1,
                     ],
                     [
                         'id' => 19,
@@ -286,10 +286,10 @@ class MenuPermissionSeederDiretor extends Seeder
                 ],
                 [
                     'can_view' => (bool)($item['can_view'] ?? false),
-                    'can_create' => false,
-                    'can_edit' => false,
-                    'can_delete' => false,
-                    'can_upload' => false,
+                    'can_create' => (bool)($item['can_create'] ?? ($item['can_view'] ?? false)),
+                    'can_edit' => (bool)($item['can_edit'] ?? ($item['can_view'] ?? false)),
+                    'can_delete' => (bool)($item['can_delete'] ?? ($item['can_view'] ?? false)),
+                    'can_upload' => (bool)($item['can_upload'] ?? ($item['can_view'] ?? false)),
                     'updated_at' => now(),
                     'created_at' => now(),
                 ]

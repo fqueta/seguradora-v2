@@ -45,22 +45,18 @@ export default function UpdateServiceOrder() {
   const {
     clients,
     users,
-    aircraft,
     services,
     products,
     isLoadingClients,
     isLoadingUsers,
-    isLoadingAircraft,
     isLoadingServices,
     isLoadingProducts,
     searchClients,
     searchUsers,
-    searchAircraft,
     searchServices,
     searchProducts,
     clientsSearchTerm,
     usersSearchTerm,
-    aircraftSearchTerm,
     servicesSearchTerm,
     productsSearchTerm,
   } = useServiceOrderFormData();
@@ -322,12 +318,10 @@ export default function UpdateServiceOrder() {
             isSubmitting={updateServiceOrderMutation.isPending}
             clients={clients}
             users={users}
-            aircraft={aircraft}
             availableServices={services}
             availableProducts={products}
             isLoadingClients={isLoadingClients}
             isLoadingUsers={isLoadingUsers}
-            isLoadingAircraft={isLoadingAircraft}
             isLoadingServices={isLoadingServices}
             isLoadingProducts={isLoadingProducts}
             onCancel={handleCancel}
@@ -336,12 +330,10 @@ export default function UpdateServiceOrder() {
             initialProducts={serviceOrder.products || []}
             searchClients={searchClients}
             searchUsers={searchUsers}
-            searchAircraft={searchAircraft}
             searchServices={searchServices}
             searchProducts={searchProducts}
             clientsSearchTerm={clientsSearchTerm}
             usersSearchTerm={usersSearchTerm}
-            aircraftSearchTerm={aircraftSearchTerm}
             servicesSearchTerm={servicesSearchTerm}
             productsSearchTerm={productsSearchTerm}
             // Usa FormActionBar padronizado dentro do formulário

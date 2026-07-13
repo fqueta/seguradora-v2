@@ -9,7 +9,6 @@ import { serviceOrdersService, ServiceOrderListParams } from '@/services/service
 import { useGenericApi } from './useGenericApi';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useCallback, useMemo } from 'react';
-import { useAircraftList } from './aircraft';
 
 /**
  * Função para obter os hooks de ordens de serviço
@@ -304,80 +303,35 @@ export function useSearchProducts() {
   };
 }
 
-// Hook para busca de aeronaves com debounce
-export function useSearchAircraft() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-
-  const debounceSearch = useCallback((term: string) => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(term);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const search = useCallback((term: string) => {
-    setSearchTerm(term);
-    debounceSearch(term);
-  }, [debounceSearch]);
-
-  const query = useAircraftList(
-    debouncedSearchTerm ? { search: debouncedSearchTerm } : undefined,
-    {
-      enabled: true,
-      staleTime: 5 * 60 * 1000, // 5 minutos
-    }
-  );
-
-  return {
-    search,
-    searchTerm,
-    data: query.data?.data || [],
-    isLoading: query.isLoading,
-    error: query.error
-  };
-}
-
 // Hook para dados do formulário de ordem de serviço com busca dinâmica
 export function useServiceOrderFormData() {
   const clientsSearch = useSearchClients();
   const usersSearch = useSearchUsers();
   const servicesSearch = useSearchServices();
   const productsSearch = useSearchProducts();
-  const aircraftSearch = useSearchAircraft();
-  // console.log('servicesSearch', servicesSearch);
   
   return {
-    // Dados para autocomplete
     clients: clientsSearch.data,
     users: usersSearch.data,
     services: servicesSearch.data,
     products: productsSearch.data,
-    aircraft: aircraftSearch.data,
-    
-    // Estados de loading
+    aircraft: [],
     isLoadingClients: clientsSearch.isLoading,
     isLoadingUsers: usersSearch.isLoading,
     isLoadingServices: servicesSearch.isLoading,
     isLoadingProducts: productsSearch.isLoading,
-    isLoadingAircraft: aircraftSearch.isLoading,
-    isLoading: clientsSearch.isLoading || usersSearch.isLoading || servicesSearch.isLoading || productsSearch.isLoading || aircraftSearch.isLoading,
-    
-    // Funções de busca
+    isLoadingAircraft: false,
+    isLoading: clientsSearch.isLoading || usersSearch.isLoading || servicesSearch.isLoading || productsSearch.isLoading,
     searchClients: clientsSearch.search,
     searchUsers: usersSearch.search,
     searchServices: servicesSearch.search,
     searchProducts: productsSearch.search,
-    searchAircraft: aircraftSearch.search,
-    
-    // Termos de busca atuais
+    searchAircraft: () => {},
     clientSearchTerm: clientsSearch.searchTerm,
     userSearchTerm: usersSearch.searchTerm,
     serviceSearchTerm: servicesSearch.searchTerm,
     productSearchTerm: productsSearch.searchTerm,
-    aircraftSearchTerm: aircraftSearch.searchTerm,
-    
-    // Erros
-    error: clientsSearch.error || usersSearch.error || servicesSearch.error || productsSearch.error || aircraftSearch.error
+    aircraftSearchTerm: '',
+    error: clientsSearch.error || usersSearch.error || servicesSearch.error || productsSearch.error
   };
 }

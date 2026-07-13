@@ -500,10 +500,7 @@ $upsertResult = $this->upsertModulesAndActivities($modulesPayload, $curso, (stri
             $data['obs'] = $data['observacoes'];
             unset($data['observacoes']);
         }
-        // Remover campo descontinuado
-        if (array_key_exists('aeronaves', $data)) {
-            unset($data['aeronaves']);
-        }
+
 
         // Duracao e parcelas como inteiros
         if (isset($data['duracao'])) {

@@ -8,7 +8,6 @@ use App\Http\Controllers\api\MenuPermissionController;
 use App\Http\Controllers\api\OptionController;
 use App\Http\Controllers\api\PermissionController;
 use App\Http\Controllers\api\PostController;
-use App\Http\Controllers\api\AircraftController;
 use App\Http\Controllers\api\CategoryController;
 use App\Http\Controllers\api\FinancialCategoryController;
 use App\Http\Controllers\api\WebhookController;
@@ -155,14 +154,6 @@ Route::name('api.')->prefix('v1')->middleware([
         Route::put('file-storage/{id}/restore', [FileStorageController::class, 'restore'])->name('file-storage.restore');
         Route::delete('file-storage/{id}/force', [FileStorageController::class, 'forceDelete'])->name('file-storage.forceDelete');
         Route::get('file-storage/{id}/download', [FileStorageController::class, 'download'])->name('file-storage.download');
-
-        // Rotas para aircraft
-        Route::apiResource('aircraft', AircraftController::class,['parameters' => [
-            'aircraft' => 'id'
-        ]]);
-        Route::get('aircraft/trash', [AircraftController::class, 'trash'])->name('aircraft.trash');
-        Route::put('aircraft/{id}/restore', [AircraftController::class, 'restore'])->name('aircraft.restore');
-        Route::delete('aircraft/{id}/force', [AircraftController::class, 'forceDelete'])->name('aircraft.forceDelete');
 
         // Rotas para categories
         Route::apiResource('categories', CategoryController::class,['parameters' => [

@@ -23,8 +23,7 @@ import Partners from "./pages/Partners";
 import Suppliers from "./pages/Suppliers";
 import PartnerView from "./pages/PartnerView";
 import ServiceObjects from "./pages/ServiceObjects";
-import Aircraft from "./pages/Aircraft";
-import AircraftView from "./pages/AircraftView";
+
 import Products from "./pages/Products";
 import ProductView from "./pages/ProductView";
 import ProductCreate from "./pages/ProductCreate";
@@ -60,7 +59,7 @@ import ApiCredentialCreate from "./pages/settings/ApiCredentialCreate";
 import ApiCredentialEdit from "./pages/settings/ApiCredentialEdit";
 import Login from "./pages/auth/Login";
 import Metrics from "./pages/settings/Metrics";
-import AircraftsSettings from "./pages/settings/AircraftsSettings";
+
 import EmailTemplates from "./pages/settings/EmailTemplates";
 import EmailTemplateForm from "./pages/settings/EmailTemplateForm";
 import Register from "./pages/auth/Register";
@@ -372,14 +371,6 @@ const App = () => {
                   </AppLayout>
                 </AdminProtectedRoute>
               } />
-              {/* Aeronaves (listagem com painel de filtros) */}
-              <Route path="/admin/aircrafts" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <Aircraft />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
               <Route path="/admin/settings/media-library-demo" element={
                 <AdminProtectedRoute>
                   <AppLayout>
@@ -518,13 +509,6 @@ const App = () => {
                 <AdminProtectedRoute>
                   <AppLayout>
                     <TableInstallment />
-                  </AppLayout>
-                </AdminProtectedRoute>
-              } />
-              <Route path="/admin/settings/aircrafts" element={
-                <AdminProtectedRoute>
-                  <AppLayout>
-                    <AircraftsSettings />
                   </AppLayout>
                 </AdminProtectedRoute>
               } />

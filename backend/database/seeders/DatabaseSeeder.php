@@ -30,8 +30,8 @@ class DatabaseSeeder extends Seeder
                     // ProfissaoSeeder::class,
                     MenuSeeder::class, //cadastra menus permissõs e menu_permissions
                     MenuPermissionSeederAdmin::class,
-                    MenuPermissionSeederGerente::class,
-                    MenuPermissionSeederConsultor::class,
+                    // MenuPermissionSeederGerente::class,
+                    // MenuPermissionSeederConsultor::class,
                     MenuPermissionSeederDiretor::class,
                     MenuPermissionSeederEscritorio::class,
                     MenuPermissionSeederVendedor::class,
@@ -59,8 +59,8 @@ class DatabaseSeeder extends Seeder
                     UserSeeder::class,
                     MenuSeeder::class, //cadastra menus permissõs e menu_permissions
                     MenuPermissionSeederAdmin::class,
-                    MenuPermissionSeederGerente::class,
-                    MenuPermissionSeederConsultor::class,
+                    // MenuPermissionSeederGerente::class,
+                    // MenuPermissionSeederConsultor::class,
                     MenuPermissionSeederDiretor::class,
                     MenuPermissionSeederEscritorio::class,
                     MenuPermissionSeederVendedor::class,

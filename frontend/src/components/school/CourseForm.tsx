@@ -18,7 +18,7 @@ import { coursesService } from '@/services/coursesService';
 import { fileStorageService, type FileStorageItem } from '@/services/fileStorageService';
 import MediaLibraryModal from '@/components/media/MediaLibraryModal';
 import { useQuery } from '@tanstack/react-query';
-import { aircraftSettingsService } from '@/services/aircraftSettingsService';
+
 import { CoursePayload, CourseRecord, CourseModule } from '@/types/courses';
 import { modulesService } from '@/services/modulesService';
 import { activitiesService } from '@/services/activitiesService';
@@ -650,15 +650,8 @@ export function CourseForm({
 
   // Removido: sincronização de título da imagem de capa. Campo oculto.
 
-  // Aeronaves para seleção
-  const aircraftsQuery = useQuery({
-    queryKey: ['aeronaves', 'list', 200],
-    queryFn: async () => aircraftSettingsService.list({ page: 1, per_page: 200 }),
-  });
-  const aircraftOptions = useMemo(
-    () => (aircraftsQuery.data?.data ?? []).map((a: any) => ({ id: String(a.id), nome: a.nome ?? a.codigo ?? String(a.id) })),
-    [aircraftsQuery.data]
-  );
+  // Aeronaves para seleção (descontinuado)
+  const aircraftOptions = useMemo(() => [], []);
 
   // --- Usuários (Instrutores) ---
   const usersQuery = useQuery({

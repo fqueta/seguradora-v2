@@ -10,8 +10,7 @@ use App\Http\Controllers\api\MenuPermissionController;
 use App\Http\Controllers\api\OptionController;
 use App\Http\Controllers\api\PermissionController;
 use App\Http\Controllers\api\PostController;
-use App\Http\Controllers\api\AircraftController;
-use App\Http\Controllers\api\AeronaveController;
+
 use App\Http\Controllers\api\CategoryController;
 use App\Http\Controllers\api\FinancialCategoryController;
 use App\Http\Controllers\api\FinancialOverviewController;
@@ -317,21 +316,6 @@ Route::name('api.')->prefix('api/v1')->middleware([
         Route::get('situacoes-matricula/trash', [SituacaoMatriculaController::class, 'trash'])->name('situacoes-matricula.trash');
         Route::put('situacoes-matricula/{id}/restore', [SituacaoMatriculaController::class, 'restore'])->name('situacoes-matricula.restore');
         Route::delete('situacoes-matricula/{id}/force', [SituacaoMatriculaController::class, 'forceDelete'])->name('situacoes-matricula.forceDelete');
-
-        // Rotas para aircraft
-        Route::get('aircraft/trash', [AircraftController::class, 'trash'])->name('aircraft.trash');
-        Route::put('aircraft/{id}/restore', [AircraftController::class, 'restore'])->name('aircraft.restore');
-        Route::delete('aircraft/{id}/force', [AircraftController::class, 'forceDelete'])->name('aircraft.forceDelete');
-        Route::apiResource('aircraft', AircraftController::class,['parameters' => [
-            'aircraft' => 'id'
-        ]]);
-
-        // Rotas para aeronaves (CRUD baseado em tabela `aeronaves`)
-        Route::get('aeronaves/trash', [AeronaveController::class, 'trash'])->name('aeronaves.trash');
-        Route::put('aeronaves/{id}/restore', [AeronaveController::class, 'restore'])->name('aeronaves.restore');
-        Route::apiResource('aeronaves', AeronaveController::class, ['parameters' => [
-            'aeronaves' => 'id'
-        ]]);
 
         // Rotas para categories
         Route::apiResource('categories', CategoryController::class,['parameters' => [

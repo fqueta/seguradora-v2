@@ -175,7 +175,7 @@ class MenuPermissionSeederAdmin extends Seeder
                         'parent_id' => 16,
                         'url' => '/settings/dados_conta',
                         'icon' => null,
-                        'can_view' => 0,
+                        'can_view' => 1,
                     ],
                     [
                         'id' => 20,
@@ -191,7 +191,7 @@ class MenuPermissionSeederAdmin extends Seeder
                         'parent_id' => 16,
                         'url' => '/settings/permissions',
                         'icon' => null,
-                        'can_view' => 1,
+                        'can_view' => 0,
                     ],
                     [
                         'id' => 22,
@@ -207,7 +207,7 @@ class MenuPermissionSeederAdmin extends Seeder
                         'parent_id' => 16,
                         'url' => '/categories',
                         'icon' => null,
-                        'can_view' => 0,
+                        'can_view' => 1,
                     ],
                     [
                         'id' => 24,
@@ -278,10 +278,10 @@ class MenuPermissionSeederAdmin extends Seeder
                 ],
                 [
                     'can_view' => (bool)($item['can_view'] ?? false),
-                    'can_create' => false,
-                    'can_edit' => false,
-                    'can_delete' => false,
-                    'can_upload' => false,
+                    'can_create' => (bool)($item['can_create'] ?? ($item['can_view'] ?? false)),
+                    'can_edit' => (bool)($item['can_edit'] ?? ($item['can_view'] ?? false)),
+                    'can_delete' => (bool)($item['can_delete'] ?? ($item['can_view'] ?? false)),
+                    'can_upload' => (bool)($item['can_upload'] ?? ($item['can_view'] ?? false)),
                     'updated_at' => now(),
                     'created_at' => now(),
                 ]

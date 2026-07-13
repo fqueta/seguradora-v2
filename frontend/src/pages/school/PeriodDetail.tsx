@@ -8,7 +8,6 @@ import { periodsService } from '@/services/periodsService';
 import { contractsService } from '@/services/contractsService';
 import type { PeriodRecord } from '@/types/periods';
 import { currencyApplyMask } from '@/lib/masks/currency';
-import { aircraftService } from '@/services/aircraftService';
 import { coursesService } from '@/services/coursesService';
 
 /**
@@ -87,19 +86,7 @@ export default function PeriodDetail() {
   });
   const contractItems = ((contractsList as any)?.data || (contractsList as any)?.items || []) as any[];
 
-  /**
-   * aircraftQuery
-   * pt-BR: Busca aeronaves para mapear labels dos IDs em period.aeronaves.
-   * en-US: Fetches aircraft to map labels of IDs in period.aeronaves.
-   */
-  const { data: aircraftList } = useQuery({
-    queryKey: ['aeronaves', 'list', 200],
-    queryFn: async () => aircraftService.listAircraft({ page: 1, per_page: 200 }),
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  });
-  const aircraftItems = ((aircraftList as any)?.data || (aircraftList as any)?.items || []) as any[];
+  const aircraftItems: any[] = [];
 
   /**
    * getContractLabel

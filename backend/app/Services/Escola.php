@@ -17,12 +17,11 @@ class Escola
     public function __construct()
     {
         $this->table = 'matriculas';
-        global $tab10,$tab11,$tab12,$tab15,$tab54;
+        global $tab10,$tab11,$tab12,$tab15;
         $tab10 = 'cursos';
         $tab11 = 'turmas';
         $tab12 = 'matriculas';
         $tab15 = 'clientes';
-        $tab54 = 'aeronaves';
         $this->campo_contrato_financeiro = 'contrato_financiamento_horas';
     }
 
@@ -102,12 +101,11 @@ class Escola
     // }
 	static function dadosMatricula($token_matricula=false,$compleSql=false){
         $dadosMatricula = false;
-        global $tab10,$tab11,$tab12,$tab15,$tab54;
+        global $tab10,$tab11,$tab12,$tab15;
         $tab10 = 'cursos';
         $tab11 = 'turmas';
         $tab12 = 'matriculas';
         $tab15 = 'clientes';
-        $tab54 = 'aeronaves';
         if($token_matricula){
 
 			$dadosMatricula = Qlib::dados_tab('matriculas as m',
