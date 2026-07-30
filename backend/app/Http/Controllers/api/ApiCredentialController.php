@@ -39,9 +39,20 @@ class ApiCredentialController extends Controller
     private function encodePasswordInConfig(array $config): array
     {
         if (array_key_exists('pass', $config) && is_string($config['pass']) && $config['pass'] !== '') {
-            $config['pass'] = Crypt::encryptString($config['pass']);
+            // Se já veio criptografado, descriptografa primeiro para evitar dupla criptografia
+            $decrypted = $this->tryDecrypt($config['pass']);
+            $config['pass'] = Crypt::encryptString($decrypted);
         }
         return $config;
+    }
+
+    private function tryDecrypt(string $value): string
+    {
+        try {
+            return Crypt::decryptString($value);
+        } catch (\Throwable $e) {
+            return $value;
+        }
     }
 
     private function decodePasswordInConfig(array $config): array
@@ -277,6 +288,10 @@ class ApiCredentialController extends Controller
             $mapped['post_status'] = $data['active'] ? 'publish' : 'draft';
         }
         if (array_key_exists('config', $data)) {
+            $existingConfig = json_decode($item->config ?? '[]', true) ?? [];
+            if (empty($data['config']['pass']) && !empty($existingConfig['pass'])) {
+                $data['config']['pass'] = $this->tryDecrypt($existingConfig['pass']);
+            }
             $mapped['config'] = json_encode($this->encodePasswordInConfig($data['config'] ?? []));
         }
         $mapped['post_type'] = 'api_credentials';
