@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal, Copy, Check, Key, HelpCircle, ArrowRight, Server, FileText, CheckCircle2, ShieldAlert } from 'lucide-react';
-import { Link } from 'react-router-dom';
+
 
 interface ParamInfo {
   name: string;
@@ -31,6 +31,7 @@ export default function ApiDocs() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [snippetLang, setSnippetLang] = useState<'curl' | 'js' | 'php'>('curl');
   const [environment, setEnvironment] = useState<'sandbox' | 'production'>('sandbox');
+  const [activeTab, setActiveTab] = useState('geral');
 
   const sandboxUrl = 'https://api-yellowdev.maisaqui.com.br/api/v1';
   const productionUrl = 'https://api-yellow.maisaqui.com.br/api/v1';
@@ -735,17 +736,19 @@ export default function ApiDocs() {
       {/* Alerta de Token */}
       <Alert className="border-primary/20 bg-primary/5">
         <Key className="h-5 w-5 text-primary" />
-        <AlertTitle className="font-semibold text-primary">Autenticação por Bearer Token</AlertTitle>
-        <AlertDescription className="text-muted-foreground text-sm flex flex-col md:flex-row md:items-center gap-2 mt-1">
-          <span>Para fazer chamadas protegidas, envie o cabeçalho <code>Authorization: Bearer &lt;seu_token&gt;</code>.</span>
-          <Link to="/admin/settings/integration" className="text-primary font-medium underline flex items-center gap-1 hover:text-primary/80">
-            Gerar Credenciais e Chaves de API <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
+        <AlertTitle className="font-semibold text-primary">Autenticação por Bearer Token — Como obter seu token</AlertTitle>
+        <AlertDescription className="text-muted-foreground text-sm mt-1 space-y-2">
+          <p>
+            O <code>Bearer Token</code> não é gerado em outra área do sistema. Para obtê-lo, faça <strong>Login com e-mail e senha</strong> na aba <strong>1. Autenticação (Login)</strong> (<code>POST /login</code>). O token retornado no campo <code>token</code> da resposta deve ser enviado em todas as chamadas protegidas no cabeçalho <code>Authorization: Bearer &lt;seu_token&gt;</code>.
+          </p>
+          <button onClick={() => setActiveTab('login')} className="text-primary font-semibold underline flex items-center gap-1 hover:text-primary/80">
+            Ir para aba 1. Autenticação (Login) e ver exemplo <ArrowRight className="h-3.5 w-3.5" />
+          </button>
         </AlertDescription>
       </Alert>
 
       {/* Tabs */}
-      <Tabs defaultValue="geral" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full h-auto bg-muted p-1 gap-1">
           <TabsTrigger value="geral" className="py-2.5 text-xs md:text-sm font-semibold">
             Geral & Autenticação
@@ -931,12 +934,23 @@ export default function ApiDocs() {
         <TabsContent value="login" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Autenticação por Usuário</CardTitle>
+              <CardTitle>Autenticação por Usuário — Gerar seu Bearer Token</CardTitle>
               <CardDescription>
-                Utilize o endpoint de Login para gerar um token dinamicamente a partir do e-mail e senha de uma conta.
+                Faça <code>POST /login</code> com <code>e-mail</code> e <code>senha</code> para gerar o token. É este token que você usará como <code>Bearer &lt;seu_token&gt;</code> nas demais abas (Clientes, Contratos, Produtos).
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900">
+                <HelpCircle className="h-4 w-4 text-amber-600" />
+                <AlertTitle className="text-amber-800 dark:text-amber-300 text-sm font-semibold">Passo a passo para obter o token</AlertTitle>
+                <AlertDescription className="text-amber-700 dark:text-amber-400/90 text-xs leading-relaxed">
+                  <ol className="list-decimal list-inside space-y-1 mt-1">
+                    <li>Envie <code>email</code>, <code>password</code> e <code>local: &quot;api&quot;</code> para <code>POST /login</code> (exemplo abaixo).</li>
+                    <li>Copie o campo <code>token</code> da resposta (<code>157|E90bghb89...</code>).</li>
+                    <li>Envie nas próximas requisições o cabeçalho <code>Authorization: Bearer &lt;seu_token&gt;</code>.</li>
+                  </ol>
+                </AlertDescription>
+              </Alert>
               <Accordion type="single" collapsible defaultValue="login-0" className="w-full">
                 {renderEndpointDoc(loginDoc, 0, 'login')}
               </Accordion>
