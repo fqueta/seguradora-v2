@@ -1,2 +1,9 @@
 .trae
 .*/
+
+# Database backups and local dumps
+backend/database/_old_dbs/
+backend/database/*.backup_*
+backend/database/*.sql
+backend/database/yellow-api-yellow
+backend/database/ylbk_bk
